@@ -1,0 +1,22 @@
+# Ignore the contributor's local assets folder, subfolders, and files
+/Assets/~Local/*
+/Assets/~Local/**/*
+/Assets/~Local.meta
+
+# Ignore Library files
+/Library/*
+/Library/**/*
+ 
+# Ignore local build files
+/obj/*
+/obj/**/*
+/Temp/*
+/Temp/**/*
+ 
+# Ignore local project files
+/*.csproj
+/*.pidb
+/*.sln
+/*.suo
+/*.unityproj
+/*.userprefs
