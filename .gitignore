@@ -16,7 +16,6 @@
 # Ignore local project files
 /*.csproj
 /*.pidb
-/*.sln
 /*.suo
 /*.unityproj
 /*.userprefs
