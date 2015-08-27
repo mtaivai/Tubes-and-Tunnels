@@ -14,12 +14,22 @@ namespace Paths
 	public class IncludePathModifier : AbstractPathModifier
 	{
 		private int includedPathRefIndex = -1;
+		public int includePosition = -1;
+		private int inputPointCount = 0;
+
+		public bool removeDuplicates = true; // "smart include"
+//		Vector3 includePosition
+
 
 		public override void OnDetach ()
 		{
 			SetIncludedPath (GetContainer ().GetReferenceContainer (), null);
 		}
 
+		public int GetCurrentInputPointCount ()
+		{
+			return inputPointCount;
+		}
 		public Path GetIncludedPath (IReferenceContainer refContainer)
 		{
 			Path refPath;
@@ -59,6 +69,8 @@ namespace Paths
 
 		public override PathPoint[] GetModifiedPoints (PathPoint[] points, PathModifierContext context)
 		{
+			this.inputPointCount = points.Length;
+
 			int ppFlags = GetOutputFlags (context);
 
 			PathPoint[] includedPoints;
@@ -70,50 +82,116 @@ namespace Paths
 				includedPoints = new PathPoint[0];
 			}
 
-			int totalPointCount = points.Length;
-			if (includedPoints.Length > 1) {
-				// We don't use the first point of the included path if we already have a
-				// point serving as first point:
-				totalPointCount += includedPoints.Length;
-				if (points.Length > 0) {
-					totalPointCount--;
+			if (includePosition < 0 || includePosition > points.Length) {
+				includePosition = points.Length;
+			}
+
+			int includedPointCount = includedPoints.Length;
+
+			//int originalPathIncludePointCount;
+			int includedPointsOffset = 0;
+			int originalPathHeadPointCount;
+			int originalPathTailPointCount;
+			int originalPathTailSkipOffset = 0;
+
+			if (points.Length < 1) {
+				// empty original path
+				originalPathHeadPointCount = originalPathTailPointCount = 0;
+			} else if (includedPointCount < 1) {
+				// Nothing to include; keep all originals
+				originalPathHeadPointCount = points.Length;
+				originalPathTailPointCount = 0;
+			} else if (includePosition == 0) {
+				// Included in the begin, remove first point of the original path if it's zero
+				// (to prevent duplicate points)
+				originalPathHeadPointCount = 0;
+				if (removeDuplicates && points [0].Position == Vector3.zero) {
+					originalPathTailPointCount = points.Length - 1;
+					originalPathTailSkipOffset = 1;
+				} else {
+					originalPathTailPointCount = points.Length;
+				}
+			} else if (includePosition == points.Length) {
+				// Included in the end, remove first point of the included path if it's zero
+				// (to remove duplicate points)
+				originalPathHeadPointCount = points.Length;
+				originalPathTailPointCount = 0;
+				if (removeDuplicates && includedPoints [0].Position == Vector3.zero) {
+					includedPointCount--;
+					includedPointsOffset = 1;
+				}
+			} else {
+				// Included in the middle, remove first point of the included path if it's zero
+				// (to remove duplicate points)
+				originalPathHeadPointCount = includePosition;
+				originalPathTailPointCount = points.Length - includePosition;
+				if (removeDuplicates && includedPoints [0].Position == Vector3.zero) {
+					includedPointCount--;
+					includedPointsOffset = 1;
 				}
 			}
 
+
+			int totalPointCount = includedPointCount + originalPathHeadPointCount + originalPathTailPointCount;
 			PathPoint[] results = new PathPoint[totalPointCount];
 
-			// Copy originals
-			for (int i = 0; i < points.Length; i++) {
+			// Copy originals (two parts: 1. before included and 2. after included)
+			int originalPathTailOffset = originalPathHeadPointCount + originalPathTailSkipOffset;
+			int resultPathTailOffset = originalPathHeadPointCount + includedPointCount;
+
+
+			for (int i = 0; i < originalPathHeadPointCount; i++) {
 				//float distFromPrev = (i > 0) ? (points[i].Position - points[i - 1].Position).magnitude : 0.0f;
-				results [i] = new PathPoint (points [i], ppFlags);
+				int resultIndex = i;
+				results [resultIndex] = points [i];
+				results [resultIndex].Flags = ppFlags;
+			}
+			if (originalPathTailPointCount > 0) {
+				Vector3 tailPosOffs = includedPointCount > 0 ? includedPoints [includedPoints.Length - 1] .Position : Vector3.zero;
+
+				for (int i = 0; i < originalPathTailPointCount; i++) {
+					//float distFromPrev = (i > 0) ? (points[i].Position - points[i - 1].Position).magnitude : 0.0f;
+					int resultIndex = i + resultPathTailOffset;
+					results [resultIndex] = points [i + originalPathTailOffset];
+					results [resultIndex].Position += tailPosOffs;
+					results [resultIndex].Flags = ppFlags;
+				}
 			}
              
 			// Copy included
-			if (includedPoints.Length > 1) {
+			if (includedPointCount > 1) {
 
+				// TODO what about these? Should we have configurable process?
 				bool updateDistFromPrev = PathPoint.IsDistanceFromPrevious (ppFlags);
 				bool updateDistFromBegin = updateDistFromPrev && PathPoint.IsDistanceFromBegin (ppFlags);
 
+				// Initial total distance:
 				float totalDistance = updateDistFromBegin ? 
                     (points.Length > 0 ? points [points.Length - 1].DistanceFromBegin : 0.0f)
                         : 0.0f;
 
-				int includedPointsStartOffset = points.Length > 0 ? 1 : 0;
-				int resultsArrayOffset = points.Length - includedPointsStartOffset;
+//				int includedPointsStartOffset = (includePosition > 0) ? 1 : 0;
+				int resultsArrayOffset = originalPathHeadPointCount;
 
-				Vector3 ptOffs = (points.Length > 0) ? points [points.Length - 1].Position : Vector3.zero;
-				for (int i = includedPointsStartOffset; i < includedPoints.Length; i++) {
+				// First point offset:
+				;
+
+				Vector3 ptOffs = (originalPathHeadPointCount > 0) ? points [originalPathHeadPointCount - 1].Position : Vector3.zero;
+				for (int i = 0; i < includedPointCount; i++) {
+					int includedPointsIndex = i + includedPointsOffset;
 
 					if (updateDistFromBegin) {
-						totalDistance += includedPoints [i].DistanceFromPrevious;
+						totalDistance += includedPoints [includedPointsIndex].DistanceFromPrevious;
 					}
-					float distFromPrevious = updateDistFromPrev ? includedPoints [i].DistanceFromPrevious : 0.0f;
+					float distFromPrevious = updateDistFromPrev ? includedPoints [includedPointsIndex].DistanceFromPrevious : 0.0f;
 
-					results [i + resultsArrayOffset] = new PathPoint (
-                        includedPoints [i].Position + ptOffs, includedPoints [i].Direction, 
-                        includedPoints [i].Up, includedPoints [i].Angle,
-                        distFromPrevious, totalDistance, ppFlags);
+					PathPoint pp = new PathPoint (includedPoints [includedPointsIndex], ppFlags);
+					pp.Position += ptOffs;
+					pp.DistanceFromPrevious = distFromPrevious;
+					pp.DistanceFromBegin = totalDistance;
 
+					int resultsIndex = i + resultsArrayOffset;
+					results [resultsIndex] = pp;
 				}
 			}
 			return results;
@@ -122,6 +200,8 @@ namespace Paths
 		public override void OnSerialize (Serializer store)
 		{
 			store.Property ("includedPathRefIndex", ref includedPathRefIndex);
+			store.Property ("includePosition", ref includePosition);
+			store.Property ("removeDuplicates", ref removeDuplicates);
 		}
       
 		public override Path[] GetPathDependencies ()

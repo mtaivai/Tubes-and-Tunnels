@@ -19,12 +19,11 @@ namespace Paths.Editor
 		{
 			IncludePathModifier pm = (IncludePathModifier)context.PathModifier;
             
-			EditorGUI.BeginChangeCheck ();
 			Path includedPath = pm.GetIncludedPath (context.PathModifierContainer.GetReferenceContainer ());
-
-//            pm.Get
+			EditorGUI.BeginChangeCheck ();
 			Path newPath = (Path)EditorGUILayout.ObjectField ("Included Path", includedPath, typeof(Path), true);
 			if (EditorGUI.EndChangeCheck ()) {
+				// TODO Undo.RecordObject
 				if (newPath == context.Path) {
 					EditorUtility.DisplayDialog ("Recursive Include", "Path can't be included recursively to itself!", "Got it!");
 				} else if (IsPathIncludedIn (context.Path, newPath)) {
@@ -40,6 +39,26 @@ namespace Paths.Editor
 				//              trackInspector.TrackGeneratorModified();
 			}
             
+			int inputPointCount = pm.GetCurrentInputPointCount ();
+			int sliderPos = pm.includePosition;
+			if (sliderPos < 0) {
+				sliderPos = inputPointCount;
+			}
+			EditorGUI.BeginChangeCheck ();
+			sliderPos = EditorGUILayout.IntSlider ("Position", sliderPos, 0, inputPointCount);
+			if (EditorGUI.EndChangeCheck ()) {
+				// TODO record UNDO!
+				pm.includePosition = sliderPos;
+				context.TargetModified ();
+			}
+
+			EditorGUI.BeginChangeCheck ();
+			pm.removeDuplicates = EditorGUILayout.Toggle ("Smart Include", pm.removeDuplicates);
+			if (EditorGUI.EndChangeCheck ()) {
+				// TODO record UNDO!
+				context.TargetModified ();
+			}
+
 		}
 
 		static bool IsPathIncludedIn (Path path, Path containerPath)
