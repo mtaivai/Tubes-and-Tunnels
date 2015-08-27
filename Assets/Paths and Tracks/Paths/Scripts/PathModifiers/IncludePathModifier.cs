@@ -13,40 +13,7 @@ namespace Paths
                   generateCaps=PathPoint.ALL)]
 	public class IncludePathModifier : AbstractPathModifier
 	{
-
-		//private const string PARAM_INCLUDED_PATH_INSTANCE_ID = "includedPath.InstanceID";
-//        private Path _includedPath;
 		private int includedPathRefIndex = -1;
-
-
-
-//        public Path IncludedPath
-//        {
-//            get
-//            {
-//                if (null == _includedPath && includedPathRefIndex >= 0)
-//                {
-//                    _includedPath = (Path)
-////                  RegisterListenerOnIncludedPath();
-//                }
-//                return this._includedPath;
-//            }
-//            set
-//            {
-//                if (_includedPath != value)
-//                {
-////                  if (null != _includedPath) {
-////                      UnregisterListenerOnIncludedPath();
-////                  }
-//                    _includedPath = value;
-////                  if (null != _includedPath) {
-////                      RegisterListenerOnIncludedPath();
-////                  }
-//                }
-//
-//                includedPathInstanceId = (null != _includedPath) ? _includedPath.GetInstanceID() : 0;
-//            }
-//        }
 
 		public override void OnDetach ()
 		{
@@ -115,14 +82,11 @@ namespace Paths
 
 			PathPoint[] results = new PathPoint[totalPointCount];
 
-
 			// Copy originals
 			for (int i = 0; i < points.Length; i++) {
 				//float distFromPrev = (i > 0) ? (points[i].Position - points[i - 1].Position).magnitude : 0.0f;
-
 				results [i] = new PathPoint (points [i], ppFlags);
 			}
-
              
 			// Copy included
 			if (includedPoints.Length > 1) {
