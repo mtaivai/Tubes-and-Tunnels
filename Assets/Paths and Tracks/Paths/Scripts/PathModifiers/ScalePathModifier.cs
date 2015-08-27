@@ -16,12 +16,12 @@ namespace Paths
 
 		public override PathPoint[] GetModifiedPoints (PathPoint[] points, PathModifierContext context)
 		{
-			PathPoint[] results = new PathPoint[points.Length];
+			int ppFlags = GetOutputFlags (context);
 			for (int i = 0; i < points.Length; i++) {
-				results [i] = new PathPoint (
-                    Vector3.Scale (points [i].Position, scaling));
+				points [i].Position = Vector3.Scale (points [i].Position, scaling);
+				points [i].Flags = ppFlags;
 			} 
-			return results;
+			return points;
 		}
         
 		public override void OnSerialize (Serializer store)

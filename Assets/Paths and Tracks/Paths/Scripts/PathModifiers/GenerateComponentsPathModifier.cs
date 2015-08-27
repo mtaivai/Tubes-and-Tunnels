@@ -79,8 +79,6 @@ namespace Paths
 
 		public override PathPoint[] GetModifiedPoints (PathPoint[] points, PathModifierContext context)
 		{
-			PathPoint[] results = new PathPoint[points.Length];
-
 
 //          int ppFlags = PathPoint.POSITION;
 //          if (directionOutput != OutputType.Remove) {
@@ -124,6 +122,7 @@ namespace Paths
 					}
 
 					angle = CalculateAngle (points, i, prevDir, nextDir);
+					points [i].Angle = angle;
 					angleKnown = true;
 
 				} else if (AngleFunction == PathModifierFunction.Passthrough) {
@@ -196,13 +195,9 @@ namespace Paths
 						up = Vector3.up;
 					}
 
+					points [i].Up = up;
 
-
-				} else if (UpVectorFunction == PathModifierFunction.Passthrough) {
-					up = points [i].Up;
-				} else {
-					up = Vector3.zero;
-				}
+				} 
 
 				bool distPrevKnown = false;
 
@@ -213,6 +208,7 @@ namespace Paths
 					} else {
 						distPrev = DistanceFromPrevious (points, i);
 					}
+					points [i].DistanceFromPrevious = distPrev;
 					distPrevKnown = true;
 					break;
 				case PathModifierFunction.Passthrough:
@@ -228,17 +224,14 @@ namespace Paths
 						distPrevKnown = true;
 					}
 					distBegin += distPrev;
-					break;
-				case PathModifierFunction.Passthrough:
-					distBegin = points [i].DistanceFromBegin;
+					points [i].DistanceFromBegin = distBegin;
 					break;
 				}
 
 
-				results [i] = new PathPoint (points [i].Position, dir, up, angle, distPrev, distBegin, ppFlags);
-//                Debug.Log("ppFlags: " + ppFlags);
+				points [i].Flags = ppFlags;
 			}
-			return results;
+			return points;
 
 		}
 

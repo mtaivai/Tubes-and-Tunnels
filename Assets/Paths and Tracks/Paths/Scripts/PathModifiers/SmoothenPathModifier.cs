@@ -36,7 +36,6 @@ namespace Paths
 
 			// TODO we don't have to recalculate the subset average on each iteration of 'i':
 			// (we just need to subtract the first point and add a new point to the moving average)
-			PathPoint[] results = new PathPoint[points.Length];
 			for (int i = 0; i < points.Length; i++) {
 				if ((!keepFirst || i > 0) && (!keepLast || i < points.Length - 1)) {
 					int subsetBegin = (int)((float)i - halfSubset);
@@ -55,13 +54,11 @@ namespace Paths
 					}
 					Vector3 avgPt = sumPt / (float)actualSubsetPoints;
 
-					results [i] = new PathPoint (
-                        avgPt, points [i].Direction, points [i].Up, 0.0f, 0.0f, 0.0f, ppFlags);
-				} else {
-					results [i] = new PathPoint (points [i], ppFlags);
+					points [i].Position = avgPt;
 				}
+				points [i].Flags = ppFlags;
 			} 
-			return results;
+			return points;
 		}
         
 		public override void OnSerialize (Serializer store)

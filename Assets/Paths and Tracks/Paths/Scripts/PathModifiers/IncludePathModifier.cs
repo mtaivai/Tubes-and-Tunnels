@@ -92,7 +92,7 @@ namespace Paths
 
 		public override PathPoint[] GetModifiedPoints (PathPoint[] points, PathModifierContext context)
 		{
-			int ppFlags = (GetPassthroughFlags (context) & context.InputFlags) | GetGenerateFlags (context);
+			int ppFlags = GetOutputFlags (context);
 
 			PathPoint[] includedPoints;
 			Path includedPath = GetIncludedPath (context.PathModifierContainer.GetReferenceContainer ());
@@ -120,10 +120,7 @@ namespace Paths
 			for (int i = 0; i < points.Length; i++) {
 				//float distFromPrev = (i > 0) ? (points[i].Position - points[i - 1].Position).magnitude : 0.0f;
 
-				results [i] = new PathPoint (
-                    points [i].Position, points [i].Direction, 
-                    points [i].Up, points [i].Angle,
-                    points [i].DistanceFromPrevious, points [i].DistanceFromBegin, ppFlags);
+				results [i] = new PathPoint (points [i], ppFlags);
 			}
 
              

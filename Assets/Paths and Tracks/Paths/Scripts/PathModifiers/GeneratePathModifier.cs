@@ -71,7 +71,6 @@ namespace Paths
 
 		public override PathPoint[] GetModifiedPoints (PathPoint[] points, PathModifierContext context)
 		{
-			PathPoint[] results = new PathPoint[points.Length];
 			int ppFlags = GetOutputFlags (context);
 			// Linear shift
 			// Scaling
@@ -106,9 +105,9 @@ namespace Paths
 				}
 
 
-				results [i] = new PathPoint (pos);
+				points [i].Position = pos;
 			}
-			return results;
+			return points;
 		}
 	}
 

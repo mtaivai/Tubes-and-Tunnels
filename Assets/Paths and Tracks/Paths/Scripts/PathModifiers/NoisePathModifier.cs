@@ -13,7 +13,7 @@ namespace Paths
                   generateCaps=PathPoint.DIRECTION | PathPoint.DISTANCES)]
 	public class NoisePathModifier : AbstractPathModifier
 	{
-
+		// TODO change to use ConfigurableProcessPathModifier!
 		public enum DirAndDistOutputType
 		{
 			Passthrough,
@@ -68,9 +68,8 @@ namespace Paths
 		{
 			System.Random rnd = new System.Random (Seed);
 
-			int ppFlags = (GetPassthroughFlags (context) & context.InputFlags) | GetGenerateFlags (context);
+			int ppFlags = GetOutputFlags (context);
 
-			PathPoint[] results = new PathPoint[points.Length];
 			for (int i = 0; i < points.Length; i++) {
 
 				Vector3 pos, dir;
@@ -83,24 +82,10 @@ namespace Paths
 					pos = points [i].Position;
 				}
 
-				if (directionOutput == DirAndDistOutputType.Passthrough) {
-					dir = points [i].Direction;
-				} else {
-					// Remove direction
-					dir = Vector3.zero;
-				}
-
-				if (distanceOutput == DirAndDistOutputType.Passthrough) {
-					distFromPrev = points [i].DistanceFromPrevious;
-					distFromBegin = points [i].DistanceFromBegin;
-				} else {
-					// Remove distances
-					distFromPrev = 0f;
-					distFromBegin = 0f;
-				}
-				results [i] = new PathPoint (pos, dir, Vector3.zero, 0.0f, distFromPrev, distFromBegin, ppFlags);
+				points [i].Position = pos;
+				points [i].Flags = ppFlags;
 			} 
-			return results;
+			return points;
 		}
         
 		public override void OnSerialize (Serializer store)

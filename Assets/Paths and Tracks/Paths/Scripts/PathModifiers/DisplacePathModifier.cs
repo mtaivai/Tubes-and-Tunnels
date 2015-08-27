@@ -11,24 +11,19 @@ namespace Paths
 	              processCaps=PathPoint.POSITION, passthroughCaps=PathPoint.ALL & ~PathPoint.POSITION)]
 	public class DisplacePathModifier : AbstractPathModifier
 	{
-		public Vector3 Displacement { get; set; }
+		public Vector3 displacement;
 
 		public override PathPoint[] GetModifiedPoints (PathPoint[] points, PathModifierContext context)
 		{
-			PathPoint[] results = new PathPoint[points.Length];
 			for (int i = 0; i < points.Length; i++) {
-				results [i] = new PathPoint (
-					points [i].Position + Displacement, points [i].Direction, 
-                    points [i].Up, points [i].Angle, 
-					points [i].DistanceFromPrevious, points [i].DistanceFromBegin, 
-					context.InputFlags);
+				points [i].Position += displacement;
 			} 
-			return results;
+			return points;
 		}
 
 		public override void OnSerialize (Serializer store)
 		{
-			Displacement = store.ReturnProperty ("Displacement", Displacement);
+			displacement = store.ReturnProperty ("Displacement", displacement);
 		}
 
 		
