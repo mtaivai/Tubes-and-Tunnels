@@ -10,6 +10,17 @@ namespace Paths
 	public class PathModifierUtil
 	{
 
+		public static string GetDisplayName (IPathModifier pm)
+		{
+			string n = pm.GetInstanceName ();
+			if (StringUtil.IsEmpty (n)) {
+				n = pm.GetName ();
+				if (StringUtil.IsEmpty (n)) {
+					n = AbstractPathModifier.GetDisplayName (pm.GetType ());
+				}
+			}
+			return n;
+		}
 		public static PathPoint[] RunPathModifiers (PathModifierContext context, PathPoint[] pathPoints, ref int flags, bool fixResultFlags)
 		{
 			IPathModifier[] modifiers = context.PathModifierContainer.GetPathModifiers ();
@@ -21,14 +32,24 @@ namespace Paths
 				PathModifierContext pmc = new PathModifierContext (context.PathInfo, context.PathModifierContainer, flags);
 				pathPoints = mod.GetModifiedPoints (pathPoints, pmc);
 
+
 				if (fixResultFlags) {
+					bool gotNulls = false;
 					int outputFlags = mod.GetOutputFlags (pmc);
 					for (int i = 0; i < pathPoints.Length; i++) {
 						PathPoint pp = pathPoints [i];
-						if (pp.Flags != outputFlags) {
-							PathPoint fixedPp = new PathPoint (pp, outputFlags);
-							pathPoints [i] = fixedPp;
+						if (null == pp) {
+							gotNulls = true;
+							pathPoints [i] = new PathPoint ();
+							pathPoints [i].Flags = outputFlags;
+						} else {
+							if (pp.Flags != outputFlags) {
+								pathPoints [i].Flags = outputFlags;
+							}
 						}
+					}
+					if (gotNulls) {
+						Debug.LogWarning ("PathModifier " + GetDisplayName (mod) + " (" + mod.GetType ().FullName + ") returned null point(s)");
 					}
 				}
 				// input & (process | passthrough) | generate
