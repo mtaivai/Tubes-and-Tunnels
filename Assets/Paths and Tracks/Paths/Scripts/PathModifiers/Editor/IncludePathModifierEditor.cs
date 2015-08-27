@@ -59,6 +59,29 @@ namespace Paths.Editor
 				context.TargetModified ();
 			}
 
+			EditorGUI.BeginChangeCheck ();
+			EditorGUI.BeginDisabledGroup (pm.includePosition == 0);
+			pm.alignFirstPoint = EditorGUILayout.Toggle ("Align First Point", pm.alignFirstPoint);
+			EditorGUI.EndDisabledGroup ();
+			if (EditorGUI.EndChangeCheck ()) {
+				// TODO record UNDO!
+				context.TargetModified ();
+			}
+
+			if (pm.alignFirstPoint) {
+				EditorGUI.BeginDisabledGroup (true);
+				EditorGUILayout.Vector3Field ("Position Offset", pm.GetCurrentIncludedPathPosOffset ());
+				EditorGUI.EndDisabledGroup ();
+			} else {
+				EditorGUI.BeginChangeCheck ();
+				pm.includedPathPosOffset = EditorGUILayout.Vector3Field ("Position Offset", pm.includedPathPosOffset);
+				if (EditorGUI.EndChangeCheck ()) {
+					// TODO record UNDO!
+					context.TargetModified ();
+				}
+			}
+
+			;
 		}
 
 		static bool IsPathIncludedIn (Path path, Path containerPath)

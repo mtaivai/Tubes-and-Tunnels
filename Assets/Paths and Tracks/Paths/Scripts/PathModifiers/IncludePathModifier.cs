@@ -14,12 +14,41 @@ namespace Paths
 	public class IncludePathModifier : AbstractPathModifier
 	{
 		private int includedPathRefIndex = -1;
-		public int includePosition = -1;
-		private int inputPointCount = 0;
 
-		public bool removeDuplicates = true; // "smart include"
+		public int includePosition; // "include at index"
+		private int _inputPointCount;
+
+		public bool removeDuplicates; // "smart include"
+
+		public bool alignFirstPoint;
+
+		public Vector3 includedPathPosOffset;
+		private Vector3 _currentIncludedPathPosOffset;
 //		Vector3 includePosition
 
+		protected override void OnReset ()
+		{
+			IPathModifierContainer container = GetContainer ();
+			if (null != container) {
+				SetIncludedPath (container.GetReferenceContainer (), null);
+			}
+
+			includePosition = -1;
+			_inputPointCount = 0;
+			removeDuplicates = true;
+			alignFirstPoint = false;
+			includedPathPosOffset = Vector3.zero;
+			_currentIncludedPathPosOffset = includedPathPosOffset;
+
+		}
+		public override void OnSerialize (Serializer store)
+		{
+			store.Property ("includedPathRefIndex", ref includedPathRefIndex);
+			store.Property ("includePosition", ref includePosition);
+			store.Property ("removeDuplicates", ref removeDuplicates);
+			store.Property ("alignFirstPoint", ref alignFirstPoint);
+			store.Property ("includedPathPosOffset", ref includedPathPosOffset);
+		}
 
 		public override void OnDetach ()
 		{
@@ -28,7 +57,11 @@ namespace Paths
 
 		public int GetCurrentInputPointCount ()
 		{
-			return inputPointCount;
+			return _inputPointCount;
+		}
+		public Vector3 GetCurrentIncludedPathPosOffset ()
+		{
+			return _currentIncludedPathPosOffset;
 		}
 		public Path GetIncludedPath (IReferenceContainer refContainer)
 		{
@@ -53,23 +86,28 @@ namespace Paths
 
 		public void SetIncludedPath (IReferenceContainer refContainer, Path includedPath)
 		{
-			if (includedPathRefIndex >= 0 && includedPathRefIndex < refContainer.GetReferentCount ()) {
-				// Replace or remove existing
-				if (includedPath != null) {
-					refContainer.SetReferent (includedPathRefIndex, includedPath);
-				} else {
-					// null includedPath; remove the referent
-					refContainer.RemoveReferent (includedPathRefIndex);
+			if (null != refContainer) {
+				if (includedPathRefIndex >= 0 && includedPathRefIndex < refContainer.GetReferentCount ()) {
+					// Replace or remove existing
+					if (includedPath != null) {
+						refContainer.SetReferent (includedPathRefIndex, includedPath);
+					} else {
+						// null includedPath; remove the referent
+						refContainer.RemoveReferent (includedPathRefIndex);
+					}
+				} else if (null != includedPath) {
+					// Add new
+					includedPathRefIndex = refContainer.AddReferent (includedPath);
 				}
-			} else if (null != includedPath) {
-				// Add new
-				includedPathRefIndex = refContainer.AddReferent (includedPath);
+			}
+			if (null == includedPath) {
+				includedPathRefIndex = -1;
 			}
 		}
 
 		public override PathPoint[] GetModifiedPoints (PathPoint[] points, PathModifierContext context)
 		{
-			this.inputPointCount = points.Length;
+			this._inputPointCount = points.Length;
 
 			int ppFlags = GetOutputFlags (context);
 
@@ -94,17 +132,23 @@ namespace Paths
 			int originalPathTailPointCount;
 			int originalPathTailSkipOffset = 0;
 
+
+			Vector3 includedPathFirstPointOffset;
+
 			if (points.Length < 1) {
 				// empty original path
 				originalPathHeadPointCount = originalPathTailPointCount = 0;
+				includedPathFirstPointOffset = includedPathPosOffset;
 			} else if (includedPointCount < 1) {
 				// Nothing to include; keep all originals
 				originalPathHeadPointCount = points.Length;
 				originalPathTailPointCount = 0;
+				includedPathFirstPointOffset = includedPathPosOffset;
 			} else if (includePosition == 0) {
 				// Included in the begin, remove first point of the original path if it's zero
 				// (to prevent duplicate points)
 				originalPathHeadPointCount = 0;
+				includedPathFirstPointOffset = includedPathPosOffset;
 				if (removeDuplicates && points [0].Position == Vector3.zero) {
 					originalPathTailPointCount = points.Length - 1;
 					originalPathTailSkipOffset = 1;
@@ -116,7 +160,9 @@ namespace Paths
 				// (to remove duplicate points)
 				originalPathHeadPointCount = points.Length;
 				originalPathTailPointCount = 0;
-				if (removeDuplicates && includedPoints [0].Position == Vector3.zero) {
+				includedPathFirstPointOffset = alignFirstPoint ? -includedPoints [0].Position : includedPathPosOffset;
+				//includedPosOffset = Vector3.zero;
+				if (removeDuplicates && (includedPoints [0].Position + includedPathFirstPointOffset == Vector3.zero)) {
 					includedPointCount--;
 					includedPointsOffset = 1;
 				}
@@ -125,12 +171,14 @@ namespace Paths
 				// (to remove duplicate points)
 				originalPathHeadPointCount = includePosition;
 				originalPathTailPointCount = points.Length - includePosition;
-				if (removeDuplicates && includedPoints [0].Position == Vector3.zero) {
+				includedPathFirstPointOffset = alignFirstPoint ? -includedPoints [0].Position : includedPathPosOffset;
+				if (removeDuplicates && (alignFirstPoint || includedPoints [0].Position == Vector3.zero)) {
 					includedPointCount--;
 					includedPointsOffset = 1;
 				}
 			}
 
+			this._currentIncludedPathPosOffset = includedPathFirstPointOffset;
 
 			int totalPointCount = includedPointCount + originalPathHeadPointCount + originalPathTailPointCount;
 			PathPoint[] results = new PathPoint[totalPointCount];
@@ -176,7 +224,8 @@ namespace Paths
 				// First point offset:
 				;
 
-				Vector3 ptOffs = (originalPathHeadPointCount > 0) ? points [originalPathHeadPointCount - 1].Position : Vector3.zero;
+				Vector3 ptOffs = includedPathFirstPointOffset + 
+					((originalPathHeadPointCount > 0) ? points [originalPathHeadPointCount - 1].Position : Vector3.zero);
 				for (int i = 0; i < includedPointCount; i++) {
 					int includedPointsIndex = i + includedPointsOffset;
 
@@ -197,12 +246,7 @@ namespace Paths
 			return results;
 		}
         
-		public override void OnSerialize (Serializer store)
-		{
-			store.Property ("includedPathRefIndex", ref includedPathRefIndex);
-			store.Property ("includePosition", ref includePosition);
-			store.Property ("removeDuplicates", ref removeDuplicates);
-		}
+
       
 		public override Path[] GetPathDependencies ()
 		{
