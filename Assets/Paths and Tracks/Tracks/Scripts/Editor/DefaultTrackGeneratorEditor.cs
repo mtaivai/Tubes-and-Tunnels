@@ -12,21 +12,21 @@ using Paths.Editor;
 
 namespace Tracks
 {
-    [TrackGeneratorCustomEditor(typeof(TrackGenerator))]
-    public class DefaultTrackGeneratorEditor : AbstractTrackGeneratorEditor<TrackGenerator>
-    {
-        //bool pathModifiersVisible = false;
+	[TrackGeneratorCustomEditor(typeof(TrackGenerator))]
+	public class DefaultTrackGeneratorEditor : AbstractTrackGeneratorEditor<TrackGenerator>
+	{
+		//bool pathModifiersVisible = false;
 
-        // TODO should we persist "prefs"?
+		// TODO should we persist "prefs"?
 //        Dictionary<string, string> prefs = new Dictionary<string, string>();
 
-        public override void OnEnable()
-        {
+		public override void OnEnable ()
+		{
 //          pathModifiersVisible = bool.Parse (target.GetEditorPref("pathModifiersVisible", false.ToString()));
-        }
+		}
 
-        public override void DrawInspectorGUI()
-        {
+		public override void DrawInspectorGUI ()
+		{
 //            DictionaryCustomToolEditorPrefs editorPrefs = new DictionaryCustomToolEditorPrefs(prefs);
 
 //            GUIContent[] tbContents = new GUIContent[] {
@@ -34,17 +34,16 @@ namespace Tracks
 //                new GUIContent("Path", "Path Parameters"),
 //                new GUIContent("Settings", "Track Settings"),
 //            };
-            //GUILayout.Toolbar(0, tbContents);
+			//GUILayout.Toolbar(0, tbContents);
 
 
 
-        }
+		}
 
-
-        public override void DrawSceneGUI()
-        {
-            throw new NotImplementedException();
-        }
-    }
+		public override void DrawSceneGUI ()
+		{
+			throw new NotImplementedException ();
+		}
+	}
 
 }

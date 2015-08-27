@@ -9,46 +9,46 @@ using Paths;
 
 namespace Tracks
 {
-    public abstract class AbstractTrackGeneratorEditor<T> : ITrackGeneratorEditor
-    {
-        protected TrackGeneratorEditorContext editorContext;
-        protected T target;
-        protected Track track;
-        protected TrackEditor trackInspector;
+	public abstract class AbstractTrackGeneratorEditor<T> : ITrackGeneratorEditor
+	{
+		protected TrackGeneratorEditorContext editorContext;
+		protected T target;
+		protected Track track;
+		protected TrackEditor trackInspector;
     
-        private void SetContext(TrackGeneratorEditorContext context)
-        {
-            this.editorContext = context;
-            this.target = (T)context.TrackGenerator;
-            this.track = context.Track;
-            this.trackInspector = (TrackEditor)context.TrackEditor;
-        }
+		private void SetContext (TrackGeneratorEditorContext context)
+		{
+			this.editorContext = context;
+			this.target = (T)context.TrackGenerator;
+			this.track = context.Track;
+			this.trackInspector = (TrackEditor)context.TrackEditor;
+		}
     
-        public void OnEnable(TrackGeneratorEditorContext context)
-        {
-            SetContext(context);
-            this.OnEnable();
-        }
+		public void OnEnable (TrackGeneratorEditorContext context)
+		{
+			SetContext (context);
+			this.OnEnable ();
+		}
 
-        public abstract void OnEnable();
+		public abstract void OnEnable ();
 
-        public void DrawInspectorGUI(TrackGeneratorEditorContext context)
-        {
-            SetContext(context);
-            this.DrawInspectorGUI();
-        }
+		public void DrawInspectorGUI (TrackGeneratorEditorContext context)
+		{
+			SetContext (context);
+			this.DrawInspectorGUI ();
+		}
     
-        public abstract void DrawInspectorGUI();
+		public abstract void DrawInspectorGUI ();
     
-        public void DrawSceneGUI(TrackGeneratorEditorContext context)
-        {
-            SetContext(context);
-            this.DrawSceneGUI();
-        }
+		public void DrawSceneGUI (TrackGeneratorEditorContext context)
+		{
+			SetContext (context);
+			this.DrawSceneGUI ();
+		}
     
-        public abstract void DrawSceneGUI();
+		public abstract void DrawSceneGUI ();
     
-    }
+	}
 
 
 }

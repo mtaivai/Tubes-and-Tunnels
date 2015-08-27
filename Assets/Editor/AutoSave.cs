@@ -2,44 +2,46 @@
 using UnityEditor;
 using System;
 
-public class AutoSave : EditorWindow {
+public class AutoSave : EditorWindow
+{
 	
 	private bool autoSaveScene = true;
 	private bool showMessage = true;
 	private bool isStarted = false;
-	private int intervalScene;	
+	private int intervalScene;
 	private DateTime lastSaveTimeScene = DateTime.Now;
-	
 	private string projectPath = Application.dataPath;
 	private string scenePath;
 	
 	[MenuItem ("Window/AutoSave")]
-	static void Init () {
-		AutoSave saveWindow = (AutoSave)EditorWindow.GetWindow (typeof (AutoSave));
-		saveWindow.Show();
+	static void Init ()
+	{
+		AutoSave saveWindow = (AutoSave)EditorWindow.GetWindow (typeof(AutoSave));
+		saveWindow.Show ();
 	}
 	
-	void OnGUI () {	
+	void OnGUI ()
+	{	
 		GUILayout.Label ("Info:", EditorStyles.boldLabel);
-		EditorGUILayout.LabelField ("Saving to:", ""+projectPath);
-		EditorGUILayout.LabelField ("Saving scene:", ""+scenePath);
+		EditorGUILayout.LabelField ("Saving to:", "" + projectPath);
+		EditorGUILayout.LabelField ("Saving scene:", "" + scenePath);
 		GUILayout.Label ("Options:", EditorStyles.boldLabel);
 		autoSaveScene = EditorGUILayout.BeginToggleGroup ("Auto save", autoSaveScene);
 		intervalScene = EditorGUILayout.IntSlider ("Interval (minutes)", intervalScene, 1, 10);
-		if(isStarted) {
-			EditorGUILayout.LabelField ("Last save:", ""+lastSaveTimeScene);
+		if (isStarted) {
+			EditorGUILayout.LabelField ("Last save:", "" + lastSaveTimeScene);
 		}
-		EditorGUILayout.EndToggleGroup();
+		EditorGUILayout.EndToggleGroup ();
 		showMessage = EditorGUILayout.BeginToggleGroup ("Show Message", showMessage);
 		EditorGUILayout.EndToggleGroup ();
 	}
 	
-	
-	void Update(){
+	void Update ()
+	{
 		scenePath = EditorApplication.currentScene;
-		if(autoSaveScene) {
-			if(DateTime.Now.Minute >= (lastSaveTimeScene.Minute+intervalScene) || DateTime.Now.Minute == 59 && DateTime.Now.Second == 59){
-				saveScene();
+		if (autoSaveScene) {
+			if (DateTime.Now.Minute >= (lastSaveTimeScene.Minute + intervalScene) || DateTime.Now.Minute == 59 && DateTime.Now.Second == 59) {
+				saveScene ();
 			}
 		} else {
 			isStarted = false;
@@ -47,14 +49,15 @@ public class AutoSave : EditorWindow {
 		
 	}
 	
-	void saveScene() {
-		EditorApplication.SaveScene(scenePath);
+	void saveScene ()
+	{
+		EditorApplication.SaveScene (scenePath);
 		lastSaveTimeScene = DateTime.Now;
 		isStarted = true;
-		if(showMessage){
-			Debug.Log("AutoSave saved: "+scenePath+" on "+lastSaveTimeScene);
+		if (showMessage) {
+			Debug.Log ("AutoSave saved: " + scenePath + " on " + lastSaveTimeScene);
 		}
-		AutoSave repaintSaveWindow = (AutoSave)EditorWindow.GetWindow (typeof (AutoSave));
-		repaintSaveWindow.Repaint();
+		AutoSave repaintSaveWindow = (AutoSave)EditorWindow.GetWindow (typeof(AutoSave));
+		repaintSaveWindow.Repaint ();
 	}
 }

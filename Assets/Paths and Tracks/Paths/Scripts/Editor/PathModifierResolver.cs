@@ -9,32 +9,28 @@ using Paths;
 
 namespace Paths.Editor
 {
+	public class PathModifierResolver : CustomToolResolver
+	{
+		private static PathModifierResolver _instance;
 
-    public class PathModifierResolver : CustomToolResolver
-    {
-        private static PathModifierResolver _instance;
-
-        public static PathModifierResolver Instance
-        {
-            get
-            {
-                if (null == _instance)
-                {
-                    _instance = new PathModifierResolver();
-                }
-                return _instance;
-            }
-        }
+		public static PathModifierResolver Instance {
+			get {
+				if (null == _instance) {
+					_instance = new PathModifierResolver ();
+				}
+				return _instance;
+			}
+		}
     
-        private static Type[] FindPathModifierTypes()
-        {
-            return Util.TypeUtil.FindTypesHavingAttribute(typeof(PathModifier), typeof(IPathModifier));
-        }
+		private static Type[] FindPathModifierTypes ()
+		{
+			return Util.TypeUtil.FindTypesHavingAttribute (typeof(PathModifier), typeof(IPathModifier));
+		}
 
-        private static Type[] FindPathModifierEditorTypes()
-        {
-            return Util.TypeUtil.FindTypesHavingAttribute(typeof(CustomToolEditor), typeof(IPathModifierEditor));
-        }
+		private static Type[] FindPathModifierEditorTypes ()
+		{
+			return Util.TypeUtil.FindTypesHavingAttribute (typeof(CustomToolEditor), typeof(IPathModifierEditor));
+		}
 
 //      private static int MatchPathModifierEditor (Type toolType, Type editorTypeCandidate)
 //      {
@@ -63,15 +59,15 @@ namespace Paths.Editor
 //            return AbstractPathModifier.GetFallbackDisplayName(toolType);
 //      }
 
-        public PathModifierResolver()
+		public PathModifierResolver ()
         : base(FindPathModifierTypes, FindPathModifierEditorTypes)
-        {
-            DisplayNameResolver = AbstractPathModifier.GetDisplayName;
-            FallbackDisplayNameResolver = null;
-        }
+		{
+			DisplayNameResolver = AbstractPathModifier.GetDisplayName;
+			FallbackDisplayNameResolver = null;
+		}
 
     
 
-    }
+	}
 
 }

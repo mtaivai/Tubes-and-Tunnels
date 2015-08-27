@@ -7,67 +7,58 @@ using Paths;
 
 namespace Paths
 {
-    [PathModifier(requiredInputFlags=PathPoint.POSITION,
+	[PathModifier(requiredInputFlags=PathPoint.POSITION,
                   processCaps=PathPoint.NONE,
                   passthroughCaps=PathPoint.UP,
                   generateCaps=PathPoint.POSITION | PathPoint.DIRECTION | PathPoint.DISTANCES)]
-    public class SubdividePathModifier : AbstractPathModifier
-    {
-        internal int subdivideSegmentsMin = 0;
-        internal int subdivideSegmentsMax = 4;
-        internal float subdivideTreshold = 1.0f;
+	public class SubdividePathModifier : AbstractPathModifier
+	{
+		internal int subdivideSegmentsMin = 0;
+		internal int subdivideSegmentsMax = 4;
+		internal float subdivideTreshold = 1.0f;
         
-        public SubdividePathModifier()
-        {
+		public SubdividePathModifier ()
+		{
             
-        }
+		}
         
-        // TODO check if values are rational!
-        public int SubdivideSegmentsMin
-        {
-            get
-            {
-                return this.subdivideSegmentsMin;
-            }
-            set
-            {
-                subdivideSegmentsMin = value;
-            }
-        }
+		// TODO check if values are rational!
+		public int SubdivideSegmentsMin {
+			get {
+				return this.subdivideSegmentsMin;
+			}
+			set {
+				subdivideSegmentsMin = value;
+			}
+		}
         
-        public int SubdivideSegmentsMax
-        {
-            get
-            {
-                return this.subdivideSegmentsMax;
-            }
-            set
-            {
-                subdivideSegmentsMax = value;
-            }
-        }
+		public int SubdivideSegmentsMax {
+			get {
+				return this.subdivideSegmentsMax;
+			}
+			set {
+				subdivideSegmentsMax = value;
+			}
+		}
         
-        public float SubdivideTreshold
-        {
-            get
-            {
-                return this.subdivideTreshold;
-            }
-            set
-            {
-                subdivideTreshold = value;
-            }
-        }
+		public float SubdivideTreshold {
+			get {
+				return this.subdivideTreshold;
+			}
+			set {
+				subdivideTreshold = value;
+			}
+		}
 
-        public override void OnSerialize(Serializer store)
-        {
-            store.Property("subdivideSegmentsMin", ref subdivideSegmentsMin);
-            store.Property("subdivideSegmentsMax", ref subdivideSegmentsMax);
-            store.Property("subdivideTreshold", ref subdivideTreshold);
+		public override void OnSerialize (Serializer store)
+		{
+			store.Property ("subdivideSegmentsMin", ref subdivideSegmentsMin);
+			store.Property ("subdivideSegmentsMax", ref subdivideSegmentsMax);
+			store.Property ("subdivideTreshold", ref subdivideTreshold);
             
-        }
+		}
 
-        /*
+		/*
         public void DrawInspectorGUI(TrackInspector trackInspector) {
             Track target = (Track)trackInspector.target;
             
@@ -121,77 +112,64 @@ namespace Paths
         }
     */
         
-        public override PathPoint[] GetModifiedPoints(PathPoint[] points, PathModifierContext context)
-        {
-            return DoSubdividePath(points, context);
-        }
+		public override PathPoint[] GetModifiedPoints (PathPoint[] points, PathModifierContext context)
+		{
+			return DoSubdividePath (points, context);
+		}
         
-        private PathPoint[] DoSubdividePath(PathPoint[] points, PathModifierContext context)
-        {
-            if (!enabled || subdivideSegmentsMax < 0 || null == points || points.Length == 0)
-            {
-                return points;
-            }
+		private PathPoint[] DoSubdividePath (PathPoint[] points, PathModifierContext context)
+		{
+			if (!enabled || subdivideSegmentsMax < 0 || null == points || points.Length == 0) {
+				return points;
+			}
 
-            int ppFlags = GetOutputFlags(context);
-            List<PathPoint> newPoints = new List<PathPoint>();
+			int ppFlags = GetOutputFlags (context);
+			List<PathPoint> newPoints = new List<PathPoint> ();
             
-            float distFromBegin = 0.0f;
-            for (int i = 1; i < points.Length; i++)
-            {
-                float distFromPrev;
-                if (points [i].HasDistanceFromPrevious)
-                {
-                    distFromPrev = points [i].DistanceFromPrevious;
-                } else
-                {
-                    distFromPrev = (points [i].Position - points [i - 1].Position).magnitude;
-                }
-                distFromBegin += distFromPrev;
+			float distFromBegin = 0.0f;
+			for (int i = 1; i < points.Length; i++) {
+				float distFromPrev;
+				if (points [i].HasDistanceFromPrevious) {
+					distFromPrev = points [i].DistanceFromPrevious;
+				} else {
+					distFromPrev = (points [i].Position - points [i - 1].Position).magnitude;
+				}
+				distFromBegin += distFromPrev;
 
-                int subdivideCount = subdivideSegmentsMin;
-                if (subdivideCount != subdivideSegmentsMax)
-                {
+				int subdivideCount = subdivideSegmentsMin;
+				if (subdivideCount != subdivideSegmentsMax) {
                     
-                    if (distFromPrev > subdivideTreshold)
-                    {
-                        subdivideCount = (int)(distFromPrev / subdivideTreshold);
-                    } else if (distFromPrev < subdivideTreshold)
-                    {
-                        subdivideCount = 0;
-                    }
+					if (distFromPrev > subdivideTreshold) {
+						subdivideCount = (int)(distFromPrev / subdivideTreshold);
+					} else if (distFromPrev < subdivideTreshold) {
+						subdivideCount = 0;
+					}
                     
-                    if (subdivideCount > subdivideSegmentsMax)
-                    {
-                        subdivideCount = subdivideSegmentsMax;
-                    } else if (subdivideCount < subdivideSegmentsMin)
-                    {
-                        subdivideCount = subdivideSegmentsMin;
-                    }
-                }
-                // We don't use the PathPoint.Direction because it's the "point" direction, i.e. an average
-                // between incoming and outgoing directions!
-                Vector3 segmentDir = (points [i].Position - points [i - 1].Position).normalized;
+					if (subdivideCount > subdivideSegmentsMax) {
+						subdivideCount = subdivideSegmentsMax;
+					} else if (subdivideCount < subdivideSegmentsMin) {
+						subdivideCount = subdivideSegmentsMin;
+					}
+				}
+				// We don't use the PathPoint.Direction because it's the "point" direction, i.e. an average
+				// between incoming and outgoing directions!
+				Vector3 segmentDir = (points [i].Position - points [i - 1].Position).normalized;
                 
-                float divisionDist = distFromPrev / (float)subdivideCount;
-                float currentDistInDiv = 0.0f;
+				float divisionDist = distFromPrev / (float)subdivideCount;
+				float currentDistInDiv = 0.0f;
                 
-                for (int j = 0; j < subdivideCount; j++)
-                {
-                    // TODO also interpolate the direction
-                    float divDistFromPrev = (i > 1 && j > 0) ? divisionDist : 0.0f;
+				for (int j = 0; j < subdivideCount; j++) {
+					// TODO also interpolate the direction
+					float divDistFromPrev = (i > 1 && j > 0) ? divisionDist : 0.0f;
                     
-                    Vector3 currentDir;
-                    bool interpolateDirections = true;
-                    if (j == 0)
-                    {
-                        currentDir = points [i - 1].Direction;
-                    } else
-                    {
-                        if (interpolateDirections)
-                        {
-                            float t = ((float)j / (float)subdivideCount);
-                            /*if (t < 0.5f) {
+					Vector3 currentDir;
+					bool interpolateDirections = true;
+					if (j == 0) {
+						currentDir = points [i - 1].Direction;
+					} else {
+						if (interpolateDirections) {
+							float t = ((float)j / (float)subdivideCount);
+							/*if (t < 0.5f) {
                             // Segments before the segment middle:
                             // Rotate segments towards the segment direction (the slice at the middle should
                             // be in line with the path)
@@ -205,33 +183,31 @@ namespace Paths
                             // Middle point!
                             currentDir = segmentDir;
                         }*/
-                            currentDir = Vector3.Lerp(points [i - 1].Direction, points [i].Direction, t * 1.0f);
-                            //currentDir = segmentDir;//((points[i - 1].Direction + points[i - 0].Direction) / 2.0f).normalized;
-                        } else
-                        {
-                            currentDir = segmentDir;
-                        }
+							currentDir = Vector3.Lerp (points [i - 1].Direction, points [i].Direction, t * 1.0f);
+							//currentDir = segmentDir;//((points[i - 1].Direction + points[i - 0].Direction) / 2.0f).normalized;
+						} else {
+							currentDir = segmentDir;
+						}
                         
-                    }
+					}
                     
-                    PathPoint pp = new PathPoint(points [i - 1].Position + segmentDir * currentDistInDiv, 
+					PathPoint pp = new PathPoint (points [i - 1].Position + segmentDir * currentDistInDiv, 
                                                   currentDir, points [i - 1].Up, points [i - 1].Angle, divDistFromPrev, distFromBegin + currentDistInDiv, ppFlags);
-                    newPoints.Add(pp);
-                    currentDistInDiv += divisionDist;
-                }
+					newPoints.Add (pp);
+					currentDistInDiv += divisionDist;
+				}
                 
-                //          newPoints[i * 4 - 4] = new PathPoint(points[i - 1].Position, dir);
-                //          newPoints[i * 4 - 2] = new PathPoint(points[i - 1].Position + dir * (divisionDist * 2.0f), dir);
-                //          newPoints[i * 4 - 1] = new PathPoint(points[i - 1].Position + dir * (divisionDist * 3.0f), dir);
+				//          newPoints[i * 4 - 4] = new PathPoint(points[i - 1].Position, dir);
+				//          newPoints[i * 4 - 2] = new PathPoint(points[i - 1].Position + dir * (divisionDist * 2.0f), dir);
+				//          newPoints[i * 4 - 1] = new PathPoint(points[i - 1].Position + dir * (divisionDist * 3.0f), dir);
                 
-            }
-            // Add Last point
-            if (points.Length > 0)
-            {
-                newPoints.Add(points [points.Length - 1]);
-            }
+			}
+			// Add Last point
+			if (points.Length > 0) {
+				newPoints.Add (points [points.Length - 1]);
+			}
             
-            return newPoints.ToArray();
-        }
-    }
+			return newPoints.ToArray ();
+		}
+	}
 }

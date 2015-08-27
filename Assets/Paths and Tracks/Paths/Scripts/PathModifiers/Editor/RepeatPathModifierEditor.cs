@@ -12,26 +12,25 @@ using Paths;
 
 namespace Paths.Editor
 {
-    [CustomToolEditor(typeof(RepeatPathModifier))]
-    public class RepeatPathModifierEditor : AbstractPathModifierEditor
-    {
+	[CustomToolEditor(typeof(RepeatPathModifier))]
+	public class RepeatPathModifierEditor : AbstractPathModifierEditor
+	{
         
-        public override void DrawInspectorGUI(PathModifierEditorContext context)
-        {
-            RepeatPathModifier pm = (RepeatPathModifier)context.PathModifier;
+		public override void DrawInspectorGUI (PathModifierEditorContext context)
+		{
+			RepeatPathModifier pm = (RepeatPathModifier)context.PathModifier;
             
-            EditorGUI.BeginChangeCheck();
-            pm.repeatCount = EditorGUILayout.IntSlider("Repeat Count", pm.repeatCount, 1, 100);
-            if (EditorGUI.EndChangeCheck())
-            {
+			EditorGUI.BeginChangeCheck ();
+			pm.repeatCount = EditorGUILayout.IntSlider ("Repeat Count", pm.repeatCount, 1, 100);
+			if (EditorGUI.EndChangeCheck ()) {
 
-                //EditorUtility.SetDirty(context.Target);
-                context.TargetModified();
-                //              trackInspector.TrackGeneratorModified();
-            }
+				//EditorUtility.SetDirty(context.Target);
+				context.TargetModified ();
+				//              trackInspector.TrackGeneratorModified();
+			}
 
-        }
+		}
         
-    }
+	}
 
 }
