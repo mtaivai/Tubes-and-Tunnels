@@ -11,7 +11,7 @@ namespace Paths.Polyline
 
 		[SerializeField]
 		private List<Vector3>
-			controlPoints;
+			controlPoints = new List<Vector3> ();
 
 		// not serialized
 
