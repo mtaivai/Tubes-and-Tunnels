@@ -85,6 +85,8 @@ namespace Paths
 		void SetEnabled (bool value);
 		//void SetEnabled(bool enabled);
 
+		void Reset ();
+
 		void LoadParameters (ParameterStore store);
 
 		void SaveParameters (ParameterStore store);
@@ -176,8 +178,34 @@ namespace Paths
 
 		public AbstractPathModifier ()
 		{
-			PathModifierUtil.GetPathModifierCapsFromAttributes (GetType (), out inputCaps, out processCaps, out passthroughCaps, out generateCaps);
 			this.name = GetDisplayName (GetType ());
+			Reset ();
+		}
+
+		private bool _onReset;
+
+		public void Reset ()
+		{
+			if (!_onReset) {
+				_onReset = true;
+				try {
+					enabled = true;
+					PathModifierUtil.GetPathModifierCapsFromAttributes (GetType (), out inputCaps, out processCaps, out passthroughCaps, out generateCaps);
+					instanceName = "";
+					instanceDescription = "";
+					// Don't reset container!
+
+					OnReset ();
+				} finally {
+					_onReset = false;
+				}
+			}
+
+		}
+
+		protected virtual void OnReset ()
+		{
+
 		}
 
 		private bool _onAttach;
