@@ -10,14 +10,13 @@ namespace Paths
 
     // TODO we don't really need the IPath interface since we're always referring to Path
     // (which is a GameObject)
-
     public class SimplePathModifierContainer : IPathModifierContainer
     {
         
         private List<IPathModifier> pathModifiers = new List<IPathModifier>();
         private IReferenceContainer referenceContainer;
         
-        public SimplePathModifierContainer()
+        public SimplePathModifierContainer ()
         {
             
         }
@@ -64,6 +63,7 @@ namespace Paths
         {
             return referenceContainer;
         }
+
         public void SetReferenceContainer(IReferenceContainer container)
         {
             this.referenceContainer = container;
@@ -74,34 +74,38 @@ namespace Paths
     {
         private List<IPathModifier> pathModifierInstances = new List<IPathModifier>();
 
-        public delegate void PathModifiersChangedDelegate();
+        public delegate IPathInfo GetPathInfoDelegate ();
 
-        public delegate void PathPointsChangedDelegate();
+        public delegate void PathModifiersChangedDelegate ();
 
-        public delegate PathPoint[] DoGetPathPointsDelegate(out int ppFlags);
+        public delegate void PathPointsChangedDelegate ();
 
-        public delegate void SetPathPointsDirtyDelegate();
+        public delegate PathPoint[] DoGetPathPointsDelegate (out int ppFlags);
 
-        public delegate void SetPathPointsDelegate(PathPoint[] points);
+        public delegate void SetPathPointsDirtyDelegate ();
+
+        public delegate void SetPathPointsDelegate (PathPoint[] points);
 
         // TODO maybe we should replace these delegates with an interface? (not SetPathPointsDelegate?)
+        private GetPathInfoDelegate GetPathInfo;
         private PathModifiersChangedDelegate PathModifiersChanged;
         private PathPointsChangedDelegate PathPointsChanged;
         private DoGetPathPointsDelegate DoGetPathPoints;
         private SetPathPointsDirtyDelegate SetPathPointsDirty;
         private SetPathPointsDelegate SetPathPoints;
-
         private IReferenceContainer referenceContainer;
 
         //private Action<PathPoint[]> DoGetPathPoints;
 
-        public DefaultPathModifierContainer(PathModifiersChangedDelegate pathModifiersChangedFunc, 
+        public DefaultPathModifierContainer (GetPathInfoDelegate getPathInfoFunc,
+                                             PathModifiersChangedDelegate pathModifiersChangedFunc, 
                                             PathPointsChangedDelegate pathPointsChangedFunc,
                                             DoGetPathPointsDelegate doGetPathPointsFunc,
                                             SetPathPointsDirtyDelegate setPathPointsDirtyFunc,
                                             SetPathPointsDelegate setPathPointsFunc,
                                             IReferenceContainer referenceContainer)
         {
+            this.GetPathInfo = getPathInfoFunc;
             this.PathModifiersChanged = pathModifiersChangedFunc;
             this.PathPointsChanged = pathPointsChangedFunc;
             this.DoGetPathPoints = doGetPathPointsFunc;
@@ -148,10 +152,10 @@ namespace Paths
                 {
                     continue;
                 }
-                IPath[] depPaths = pm.GetPathDependencies();
-                foreach (IPath p in depPaths)
+                Path[] depPaths = pm.GetPathDependencies();
+                foreach (Path p in depPaths)
                 {
-                    RegisterListenerOnIncludedPath((Path)p);
+                    RegisterListenerOnIncludedPath(p);
                 }
             }
         }
@@ -211,8 +215,6 @@ namespace Paths
             return null != SetPathPoints;
         }
 
-
-
         public void ApplyPathModifier(int index)
         {
             SimplePathModifierContainer pmc = new SimplePathModifierContainer();
@@ -228,8 +230,9 @@ namespace Paths
             //this.rawPathPointFlags = flags;
 
             // Create wrapper context that includes only the PathModifier to apply
+            IPathInfo pathInfo = GetPathInfo();
 
-            PathModifierContext subContext = new PathModifierContext(pmc, flags);
+            PathModifierContext subContext = new PathModifierContext(pathInfo, pmc, flags);
             pp = PathModifierUtil.RunPathModifiers(subContext, pp, ref flags, true);
             //this.pathPointFlags = flags;
             //this.pathPoints = new List<PathPoint>(pp);

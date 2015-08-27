@@ -18,8 +18,7 @@ namespace Paths.Bezier.Editor
         private GUIStyle labelStyle;
         int selectedControlPointIndex = -1;
         //int stepsPerSegment = 10;
-        
-        
+
         void OnSceneGUI()
         {
             Tools.hidden = false;
@@ -42,17 +41,12 @@ namespace Paths.Bezier.Editor
             }
 
             DrawPath();
-            
         }
         
-        public override void OnInspectorGUI()
+        protected override void DrawGeneralInspectorGUI()
         {
+            DrawDefaultGeneralInspectorGUI();
 
-            DrawDefaultPathInspectorGUI();
-
-            //base.OnInspectorGUI();
-            //return;
-            
             this.path = target as BezierPath;
             this.transform = path.transform;
             
@@ -64,7 +58,6 @@ namespace Paths.Bezier.Editor
                 path.PointsPerSegment = pointsPerSegment;
                 EditorUtility.SetDirty(path);
                 path.SetPointsDirty();
-
             }
             
             EditorGUI.BeginChangeCheck();
@@ -75,7 +68,6 @@ namespace Paths.Bezier.Editor
                 path.Loop = loop;
                 EditorUtility.SetDirty(path);
                 path.SetPointsDirty();
-
             }
             
             if (selectedControlPointIndex >= 0 && selectedControlPointIndex < path.ControlPointCount)
@@ -104,7 +96,22 @@ namespace Paths.Bezier.Editor
             }
         }
 
-        public override void DrawPathPointsInspector(ref bool expanded)
+        protected override void DrawPathModifiersInspectorGUI()
+        {
+            base.DrawPathModifiersInspectorGUI();
+        }
+
+        protected override void DrawSettingsInspectorGUI()
+        {
+            base.DrawSettingsInspectorGUI();
+        }
+
+        protected override void DrawDebugInspectorGUI()
+        {
+            base.DrawDebugInspectorGUI();
+        }
+        
+        protected override void DrawPathPointsInspector(ref bool expanded)
         {
             
             BezierPath path = (BezierPath)target;
@@ -336,15 +343,15 @@ namespace Paths.Bezier.Editor
             BezierPathSegmentJoint joint = path.GetSegmentJoint(controlPointIndex);
             switch (joint.controlPointMode)
             {
-                case BezierJointMode.Aligned:
-                    color = BezierPathEditorPrefs.AlignedJointHandleColor;
-                    break;
-                case BezierJointMode.Mirrored:
-                    color = BezierPathEditorPrefs.MirroredJointHandleColor;
-                    break;
-                default:
-                    color = BezierPathEditorPrefs.FreeJointHandleColor;
-                    break;
+            case BezierJointMode.Aligned:
+                color = BezierPathEditorPrefs.AlignedJointHandleColor;
+                break;
+            case BezierJointMode.Mirrored:
+                color = BezierPathEditorPrefs.MirroredJointHandleColor;
+                break;
+            default:
+                color = BezierPathEditorPrefs.FreeJointHandleColor;
+                break;
             }
             return color;
         }

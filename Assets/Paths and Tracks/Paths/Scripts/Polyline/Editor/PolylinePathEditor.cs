@@ -11,7 +11,6 @@ using Util.Editor;
 
 namespace Paths.Polyline.Editor
 {
-
     public class PolylinePathMenu
     {
         [MenuItem("Paths/Create/Create Polyline Path")]
@@ -50,7 +49,7 @@ namespace Paths.Polyline.Editor
 
 //      private DictionaryEditorItemPrefs pathModifierPrefs = new DictionaryEditorItemPrefs();
 
-        public PolylinePathEditor()
+        public PolylinePathEditor ()
         {
             // TODO we should have common / shared styles!
             labelStyle = new GUIStyle();
@@ -64,20 +63,22 @@ namespace Paths.Polyline.Editor
             labelStyle.normal.textColor = Color.white;
         }
     
-        public override void OnInspectorGUI()
+        protected override void DrawGeneralInspectorGUI()
         {
-//            PolylinePath path = (PolylinePath)target;
+            DrawDefaultGeneralInspectorGUI();
 
-            if (TB_SHEET_GENERAL == DrawDefaultPathInspectorGUI())
+            PolylinePath path = target as PolylinePath;
+
+            EditorGUI.BeginChangeCheck();
+            path.SetLoop(EditorGUILayout.Toggle("Loop", path.IsLoop()));
+            if (EditorGUI.EndChangeCheck())
             {
-
-
+                Undo.RecordObject(path, "Toggle Path Loop Mode");
+                EditorUtility.SetDirty(path);
             }
-
-            //DrawDefaultInspector();
         }
 
-        public override void DrawPathPointsInspector(ref bool expanded)
+        protected override void DrawPathPointsInspector(ref bool expanded)
         {
         
             PolylinePath path = (PolylinePath)target;
@@ -103,8 +104,7 @@ namespace Paths.Polyline.Editor
                     pt = EditorGUILayout.Vector3Field("[" + i + "]", pt);
                     if (EditorGUI.EndChangeCheck())
                     {
-                        path.SetControlPointAtIndex(i, pt);
-                        EditorUtility.SetDirty(path);
+                        SetControlPoint(i, pt);
                     }
                     if (GUILayout.Button(new GUIContent("-", "Delete Control Point"), GUILayout.Width(32)))
                     {
@@ -147,6 +147,14 @@ namespace Paths.Polyline.Editor
             }
 
             DrawDefaultPathPointsInspector();
+        }
+
+        void SetControlPoint(int index, Vector3 pt)
+        {
+            PolylinePath path = (PolylinePath)target;
+            Undo.RecordObject(path, "Modify Control Point");
+            path.SetControlPointAtIndex(index, pt);
+            EditorUtility.SetDirty(path);
         }
 
         void DeleteControlPoint(int index)

@@ -12,13 +12,14 @@ using Paths;
 
 namespace Paths.Editor
 {
-
     [CustomToolEditor(typeof(ConfigurableProcessPathModifier))]
     public class FallbackConfigurableProcessPathModifierEditor : ConfigurableProcessPathModifierEditor
     {
         protected override void DrawGeneralConfigurationGUI(PathModifierEditorContext context)
         {
-            FallbackCustomToolEditor.DoDrawInspectorGUI(context, "PositionFunction", "DirectionFunction", "UpVectorFunction", "DistanceFunction", "AngleFunction");
+            FallbackCustomToolEditor.DoDrawInspectorGUI(context, 
+                                                         "PositionFunction", "DirectionFunction", "UpVectorFunction", 
+                                                         "DistanceFromPreviousFunction", "DistanceFromBeginFunction", "AngleFunction");
         }
 //        public override void OnDrawInspectorGUI(PathModifierEditorContext context)
 //        {
@@ -28,7 +29,7 @@ namespace Paths.Editor
 
     public abstract class ConfigurableProcessPathModifierEditor : AbstractPathModifierEditor
     {
-        delegate void DrawFunctionOptionsFunc(PathModifierEditorContext context);
+        delegate void DrawFunctionOptionsFunc (PathModifierEditorContext context);
 
         public override sealed void DrawInspectorGUI(PathModifierEditorContext context)
         {
@@ -39,6 +40,7 @@ namespace Paths.Editor
         {
             DrawDefaultInspectorGUI(context);
         }
+
         public void DrawDefaultInspectorGUI(PathModifierEditorContext context)
         {
             //            ConfigurableProcessPathModifier pm = (ConfigurableProcessPathModifier)context.PathModifier;
@@ -113,11 +115,13 @@ namespace Paths.Editor
             
             EditorGUI.BeginChangeCheck();
             
-            pm.PositionFunction = FunctionSelection(context, "Position Function", pm.AllowedPositionFunctions, pm.PositionFunction, DrawPositionFunctionGUI);
-            pm.DirectionFunction = FunctionSelection(context, "Direction Function", pm.AllowedDirectionFunctions, pm.DirectionFunction, DrawDirectionFunctionGUI);
-            pm.UpVectorFunction = FunctionSelection(context, "Up Vector Function", pm.AllowedUpVectorFunctions, pm.UpVectorFunction, DrawUpVectorFunctionGUI);
-            pm.AngleFunction = FunctionSelection(context, "Angle Function", pm.AllowedAngleFunctions, pm.AngleFunction, DrawAngleFunctionGUI);
-            pm.DistanceFunction = FunctionSelection(context, "Distance Function", pm.AllowedDistanceFunctions, pm.DistanceFunction, DrawDistanceFunctionGUI);
+            pm.PositionFunction = FunctionSelection(context, "Position Fn", pm.AllowedPositionFunctions, pm.PositionFunction, DrawPositionFunctionGUI);
+            pm.DirectionFunction = FunctionSelection(context, "Direction Fn", pm.AllowedDirectionFunctions, pm.DirectionFunction, DrawDirectionFunctionGUI);
+            pm.UpVectorFunction = FunctionSelection(context, "Up Vector Fn", pm.AllowedUpVectorFunctions, pm.UpVectorFunction, DrawUpVectorFunctionGUI);
+            pm.AngleFunction = FunctionSelection(context, "Angle Fn", pm.AllowedAngleFunctions, pm.AngleFunction, DrawAngleFunctionGUI);
+
+            pm.DistanceFromPreviousFunction = FunctionSelection(context, "Dist[prev] Fn", pm.AllowedDistanceFromPreviousFunctions, pm.DistanceFromPreviousFunction, DrawDistanceFunctionGUI);
+            pm.DistanceFromBeginFunction = FunctionSelection(context, "Dist[begin] Fn", pm.AllowedDistanceFromBeginFunctions, pm.DistanceFromBeginFunction, DrawDistanceFunctionGUI);
 
             if (EditorGUI.EndChangeCheck())
             {
@@ -131,15 +135,19 @@ namespace Paths.Editor
         protected virtual void DrawPositionFunctionGUI(PathModifierEditorContext context)
         {
         }
+
         protected virtual void DrawDirectionFunctionGUI(PathModifierEditorContext context)
         {
         }
+
         protected virtual void DrawUpVectorFunctionGUI(PathModifierEditorContext context)
         {
         }
+
         protected virtual void DrawAngleFunctionGUI(PathModifierEditorContext context)
         {
         }
+
         protected virtual void DrawDistanceFunctionGUI(PathModifierEditorContext context)
         {
         }

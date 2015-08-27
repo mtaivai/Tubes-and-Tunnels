@@ -23,17 +23,17 @@ namespace Paths
         public Vector3 rotateEnd;
         public Vector3 scaleStart;
         public Vector3 scaleEnd;
-
         public int translateOrder;
         public int rotateOrder;
         public int scaleOrder;
 
-
-        protected override void GetAllowedFunctions(out int positionMask, out int directionMask, out int distanceMask, out int upVectorMask, out int angleMask)
+        protected override void GetAllowedFunctions(out int positionMask, out int directionMask, 
+                                                     out int distanceFromPreviousMask, out int distanceFromBeginMask,
+                                                     out int upVectorMask, out int angleMask)
         {
             positionMask = MaskProcess;
             directionMask = MaskNone;
-            distanceMask = MaskNone;//MaskGenerate | MaskRemove;
+            distanceFromBeginMask = distanceFromPreviousMask = MaskNone;//MaskGenerate | MaskRemove;
             upVectorMask = MaskNone;
             angleMask = MaskNone;//MaskGenerate | MaskRemove;
             
@@ -68,7 +68,6 @@ namespace Paths
             ser.Property("scaleOrder", ref scaleOrder);
 
         }
-
 
         public override PathPoint[] GetModifiedPoints(PathPoint[] points, PathModifierContext context)
         {
@@ -121,7 +120,7 @@ namespace Paths
     [PathModifier(requiredInputFlags=PathPoint.NONE, 
                   processCaps=PathPoint.NONE,
                   passthroughCaps=PathPoint.NONE, 
-                  generateCaps=PathPoint.POSITION | PathPoint.DIRECTION | PathPoint.UP)]
+                  generateCaps=PathPoint.POSITION | PathPoint.DIRECTION | PathPoint.UP | PathPoint.DISTANCES)]
     public class GeneratePathModifier : ConfigurableProcessPathModifier
     {
         public enum GenerateFunction
@@ -130,28 +129,31 @@ namespace Paths
             Ellipse,
         }
         public GenerateFunction function;
-
         public bool closeEllipse;
-
         public int pointCount;
         public Vector3 direction;
         public float sizeMagnitude;
         public Vector3 sizeVector;
         public CoordinatePlane plane;
 
-        protected override void GetAllowedFunctions(out int positionMask, out int directionMask, out int distanceMask, out int upVectorMask, out int angleMask)
+        protected override void GetAllowedFunctions(out int positionMask, out int directionMask, 
+                                                     out int distanceFromPreviousMask, out int distanceFromBeginMask,
+                                                     out int upVectorMask, out int angleMask)
         {
             positionMask = MaskGenerate;
             directionMask = MaskGenerate | MaskRemove;
-            distanceMask = 0;//MaskGenerate | MaskRemove;
+            distanceFromBeginMask = distanceFromPreviousMask = MaskGenerate | MaskRemove;
+
             upVectorMask = MaskGenerate | MaskRemove;
             angleMask = 0;//MaskGenerate | MaskRemove;
 
         }
+
         public override string GetDescription()
         {
             return "Generate different paths or path segments";
         }
+
         public override void Reset()
         {
             function = GenerateFunction.Straight;
@@ -163,6 +165,7 @@ namespace Paths
             plane = CoordinatePlane.XZ;
 
         }
+
         protected override void OnSerializeCustom(Serializer store)
         {
             store.EnumProperty("function", ref function);
@@ -175,72 +178,133 @@ namespace Paths
 
         }
 
-
         public override PathPoint[] GetModifiedPoints(PathPoint[] points, PathModifierContext context)
         {
             int ppFlags = GetOutputFlags(context);
+
+            bool loopPath = context.PathInfo.IsLoopPath();
 
             Vector3[] positions;
 
             switch (function)
             {
-                case GenerateFunction.Straight:
-                case GenerateFunction.Ellipse:
+            case GenerateFunction.Straight:
+            case GenerateFunction.Ellipse:
 
 
-                    positions = CreateEllipse();
-                    break;
-                default:
-                    positions = new Vector3[0];
-                    break;
+                positions = CreateEllipse();
+                break;
+            default:
+                positions = new Vector3[0];
+                break;
 
             }
 
             points = new PathPoint[positions.Length];
 
 
+
+            float distFromBegin = 0.0f;
             for (int i = 0; i < points.Length; i++)
             {
                 Vector3 pos = positions [i];
-                Vector3 dir, up;
 
-
-                if (PathPoint.IsDirection(ppFlags))
+                float distFromPrev = 0.0f;
+                bool distFromPrevKnown = false;
+                switch (DistanceFromPreviousFunction)
                 {
-                    dir = PathUtil.IntersectDirection(positions, i);
-                } else
+                case PathModifierFunction.Generate:
+                    distFromPrev = GetDistanceFromPrev(positions, i);
+                    distFromPrevKnown = true;
+                    break;
+                }
+                switch (DistanceFromBeginFunction)
                 {
-                    dir = Vector3.zero;
+                case PathModifierFunction.Generate:
+                    if (!distFromPrevKnown)
+                    {
+                        distFromPrev = GetDistanceFromPrev(positions, i);
+                    }
+                    distFromBegin += distFromPrev;
+                    break;
                 }
 
-                // Cross product things
+                points [i] = new PathPoint(pos, Vector3.zero, Vector3.zero, 0f, distFromPrev, distFromBegin, ppFlags);
+            }
 
-               
-                if (PathPoint.IsUp(ppFlags))
+            // Second pass for directions (required to calculate them correctly for looped paths)
+            for (int i = 0; i < points.Length; i++)
+            {
+                Vector3 pos = points [i].Position;
+                Vector3 dir, up;
+                Vector3 prevDir;
+                Vector3 nextDir;
+
+                bool dirKnown = false;
+                bool prevAndNextDirKnown = false;
+
+                switch (DirectionFunction)
                 {
-
+                case PathModifierFunction.Generate:
+                    dir = PathUtil.IntersectDirection(positions, i, loopPath, out prevDir, out nextDir);
+                    dirKnown = true;
+                    prevAndNextDirKnown = true;
+                    break;
+                default:
+                    dir = points [i].Direction;
+                    dirKnown = points [i].HasDirection;
+                    break;
+                }
+                
+                // Cross product things
+                
+                switch (UpVectorFunction)
+                {
+                case PathModifierFunction.Generate:
+                    
                     // Do we have dir?
                     // TODO get Up vector algorithm from GenerateComponentsPathModifier
-
+                    
                     //up = Vector3.up;
+                    
+                    if (!(dirKnown && prevAndNextDirKnown))
+                    {
 
-                    Vector3 prevDir, nextDir;
-                    PathUtil.IntersectDirection(positions, i, out prevDir, out nextDir);
+                        dir = PathUtil.IntersectDirection(positions, i, loopPath, out prevDir, out nextDir);
+                        dirKnown = prevAndNextDirKnown = true;
+                    }
                     Vector3 cross = Vector3.Cross(-prevDir, nextDir).normalized;
                     Vector3 right = cross;
 
                     up = Quaternion.AngleAxis(-90, right) * dir;
                     //Vector3.OrthoNormalize(ref dir, ref right, ref up);
                     //up = Vector3.up;
-                } else
-                {
+                    break;
+                default:
                     up = Vector3.zero;
+                    break;
                 }
 
-                points [i] = new PathPoint(pos, dir, up, 0f, 0f, 0f, ppFlags);
+                
+                // TODO change the following if we ever make PathPoint mutable:
+                
+                points [i] = new PathPoint(pos, dir, up, 0f, 
+                                            points [i].DistanceFromPrevious, 
+                                            points [i].DistanceFromBegin, ppFlags);
             }
 
             return points;
+        }
+
+        private float GetDistanceFromPrev(Vector3[] points, int index)
+        {
+            if (index == 0)
+            {
+                return 0.0f;
+            } else
+            {
+                return (points [index] - points [index - 1]).magnitude;
+            }
         }
 
         Vector3[] CreateEllipse()

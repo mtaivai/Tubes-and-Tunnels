@@ -29,7 +29,6 @@ namespace Paths
 
         public CoordinatePlane generateAnglePlane = CoordinatePlane.XZ;
         public CoordinatePlane generateUpVectorPlane = CoordinatePlane.XZ;
-
         public UpVectorAlgorithm upVectorAlgorithm;
         public float bankFactor;
         public float bankFactorMultiplier;
@@ -42,13 +41,13 @@ namespace Paths
             return "This Path Modifier can (re)generate PathPoint components with different algorithms.";
         }
 
-
         public override void Reset()
         {
             PositionFunction = PathModifierFunction.Passthrough;
             DirectionFunction = PathModifierFunction.Generate;
             UpVectorFunction = PathModifierFunction.Passthrough;
-            DistanceFunction = PathModifierFunction.Generate;
+            DistanceFromPreviousFunction = PathModifierFunction.Generate;
+            DistanceFromBeginFunction = PathModifierFunction.Generate;
             AngleFunction = PathModifierFunction.Passthrough;
 
             // TODO we should have these as mandatory settings, e.g. in constructor args or
@@ -65,13 +64,17 @@ namespace Paths
             constantUpVector = Vector3.up;
 
         }
-        protected override void GetAllowedFunctions(out int positionMask, out int directionMask, out int distanceMask, out int upVectorMask, out int angleMask)
+
+        protected override void GetAllowedFunctions(out int positionMask, out int directionMask, 
+                                                    out int distanceFromPreviousMask, out int distanceFromBeginMask, 
+                                                    out int upVectorMask, out int angleMask)
         {
             positionMask = MaskPassthrough;
             directionMask = MaskPassthrough | MaskGenerate | MaskRemove;
             upVectorMask = MaskPassthrough | MaskGenerate | MaskRemove;
             angleMask = MaskPassthrough | MaskGenerate | MaskRemove;
-            distanceMask = MaskPassthrough | MaskGenerate | MaskRemove;
+            distanceFromPreviousMask = MaskPassthrough | MaskGenerate | MaskRemove;
+            distanceFromBeginMask = distanceFromPreviousMask;
         }
 
         public override PathPoint[] GetModifiedPoints(PathPoint[] points, PathModifierContext context)
@@ -104,7 +107,7 @@ namespace Paths
                 Vector3 dir;
                 if (DirectionFunction == PathModifierFunction.Generate)
                 {
-                    dir = PathUtil.IntersectDirection(points, i, Vector3.zero, out prevDir, out nextDir);
+                    dir = PathUtil.IntersectDirection(points, i, false, Vector3.zero, out prevDir, out nextDir);
                     prevAndNextDirKnown = true;
                     
                 } else if (DirectionFunction == PathModifierFunction.Passthrough)
@@ -122,7 +125,7 @@ namespace Paths
                 {
                     if (!prevAndNextDirKnown)
                     {
-                        dir = PathUtil.IntersectDirection(points, i, Vector3.zero, out prevDir, out nextDir);
+                        dir = PathUtil.IntersectDirection(points, i, false, Vector3.zero, out prevDir, out nextDir);
                         prevAndNextDirKnown = true;
                     }
 
@@ -153,7 +156,7 @@ namespace Paths
 
                     if (!prevAndNextDirKnown)
                     {
-                        dir = PathUtil.IntersectDirection(points, i, Vector3.zero, out prevDir, out nextDir);
+                        dir = PathUtil.IntersectDirection(points, i, false, Vector3.zero, out prevDir, out nextDir);
                         prevAndNextDirKnown = true;
                     }
 
@@ -220,24 +223,41 @@ namespace Paths
                     up = Vector3.zero;
                 }
 
+                bool distPrevKnown = false;
 
-                if (DistanceFunction == PathModifierFunction.Generate)
+                switch (DistanceFromPreviousFunction)
                 {
+                case PathModifierFunction.Generate:
                     if (i == 0)
                     {
                         distPrev = 0f;
                     } else
                     {
-                        distPrev = (points [i].Position - points [i - 1].Position).magnitude;
+                        distPrev = DistanceFromPrevious(points, i);
                     }
-                    distBegin += distPrev;
-                } else if (DistanceFunction == PathModifierFunction.Passthrough)
-                {
-                    distBegin = points [i].DistanceFromBegin;
+                    distPrevKnown = true;
+                    break;
+                case PathModifierFunction.Passthrough:
                     distPrev = points [i].DistanceFromPrevious;
+                    distPrevKnown = PathPoint.IsDistanceFromPrevious(context.InputFlags) && points [i].HasDistanceFromPrevious;
+                    break;
                 }
 
-            
+                switch (DistanceFromBeginFunction)
+                {
+                case PathModifierFunction.Generate:
+                    if (!distPrevKnown)
+                    {
+                        distPrev = DistanceFromPrevious(points, i);
+                        distPrevKnown = true;
+                    }
+                    distBegin += distPrev;
+                    break;
+                case PathModifierFunction.Passthrough:
+                    distBegin = points [i].DistanceFromBegin;
+                    break;
+                }
+
 
                 results [i] = new PathPoint(points [i].Position, dir, up, angle, distPrev, distBegin, ppFlags);
 //                Debug.Log("ppFlags: " + ppFlags);
@@ -245,6 +265,20 @@ namespace Paths
             return results;
 
         }
+
+        private static float DistanceFromPrevious(PathPoint[] points, int index)
+        {
+            float distPrev;
+            if (index == 0)
+            {
+                distPrev = 0f;
+            } else
+            {
+                distPrev = (points [index].Position - points [index - 1].Position).magnitude;
+            }
+            return distPrev;
+        }
+
         // TODO what is this used for?
         static Vector3 GetRotateAroundVector(CoordinatePlane plane)
         {
@@ -252,20 +286,20 @@ namespace Paths
             switch (plane)
             {
                 
-                case CoordinatePlane.XY:
-                    rotateAroundVector = Vector3.right; // Z
-                    break;
-                case CoordinatePlane.XZ:
-                    rotateAroundVector = Vector3.up; // Y
-                    break;
-                case CoordinatePlane.YZ:
-                    rotateAroundVector = Vector3.forward; // X
-                    break;
-                case CoordinatePlane.XYZ:
-                default:
+            case CoordinatePlane.XY:
+                rotateAroundVector = Vector3.right; // Z
+                break;
+            case CoordinatePlane.XZ:
+                rotateAroundVector = Vector3.up; // Y
+                break;
+            case CoordinatePlane.YZ:
+                rotateAroundVector = Vector3.forward; // X
+                break;
+            case CoordinatePlane.XYZ:
+            default:
                     // TODO what to do here, should we have user-defined Vector3?
-                    rotateAroundVector = Vector3.up;
-                    break;
+                rotateAroundVector = Vector3.up;
+                break;
             }
             return rotateAroundVector;
         }
@@ -276,20 +310,20 @@ namespace Paths
             switch (plane)
             {
                 
-                case CoordinatePlane.XY:
-                    v = Vector3.forward;
-                    break;
-                case CoordinatePlane.XZ:
-                    v = Vector3.up; // X
-                    break;
-                case CoordinatePlane.YZ:
-                    v = Vector3.right; // Y
-                    break;
-                case CoordinatePlane.XYZ:
-                default:
+            case CoordinatePlane.XY:
+                v = Vector3.forward;
+                break;
+            case CoordinatePlane.XZ:
+                v = Vector3.up; // X
+                break;
+            case CoordinatePlane.YZ:
+                v = Vector3.right; // Y
+                break;
+            case CoordinatePlane.XYZ:
+            default:
                     // TODO what to do here, should we have user-defined Vector3?
-                    v = Vector3.up;
-                    break;
+                v = Vector3.up;
+                break;
             }
             return v;
         }
@@ -316,26 +350,26 @@ namespace Paths
             int angleDirAxis = -1;
             switch (generateAnglePlane)
             {
-                case CoordinatePlane.XY:
-                    prevDir = new Vector3(prevDir.x, prevDir.y, 0f).normalized;
-                    nextDir = new Vector3(nextDir.x, nextDir.y, 0f).normalized;
-                    angleDirAxis = 2; // Z
-                    break;
-                case CoordinatePlane.XZ:
-                    prevDir = new Vector3(prevDir.x, 0f, prevDir.z).normalized;
-                    nextDir = new Vector3(nextDir.x, 0f, nextDir.z).normalized;
-                    angleDirAxis = 1; // Y
-                    break;
-                case CoordinatePlane.YZ:
-                    prevDir = new Vector3(0f, prevDir.y, prevDir.z).normalized;
-                    nextDir = new Vector3(0f, nextDir.y, nextDir.z).normalized;
-                    angleDirAxis = 0; // X
-                    break;
-                case CoordinatePlane.XYZ:
-                default:
+            case CoordinatePlane.XY:
+                prevDir = new Vector3(prevDir.x, prevDir.y, 0f).normalized;
+                nextDir = new Vector3(nextDir.x, nextDir.y, 0f).normalized;
+                angleDirAxis = 2; // Z
+                break;
+            case CoordinatePlane.XZ:
+                prevDir = new Vector3(prevDir.x, 0f, prevDir.z).normalized;
+                nextDir = new Vector3(nextDir.x, 0f, nextDir.z).normalized;
+                angleDirAxis = 1; // Y
+                break;
+            case CoordinatePlane.YZ:
+                prevDir = new Vector3(0f, prevDir.y, prevDir.z).normalized;
+                nextDir = new Vector3(0f, nextDir.y, nextDir.z).normalized;
+                angleDirAxis = 0; // X
+                break;
+            case CoordinatePlane.XYZ:
+            default:
                     // Keep all axis
-                    angleDirAxis = -1;
-                    break;
+                angleDirAxis = -1;
+                break;
 
             }
             float angle = Vector3.Angle(prevDir, nextDir);

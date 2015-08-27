@@ -92,7 +92,8 @@ namespace Paths.Editor
                 {
                     IPathModifier pm = pathModifiers [i];
 
-                    PathModifierContext pmc = new PathModifierContext(container, currentInputFlags);
+                    IPathInfo pathInfo = context.Path.GetPathInfo();
+                    PathModifierContext pmc = new PathModifierContext(pathInfo, container, currentInputFlags);
                     if (pm.IsEnabled())
                     {
                         // TODO could we use pm.GetOutputFlags(pmc) in here?
@@ -129,7 +130,8 @@ namespace Paths.Editor
                 //int inputCaps, passthroughCaps, generateCaps;
                 //PathModifierUtil.GetPathModifierCaps(pm.GetType(), out inputCaps, out passthroughCaps, out generateCaps);
                 //int inputCaps, passthroughCaps, generateCaps;
-                PathModifierContext pmc = new PathModifierContext(container, combinedOutputFlags);
+                IPathInfo pathInfo = context.Path.GetPathInfo();
+                PathModifierContext pmc = new PathModifierContext(pathInfo, container, combinedOutputFlags);
                 // TODO could we use pm.GetOutputFlags(pmc) in here?
                 combinedOutputFlags = ((pm.GetProcessFlags(pmc) | pm.GetPassthroughFlags(pmc)) & combinedOutputFlags) | pm.GetGenerateFlags(pmc);
             }
@@ -166,7 +168,7 @@ namespace Paths.Editor
             internal PathModifierEditorContext context;
             internal UnityEngine.Object dirtyObject;
 
-            public DrawContext(IPathModifier pm, IPathModifierContainer container, int index, int pmCount, TypedCustomToolEditorPrefs visibilityPrefs, PathModifierEditorContext context, UnityEngine.Object dirtyObject)
+            public DrawContext (IPathModifier pm, IPathModifierContainer container, int index, int pmCount, TypedCustomToolEditorPrefs visibilityPrefs, PathModifierEditorContext context, UnityEngine.Object dirtyObject)
             {
                 this.pm = pm;
                 this.container = container;
@@ -457,21 +459,29 @@ namespace Paths.Editor
             GUIStyle boxStyle = GUIStyle.none;
             
 //            GUILayoutOption[] btnOptions = {GUILayout.Width(btnWidth), GUILayout.Height(btnHeight)};
-            GUILayoutOption[] boxOptions = {GUILayout.Width(btnWidth), GUILayout.Height(btnHeight)};
+            GUILayoutOption[] boxOptions = {
+                GUILayout.Width(btnWidth),
+                GUILayout.Height(btnHeight)
+            };
 
-            if (input) {
+            if (input)
+            {
                 PathEditor.DrawPathPointMask("Input", pmc.InputFlags);
             }
 
-            if (process) {
+            if (process)
+            {
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.PrefixLabel("Process");
-                if (pm.IsEnabled() || !drawDisabledAsPassthrough) {
+                if (pm.IsEnabled() || !drawDisabledAsPassthrough)
+                {
                     GUILayout.Button(GetProcessImage(PathPoint.POSITION, pm, pmc), boxStyle, boxOptions);
 
                     // TODO should this be implemented? If yes, copy to all functions!
-                    if (GUILayout.Button(GetProcessImage(PathPoint.DIRECTION, pm, pmc), boxStyle, boxOptions)) {
-                        if (pm is ConfigurableProcessPathModifier) {
+                    if (GUILayout.Button(GetProcessImage(PathPoint.DIRECTION, pm, pmc), boxStyle, boxOptions))
+                    {
+                        if (pm is ConfigurableProcessPathModifier)
+                        {
                             ConfigurableProcessPathModifier cppm = (ConfigurableProcessPathModifier)pm;
                             PathModifierFunction f = cppm.DirectionFunction;
                             cppm.DirectionFunction = NextPathModifierFunction(f, cppm.AllowedDirectionFunctions);
@@ -482,10 +492,12 @@ namespace Paths.Editor
                     GUILayout.Button(GetProcessImage(PathPoint.UP, pm, pmc), boxStyle, boxOptions);
                     GUILayout.Button(GetProcessImage(PathPoint.ANGLE, pm, pmc), boxStyle, boxOptions);
                     GUILayout.Button(GetProcessImage(PathPoint.DISTANCE_FROM_PREVIOUS, pm, pmc), boxStyle, boxOptions);
-                    if (GUILayout.Button(GetProcessImage(PathPoint.DISTANCE_FROM_BEGIN, pm, pmc), boxStyle, boxOptions)) {
+                    if (GUILayout.Button(GetProcessImage(PathPoint.DISTANCE_FROM_BEGIN, pm, pmc), boxStyle, boxOptions))
+                    {
                         
                     }
-                } else {
+                } else
+                {
                     GUILayout.Button(GetProcessImage(PathPoint.POSITION, pmc.InputFlags, outputFlags, 0, 0, outputFlags), boxStyle, boxOptions);
                     GUILayout.Button(GetProcessImage(PathPoint.DIRECTION, pmc.InputFlags, outputFlags, 0, 0, outputFlags), boxStyle, boxOptions);
                     GUILayout.Button(GetProcessImage(PathPoint.UP, pmc.InputFlags, outputFlags, 0, 0, outputFlags), boxStyle, boxOptions);
@@ -497,84 +509,102 @@ namespace Paths.Editor
                 EditorGUILayout.EndHorizontal();
             }
 
-            if (output) {
+            if (output)
+            {
                 PathEditor.DrawPathPointMask("Output", outputFlags);
             }
         }
 
-        static PathModifierFunction NextPathModifierFunction(PathModifierFunction f) {
+        static PathModifierFunction NextPathModifierFunction(PathModifierFunction f)
+        {
             PathModifierFunction[] values = (PathModifierFunction[])Enum.GetValues(typeof(PathModifierFunction));
             return NextPathModifierFunction(f, values);
         }
-        static PathModifierFunction NextPathModifierFunction(PathModifierFunction f, PathModifierFunction[] allowedFunctions) {
+
+        static PathModifierFunction NextPathModifierFunction(PathModifierFunction f, PathModifierFunction[] allowedFunctions)
+        {
             int currentIndex = 0;
-            for (int i = 0; i < allowedFunctions.Length; i++) {
-                if (f == allowedFunctions[i]) {
+            for (int i = 0; i < allowedFunctions.Length; i++)
+            {
+                if (f == allowedFunctions [i])
+                {
                     currentIndex = i;
                     break;
                 }
             }
             int nextIndex = (currentIndex < allowedFunctions.Length - 1) ? currentIndex + 1 : 0;
-            return allowedFunctions[nextIndex];
+            return allowedFunctions [nextIndex];
         }
 
-        public static Texture2D GetEmptyProcessImage() {
+        public static Texture2D GetEmptyProcessImage()
+        {
             return (Texture2D)Resources.Load("btn-empty", typeof(Texture2D));
         }
 
-        public static Texture2D GetProcessImage(PathModifierFunction pmFunction) {
+        public static Texture2D GetProcessImage(PathModifierFunction pmFunction)
+        {
             Texture2D img;
-            switch (pmFunction) {
-                case PathModifierFunction.Process:
-                    img = (Texture2D)Resources.Load("btn-pm-process", typeof(Texture2D));
-                    break;
-                case PathModifierFunction.Passthrough:
-                    img = (Texture2D)Resources.Load("btn-pm-passthrough", typeof(Texture2D));
-                    break;
-                case PathModifierFunction.Generate:
-                    img = (Texture2D)Resources.Load("btn-pm-generate", typeof(Texture2D));
-                    break;
-                case PathModifierFunction.Remove:
-                    img = (Texture2D)Resources.Load("btn-pm-delete", typeof(Texture2D));
-                    break;
-                default:
-                    img = GetEmptyProcessImage();
-                    break;
+            switch (pmFunction)
+            {
+            case PathModifierFunction.Process:
+                img = (Texture2D)Resources.Load("btn-pm-process", typeof(Texture2D));
+                break;
+            case PathModifierFunction.Passthrough:
+                img = (Texture2D)Resources.Load("btn-pm-passthrough", typeof(Texture2D));
+                break;
+            case PathModifierFunction.Generate:
+                img = (Texture2D)Resources.Load("btn-pm-generate", typeof(Texture2D));
+                break;
+            case PathModifierFunction.Remove:
+                img = (Texture2D)Resources.Load("btn-pm-delete", typeof(Texture2D));
+                break;
+            default:
+                img = GetEmptyProcessImage();
+                break;
             }
             return img;
         }
 
-
-        public static Texture2D GetProcessImage(int componentType, int inputFlags, int outputFlags, int processFlags, int generateFlags, int passthroughFlags) {
+        public static Texture2D GetProcessImage(int componentType, int inputFlags, int outputFlags, int processFlags, int generateFlags, int passthroughFlags)
+        {
 
             PathModifierFunction pmFunc;
             bool unknownFunction = false;
 
-            if (PathPoint.IsFlag(outputFlags, componentType)) {
+            if (PathPoint.IsFlag(outputFlags, componentType))
+            {
                 // dist0 is part of output...
-                if (PathPoint.IsFlag(inputFlags, componentType)) {
+                if (PathPoint.IsFlag(inputFlags, componentType))
+                {
                     // Also part of input...
-                    if (PathPoint.IsFlag(processFlags, componentType)) {
+                    if (PathPoint.IsFlag(processFlags, componentType))
+                    {
                         // Process
                         pmFunc = PathModifierFunction.Process;
-                    } else if (PathPoint.IsFlag(generateFlags, componentType)) {
+                    } else if (PathPoint.IsFlag(generateFlags, componentType))
+                    {
                         // Generate
                         pmFunc = PathModifierFunction.Generate;
-                    } else if (PathPoint.IsFlag(passthroughFlags, componentType)) {
+                    } else if (PathPoint.IsFlag(passthroughFlags, componentType))
+                    {
                         // is passthrough
                         pmFunc = PathModifierFunction.Passthrough;
-                    } else {
+                    } else
+                    {
                         // none of them, hmmmm.... maybe process then!
                         pmFunc = PathModifierFunction.Process;
                     }
-                } else {
+                } else
+                {
                     // not part of input
                     pmFunc = PathModifierFunction.Generate;
                 }
-            } else if (PathPoint.IsFlag(inputFlags, componentType)){
+            } else if (PathPoint.IsFlag(inputFlags, componentType))
+            {
                 // not part of output but is part of input
                 pmFunc = PathModifierFunction.Remove;
-            } else {
+            } else
+            {
                 // Not part of input, not part of output
                 pmFunc = PathModifierFunction.Passthrough; 
                 unknownFunction = true;
@@ -583,7 +613,8 @@ namespace Paths.Editor
             return img;
         }
 
-        static Texture2D GetProcessImage(int componentType, IPathModifier pm, PathModifierContext pmc) {
+        static Texture2D GetProcessImage(int componentType, IPathModifier pm, PathModifierContext pmc)
+        {
 
             return GetProcessImage(componentType, pmc.InputFlags, 
                                    pm.GetOutputFlags(pmc), 

@@ -36,7 +36,7 @@ namespace Tracks
         TypedCustomToolEditorPrefs editorPrefs;
         private Track track;
 
-        public TrackEditor()
+        public TrackEditor ()
         {
             PopulateTrackGenerators();
         }
@@ -304,9 +304,7 @@ namespace Tracks
             
             if (GUILayout.Button(new GUIContent(generateMeshLabel, "Generate Mesh")))
             {
-                track.GenerateTrackMesh();
-                this.meshDirty = false;
-                SceneView.RepaintAll();
+                GenerateMesh();
                 
                 //Undo.RecordObject(path, "Generate Tunnel Mesh");
                 //path.AddSegment();
@@ -339,7 +337,24 @@ namespace Tracks
             DrawDefaultMeshInspectorSheet();
         }
 
+        protected void GenerateMesh()
+        {
+            // Add MeshFilter and MeshRenderer if not already added
+            MeshFilter mf = track.gameObject.GetComponent<MeshFilter>();
+            if (null == mf)
+            {
+                mf = track.gameObject.AddComponent<MeshFilter>();
+            }
+            MeshRenderer mr = track.gameObject.GetComponent<MeshRenderer>();
+            if (null == mr)
+            {
+                mr = track.gameObject.AddComponent<MeshRenderer>();
+            }
 
+            track.GenerateTrackMesh();
+            this.meshDirty = false;
+            SceneView.RepaintAll();
+        }
 
 //  internal void SliceConfigurationChanged() {
 //      this.slices = null;

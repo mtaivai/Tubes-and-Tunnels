@@ -5,6 +5,7 @@ using System;
 
 namespace Paths
 {
+    // TODO should we make PathPoint mutable? Vector3 itself is mutable...
     [Serializable]
     public class PathPoint
     {
@@ -43,7 +44,6 @@ namespace Paths
         /// The right vector (local x-axis)
         /// </summary>
         private const int RIGHT_CALCULATED = 0x020;
-
         public const int ANGLE = 0x040;
 
         /// <summary>
@@ -75,11 +75,9 @@ namespace Paths
         [SerializeField]
         private Vector3
             up;
-
         [SerializeField]
         private Vector3
             right;
-
         [SerializeField]
         private float
             angle;
@@ -87,7 +85,7 @@ namespace Paths
         private int
             flags;
 
-        internal PathPoint(Vector3 pos, Vector3 dir, Vector3 up, float angle, float distFromPrev, float distFromBegin, int flags)
+        internal PathPoint (Vector3 pos, Vector3 dir, Vector3 up, float angle, float distFromPrev, float distFromBegin, int flags)
         {
             this.position = pos;
             this.direction = dir;
@@ -121,22 +119,22 @@ namespace Paths
 //        {
 //        }
 //        
-        internal PathPoint(Vector3 pos, Vector3 dir)
+        internal PathPoint (Vector3 pos, Vector3 dir)
             : this(pos, dir, Vector3.zero, 0f, 0f, 0f, POSITION | DIRECTION)
         {
         }
             
-        internal PathPoint(Vector3 pos)
+        internal PathPoint (Vector3 pos)
             : this(pos, Vector3.zero, Vector3.zero, 0f, 0f, 0f, POSITION)
         {
         }
 
-        internal PathPoint(PathPoint src)
+        internal PathPoint (PathPoint src)
         : this(src, src.flags)
         {
         }
 
-        internal PathPoint(PathPoint src, int flags)
+        internal PathPoint (PathPoint src, int flags)
         : this(src.position, src.direction, src.up, src.angle, src.distanceFromPrevious, src.distanceFromBegin, flags)
         {
             this.right = src.right;
@@ -169,33 +167,26 @@ namespace Paths
             }
         }
 
-        public Vector3 Position
-        {
-            get
-            {
+        public Vector3 Position {
+            get {
                 return this.position;
             }
         }
 
-        public Vector3 Direction
-        {
-            get
-            {
+        public Vector3 Direction {
+            get {
                 return this.direction;
             }
         }
 
-        public Vector3 Up
-        {
-            get
-            {
+        public Vector3 Up {
+            get {
                 return this.up;
             }
         }
-        public Vector3 Right
-        {
-            get
-            {
+
+        public Vector3 Right {
+            get {
                 if (!IsFlag(flags, RIGHT_CALCULATED) && HasUp && HasDirection)
                 {
                     right = Quaternion.AngleAxis(-90.0f, direction) * up;
@@ -205,89 +196,68 @@ namespace Paths
             }
         }
 
-        public float Angle
-        {
-            get
-            {
+        public float Angle {
+            get {
                 return this.angle;
             }
         }
 
-        public float DistanceFromPrevious
-        {
-            get
-            {
+        public float DistanceFromPrevious {
+            get {
                 return this.distanceFromPrevious;
             }
         }
 
-        public float DistanceFromBegin
-        {
-            get
-            {
+        public float DistanceFromBegin {
+            get {
                 return this.distanceFromBegin;
             }
         }
 
-        public int Flags
-        {
-            get
-            {
+        public int Flags {
+            get {
                 return this.flags;
             }
         }
 
-        public bool HasPosition
-        {
-            get
-            {
+        public bool HasPosition {
+            get {
                 return POSITION == (flags & POSITION);
             }
         }
 
-        public bool HasDirection
-        {
-            get
-            {
+        public bool HasDirection {
+            get {
                 return DIRECTION == (flags & DIRECTION);
             }
         }
 
-        public bool HasUp
-        {
-            get
-            {
+        public bool HasUp {
+            get {
                 return UP == (flags & UP);
             }
         }
-        public bool HasRight
-        {
-            get
-            {
+
+        public bool HasRight {
+            get {
                 return IsFlag(flags, (UP | DIRECTION));
             }
         }
 
-        public bool HasAngle
-        {
-            get
-            {
+        public bool HasAngle {
+            get {
                 return ANGLE == (flags & ANGLE);
             }
         }
 
-        public bool HasDistanceFromPrevious
-        {
-            get
-            {
+        public bool HasDistanceFromPrevious {
+            get {
                 return DISTANCE_FROM_PREVIOUS == (flags & DISTANCE_FROM_PREVIOUS);
             }
         }
 
-        public bool HasDistanceFromBegin
-        {
-            get
-            {
+        public bool HasDistanceFromBegin {
+            get {
                 return DISTANCE_FROM_BEGIN == (flags & DISTANCE_FROM_BEGIN);
             }
         }

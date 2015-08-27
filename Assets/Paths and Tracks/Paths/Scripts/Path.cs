@@ -7,56 +7,54 @@ using Util;
 
 namespace Paths
 {
-    public delegate void PathChangedEventHandler(object sender,EventArgs e);
+    public delegate void PathChangedEventHandler (object sender,EventArgs e);
 
     public class PathGizmoPrefs
     {
         public static readonly Color ControlPointConnectionLineColor = Color.gray;
         public static readonly Color ControlPointMarkerColor = Color.gray;
-        
         public static readonly Color FinalPathLineColor = Color.cyan;
         public static readonly Color FinalPathPointMarkerColor = Color.cyan;
-        
+        public static readonly Color FinalPathFirstPointMarkerColor = Color.yellow;
         public static readonly Color UpVectorColor = Color.green;
         public static readonly Color DirVectorColor = Color.blue;
         public static readonly Color RightVectorColor = Color.red;
-        
         public static readonly float UpVectorLength = 1.0f;
         public static readonly float DirVectorLength = 1.0f;
         public static readonly float RightVectorLength = 1.0f;
-
         public static readonly float FinalPathPointMarkerSize = 0.1f;
-        
+        public static readonly float FinalPathFirstPointMarkerSize = 0.2f;
     }
 
     // TODO we don't really need the IPath interface since we're always referring to Path
     // (which is a GameObject)
-    public interface IPath
+//  public interface IPath
+//  {
+//      bool IsLoop ();
+//
+//  }
+    public interface IPathInfo
     {
-        event PathChangedEventHandler Changed;
-        
-        //void PathGeneratorModified(IPathGenerator pathGenerator);
-        //IPathGenerator GetPathGenerator();
-        
-        bool IsLoop();
-        
-        //int GetSegmentCount();
-        //int GetResolution();
-        
-        PathPoint[] GetAllPoints();
-
-        int GetPointCount();
-
-        PathPoint GetPointAtIndex(int index);
-
-        int GetOutputFlags();
-
-        int GetOutputFlagsBeforeModifiers();
-
+        bool IsLoopPath();
+//      int GetPointCount();
     }
 
+    public class PathInfo : IPathInfo
+    {
+        private Path path;
 
-    public abstract class Path : MonoBehaviour, IPath, ISerializationCallbackReceiver, IReferenceContainer
+        public PathInfo (Path path)
+        {
+            this.path = path;
+        }
+
+        public bool IsLoopPath()
+        {
+            return path.IsLoop();
+        }
+    }
+
+    public abstract class Path : MonoBehaviour, ISerializationCallbackReceiver, IReferenceContainer
     {
 
         public enum PathStatus
@@ -75,7 +73,6 @@ namespace Paths
 //      // don't serialize!
 //      private List<IPathModifier> pathModifierInstances = new List<IPathModifier>();
         private DefaultPathModifierContainer pathModifierContainer = null;
-
         [SerializeField]
         private List<PathPoint>
             pathPoints;
@@ -91,7 +88,6 @@ namespace Paths
         [SerializeField]
         private PathStatus
             frozenStatus = PathStatus.Dynamic;
-
         [SerializeField]
         private List<UnityEngine.Object>
             referents = new List<UnityEngine.Object>();
@@ -105,6 +101,18 @@ namespace Paths
 //                return editorPrefs;
 //            }
 //        }
+
+
+        private IPathInfo pathInfo;
+
+        public IPathInfo GetPathInfo()
+        {
+            if (null == pathInfo)
+            {
+                pathInfo = new PathInfo(this);
+            }
+            return pathInfo;
+        }
 
         // TODO how to clean up references???
         public int GetReferentCount()
@@ -121,49 +129,41 @@ namespace Paths
         {
             referents [index] = obj;
         }
+
         public int AddReferent(UnityEngine.Object obj)
         {
             referents.Add(obj);
             return referents.Count - 1;
         }
+
         public void RemoveReferent(int index)
         {
             referents.RemoveAt(index);
         }
 
-
-        public bool PointsDirty
-        {
-            get
-            {
+        public bool PointsDirty {
+            get {
                 return pathPointsDirty;
             }
         }
 
-        public bool Frozen
-        {
-            get
-            {
+        public bool Frozen {
+            get {
                 return this.frozenStatus == PathStatus.Frozen;
             }
         }
 
-        public PathStatus FrozenStatus
-        {
-            set
-            {
+        public PathStatus FrozenStatus {
+            set {
                 this.frozenStatus = value;
             }
-            get
-            {
+            get {
                 return this.frozenStatus;
             }
         }
 
-        public ParameterStore EditorParameters
-        {
-            get
-            {
+        public ParameterStore EditorParameters {
+            get {
                 return new ParameterStore(this.parameterStore, "Editor.");
             }
         }
@@ -209,7 +209,7 @@ namespace Paths
                 PathPoint[] pp = DoGetPathPoints(out flags);
                 this.rawPathPointFlags = flags;
 
-                pp = PathModifierUtil.RunPathModifiers(new PathModifierContext(GetPathModifierContainer(), flags), 
+                pp = PathModifierUtil.RunPathModifiers(new PathModifierContext(this, flags), 
                                                        pp, ref flags, true);
 
 
@@ -311,6 +311,7 @@ namespace Paths
         protected DefaultPathModifierContainer CreatePathModifierContainer(DefaultPathModifierContainer.SetPathPointsDelegate setPathPointsFunc)
         {
             DefaultPathModifierContainer pmc = new DefaultPathModifierContainer(
+                GetPathInfo,
                 PathModifiersChanged,
                 PathPointsChanged,
                 DoGetPathPoints,
@@ -332,7 +333,9 @@ namespace Paths
         }
        
         public abstract int GetControlPointCount();
+
         public abstract Vector3 GetControlPointAtIndex(int index);
+
         public abstract void SetControlPointAtIndex(int index, Vector3 pt);
 
         void OnDrawGizmos()
@@ -351,6 +354,13 @@ namespace Paths
                 Vector3 pt1 = transform.TransformPoint(pp [i].Position);
                 Gizmos.DrawLine(pt0, pt1);
             }
+            if (IsLoop() && pp.Length > 1)
+            {
+                // Connect last and first points:
+                Vector3 pt0 = transform.TransformPoint(pp [0].Position);
+                Vector3 pt1 = transform.TransformPoint(pp [pp.Length - 1].Position);
+                Gizmos.DrawLine(pt0, pt1);
+            }
 
             // Direction Vectors (Forward, Right and Up) and point markers
             Color upVectorColor = PathGizmoPrefs.UpVectorColor;
@@ -358,11 +368,14 @@ namespace Paths
             Color rightVectorColor = PathGizmoPrefs.RightVectorColor;
 
             Color pointMarkerColor = PathGizmoPrefs.FinalPathPointMarkerColor;
+            Color firstPointMarkerColor = PathGizmoPrefs.FinalPathFirstPointMarkerColor;
 
             float upVectorLength = PathGizmoPrefs.UpVectorLength;
             float dirVectorLength = PathGizmoPrefs.DirVectorLength;
             float rightVectorLength = PathGizmoPrefs.RightVectorLength;
+
             float pointMarkerSize = PathGizmoPrefs.FinalPathPointMarkerSize;
+            float firstPointMarkerSize = PathGizmoPrefs.FinalPathFirstPointMarkerSize;
 
             // TODO transform directions etc!
             for (int i = 0; i < pp.Length; i++)
@@ -392,8 +405,8 @@ namespace Paths
 
 
 
-                Gizmos.color = pointMarkerColor;
-                Gizmos.DrawSphere(pt, pointMarkerSize);
+                Gizmos.color = (i == 0) ? firstPointMarkerColor : pointMarkerColor;
+                Gizmos.DrawSphere(pt, (i == 0) ? firstPointMarkerSize : pointMarkerSize);
 
             }
             

@@ -25,26 +25,26 @@ namespace Paths
         public const int MaskRemove = 0x08;
         public const int MaskAll = 0x0f;
         public const int MaskNone = 0x00;
-
         private PathModifierFunction positionFunction = PathModifierFunction.None;
         private PathModifierFunction directionFunction = PathModifierFunction.None;
         private PathModifierFunction upVectorFunction = PathModifierFunction.None;
-        private PathModifierFunction distanceFunction = PathModifierFunction.None;
+        private PathModifierFunction distanceFromPreviousFunction = PathModifierFunction.None;
+        private PathModifierFunction distanceFromBeginFunction = PathModifierFunction.None;
         private PathModifierFunction angleFunction = PathModifierFunction.None;
-
         private int allowedPositionFunctionsMask = MaskNone;
         private int allowedDirectionFunctionsMask = MaskNone;
         private int allowedUpVectorFunctionsMask = MaskNone;
-        private int allowedDistanceFunctionsMask = MaskNone;
+        private int allowedDistanceFromPreviousFunctionsMask = MaskNone;
+        private int allowedDistanceFromBeginFunctionsMask = MaskNone;
         private int allowedAngleFunctionsMask = MaskNone;
 
-        public ConfigurableProcessPathModifier()
+        public ConfigurableProcessPathModifier ()
         {
             Reset();
             GetAllowedFunctions(
                 out allowedPositionFunctionsMask, out allowedDirectionFunctionsMask, 
-                out allowedDistanceFunctionsMask, out allowedUpVectorFunctionsMask, 
-                out allowedAngleFunctionsMask);
+                out allowedDistanceFromPreviousFunctionsMask, out allowedDistanceFromBeginFunctionsMask, 
+                out allowedUpVectorFunctionsMask, out allowedAngleFunctionsMask);
             // Initial values:
             if (!IsAllowedFunction(positionFunction, allowedPositionFunctionsMask))
             {
@@ -58,9 +58,13 @@ namespace Paths
             {
                 upVectorFunction = GetFirstAllowedFunction(AllowedUpVectorFunctions);
             }
-            if (!IsAllowedFunction(distanceFunction, allowedDistanceFunctionsMask))
+            if (!IsAllowedFunction(distanceFromPreviousFunction, allowedDistanceFromPreviousFunctionsMask))
             {
-                distanceFunction = GetFirstAllowedFunction(AllowedDistanceFunctions);
+                distanceFromPreviousFunction = GetFirstAllowedFunction(AllowedDistanceFromPreviousFunctions);
+            }
+            if (!IsAllowedFunction(distanceFromBeginFunction, allowedDistanceFromBeginFunctionsMask))
+            {
+                distanceFromBeginFunction = GetFirstAllowedFunction(AllowedDistanceFromBeginFunctions);
             }
             if (!IsAllowedFunction(angleFunction, allowedAngleFunctionsMask))
             {
@@ -69,6 +73,7 @@ namespace Paths
 
 
         }
+
         private static PathModifierFunction GetFirstAllowedFunction(PathModifierFunction[] functions)
         {
             if (functions.Length > 0)
@@ -79,8 +84,12 @@ namespace Paths
                 return PathModifierFunction.None;
             }
         }
+
         public abstract void Reset();
-        protected abstract void GetAllowedFunctions(out int positionMask, out int directionMask, out int distanceMask, out int upVectorMask, out int angleMask);
+
+        protected abstract void GetAllowedFunctions(out int positionMask, out int directionMask, 
+                                                    out int distanceFromBeginMask, out int distanceFromPreviousMask,
+                                                    out int upVectorMask, out int angleMask);
 
         public static bool IsAllowedFunction(PathModifierFunction function, int mask)
         {
@@ -102,14 +111,11 @@ namespace Paths
             }
         }
 
-        public PathModifierFunction PositionFunction
-        {
-            get
-            {
+        public PathModifierFunction PositionFunction {
+            get {
                 return positionFunction;
             }
-            set
-            {
+            set {
 
                 if (IsAllowedFunction(value, allowedPositionFunctionsMask))
                 {
@@ -118,14 +124,11 @@ namespace Paths
             }
         }
 
-        public PathModifierFunction DirectionFunction
-        {
-            get
-            {
+        public PathModifierFunction DirectionFunction {
+            get {
                 return directionFunction;
             }
-            set
-            {
+            set {
                 if (IsAllowedFunction(value, allowedDirectionFunctionsMask))
                 {
                     this.directionFunction = value;
@@ -133,42 +136,47 @@ namespace Paths
             }
         }
 
-        public PathModifierFunction UpVectorFunction
-        {
-            get
-            {
+        public PathModifierFunction UpVectorFunction {
+            get {
                 return upVectorFunction;
             }
-            set
-            {
+            set {
                 if (IsAllowedFunction(value, allowedUpVectorFunctionsMask))
                 {
                     this.upVectorFunction = value;
                 }
             }
         }
-        public PathModifierFunction DistanceFunction
-        {
-            get
-            {
-                return distanceFunction;
+
+        public PathModifierFunction DistanceFromPreviousFunction {
+            get {
+                return distanceFromPreviousFunction;
             }
-            set
-            {
-                if (IsAllowedFunction(value, allowedDistanceFunctionsMask))
+            set {
+                if (IsAllowedFunction(value, allowedDistanceFromPreviousFunctionsMask))
                 {
-                    this.distanceFunction = value;
+                    this.distanceFromPreviousFunction = value;
                 }
             }
         }
-        public PathModifierFunction AngleFunction
-        {
-            get
-            {
+
+        public PathModifierFunction DistanceFromBeginFunction {
+            get {
+                return distanceFromBeginFunction;
+            }
+            set {
+                if (IsAllowedFunction(value, allowedDistanceFromBeginFunctionsMask))
+                {
+                    this.distanceFromBeginFunction = value;
+                }
+            }
+        }
+
+        public PathModifierFunction AngleFunction {
+            get {
                 return angleFunction;
             }
-            set
-            {
+            set {
                 if (IsAllowedFunction(value, allowedAngleFunctionsMask))
                 {
                     this.angleFunction = value;
@@ -176,46 +184,45 @@ namespace Paths
             }
         }
 
-        public int AllowedPositionFunctionsMask
-        {
-            get
-            {
+        public int AllowedPositionFunctionsMask {
+            get {
                 return allowedPositionFunctionsMask;
             }
         }
-        public PathModifierFunction[] AllowedPositionFunctions
-        {
-            get
-            {
+
+        public PathModifierFunction[] AllowedPositionFunctions {
+            get {
                 return GetAllowedOutputTypes(allowedPositionFunctionsMask);
             }
         }
-        public PathModifierFunction[] AllowedDirectionFunctions
-        {
-            get
-            {
+
+        public PathModifierFunction[] AllowedDirectionFunctions {
+            get {
                 return GetAllowedOutputTypes(allowedDirectionFunctionsMask);
             }
         }
-        public PathModifierFunction[] AllowedUpVectorFunctions
-        {
-            get
-            {
+
+        public PathModifierFunction[] AllowedUpVectorFunctions {
+            get {
                 return GetAllowedOutputTypes(allowedUpVectorFunctionsMask);
             }
         }
-        public PathModifierFunction[] AllowedAngleFunctions
-        {
-            get
-            {
+
+        public PathModifierFunction[] AllowedAngleFunctions {
+            get {
                 return GetAllowedOutputTypes(allowedAngleFunctionsMask);
             }
         }
-        public PathModifierFunction[] AllowedDistanceFunctions
-        {
-            get
-            {
-                return GetAllowedOutputTypes(allowedDistanceFunctionsMask);
+
+        public PathModifierFunction[] AllowedDistanceFromPreviousFunctions {
+            get {
+                return GetAllowedOutputTypes(allowedDistanceFromPreviousFunctionsMask);
+            }
+        }
+
+        public PathModifierFunction[] AllowedDistanceFromBeginFunctions {
+            get {
+                return GetAllowedOutputTypes(allowedDistanceFromBeginFunctionsMask);
             }
         }
 
@@ -253,9 +260,13 @@ namespace Paths
             {
                 f |= PathPoint.DIRECTION;
             }
-            if (distanceFunction == PathModifierFunction.Process)
+            if (distanceFromPreviousFunction == PathModifierFunction.Process)
             {
-                f |= PathPoint.DISTANCE_FROM_BEGIN | PathPoint.DISTANCE_FROM_PREVIOUS;
+                f |= PathPoint.DISTANCE_FROM_PREVIOUS;
+            }
+            if (distanceFromBeginFunction == PathModifierFunction.Process)
+            {
+                f |= PathPoint.DISTANCE_FROM_BEGIN;
             }
             if (upVectorFunction == PathModifierFunction.Process)
             {
@@ -267,6 +278,7 @@ namespace Paths
             }
             return f;
         }
+
         public override int GetGenerateFlags(PathModifierContext context)
         {
             int f = 0;
@@ -278,9 +290,13 @@ namespace Paths
             {
                 f |= PathPoint.DIRECTION;
             }
-            if (distanceFunction == PathModifierFunction.Generate)
+            if (distanceFromPreviousFunction == PathModifierFunction.Generate)
             {
-                f |= PathPoint.DISTANCE_FROM_BEGIN | PathPoint.DISTANCE_FROM_PREVIOUS;
+                f |= PathPoint.DISTANCE_FROM_PREVIOUS;
+            }
+            if (distanceFromBeginFunction == PathModifierFunction.Generate)
+            {
+                f |= PathPoint.DISTANCE_FROM_BEGIN;
             }
             if (upVectorFunction == PathModifierFunction.Generate)
             {
@@ -308,9 +324,13 @@ namespace Paths
             {
                 f |= PathPoint.UP;
             }
-            if (distanceFunction == PathModifierFunction.Passthrough)
+            if (distanceFromPreviousFunction == PathModifierFunction.Passthrough)
             {
-                f |= PathPoint.DISTANCE_FROM_BEGIN | PathPoint.DISTANCE_FROM_PREVIOUS;
+                f |= PathPoint.DISTANCE_FROM_PREVIOUS;
+            }
+            if (distanceFromBeginFunction == PathModifierFunction.Passthrough)
+            {
+                f |= PathPoint.DISTANCE_FROM_BEGIN;
             }
             if (angleFunction == PathModifierFunction.Passthrough)
             {
@@ -320,6 +340,7 @@ namespace Paths
         }
 
         private bool _onSerialize;
+
         public override sealed void OnSerialize(Serializer store)
         {
             if (!_onSerialize)
@@ -327,11 +348,12 @@ namespace Paths
                 _onSerialize = true;
                 try
                 {
-                    PositionFunction = (PathModifierFunction)store.ReturnEnumProperty("positionOutput", positionFunction);
-                    DirectionFunction = (PathModifierFunction)store.ReturnEnumProperty("directionOutput", directionFunction);
-                    UpVectorFunction = (PathModifierFunction)store.ReturnEnumProperty("upVectorOutput", upVectorFunction);
-                    DistanceFunction = (PathModifierFunction)store.ReturnEnumProperty("distanceOutput", distanceFunction);
-                    AngleFunction = (PathModifierFunction)store.ReturnEnumProperty("angleOutput", angleFunction);
+                    PositionFunction = (PathModifierFunction)store.ReturnEnumProperty("positionOutput", PositionFunction);
+                    DirectionFunction = (PathModifierFunction)store.ReturnEnumProperty("directionOutput", DirectionFunction);
+                    UpVectorFunction = (PathModifierFunction)store.ReturnEnumProperty("upVectorOutput", UpVectorFunction);
+                    DistanceFromPreviousFunction = (PathModifierFunction)store.ReturnEnumProperty("distanceOutput", DistanceFromPreviousFunction);
+                    DistanceFromBeginFunction = (PathModifierFunction)store.ReturnEnumProperty("distanceOutput", DistanceFromBeginFunction);
+                    AngleFunction = (PathModifierFunction)store.ReturnEnumProperty("angleOutput", AngleFunction);
 
                     OnSerializeCustom(store);
                 } finally
@@ -342,6 +364,7 @@ namespace Paths
 
      
         }
+
         protected virtual void OnSerializeCustom(Serializer store)
         {
         }

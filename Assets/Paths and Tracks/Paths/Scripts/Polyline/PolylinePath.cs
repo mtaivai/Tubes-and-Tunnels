@@ -22,6 +22,15 @@ namespace Paths.Polyline
             return loop;
         }
 
+        public void SetLoop(bool value)
+        {
+            if (value != this.loop)
+            {
+                this.loop = value;
+                PathPointsChanged();
+            }
+        }
+
         public override void OnPathModifiersChanged()
         {
 //          pathPointsDirty = true;

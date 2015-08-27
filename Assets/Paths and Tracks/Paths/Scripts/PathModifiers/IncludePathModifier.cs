@@ -78,6 +78,7 @@ namespace Paths
             }
             return refPath;
         }
+
         public void SetIncludedPath(IReferenceContainer refContainer, Path includedPath)
         {
             if (includedPathRefIndex >= 0 && includedPathRefIndex < refContainer.GetReferentCount())
@@ -178,13 +179,12 @@ namespace Paths
         {
             store.Property("includedPathRefIndex", ref includedPathRefIndex);
         }
-
       
-        public override IPath[] GetPathDependencies()
+        public override Path[] GetPathDependencies()
         {
 
-            IPath p = GetIncludedPath(GetContainer().GetReferenceContainer());
-            return (null != p) ? new IPath[] {p} : new IPath[0];
+            Path p = GetIncludedPath(GetContainer().GetReferenceContainer());
+            return (null != p) ? new Path[] {p} : new Path[0];
         }
     }
 

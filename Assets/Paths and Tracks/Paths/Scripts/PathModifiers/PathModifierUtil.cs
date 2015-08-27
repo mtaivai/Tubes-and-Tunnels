@@ -7,7 +7,6 @@ using Paths;
 
 namespace Paths
 {
-
     public class PathModifierUtil
     {
 
@@ -21,7 +20,7 @@ namespace Paths
                 {
                     continue;
                 }
-                PathModifierContext pmc = new PathModifierContext(context.PathModifierContainer, flags);
+                PathModifierContext pmc = new PathModifierContext(context.PathInfo, context.PathModifierContainer, flags);
                 pathPoints = mod.GetModifiedPoints(pathPoints, pmc);
 
                 if (fixResultFlags)

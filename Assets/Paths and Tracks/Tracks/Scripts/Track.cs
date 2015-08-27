@@ -39,14 +39,11 @@ namespace Tracks
         // TODO should this be serialized?
         private bool autoUpdateWithPath = false;
         private bool autoUpdateMesh = false;
-
         [SerializeField]
         private List<UnityEngine.Object>
             referents = new List<UnityEngine.Object>();
 
-        
-
-        public Track()
+        public Track ()
         {
         
         }
@@ -55,22 +52,18 @@ namespace Tracks
         //}
 
     
-        public bool AutomaticUpdateWithPath
-        {
+        public bool AutomaticUpdateWithPath {
             get { return autoUpdateWithPath; }
             set { this.autoUpdateWithPath = value; }
         }
 
-        public bool AutomaticMeshUpdate
-        {
+        public bool AutomaticMeshUpdate {
             get { return autoUpdateMesh; }
             set { this.autoUpdateMesh = value; }
         }
 
-        public ITrackGenerator TrackGeneratorInstance
-        {
-            get
-            {
+        public ITrackGenerator TrackGeneratorInstance {
+            get {
                 if (null == _trackGeneratorInstance)
                 {
                     if (null != trackGeneratorType && trackGeneratorType.Length > 0)
@@ -87,14 +80,11 @@ namespace Tracks
             }
         }
 
-        public Path Path
-        {
-            get
-            {
+        public Path Path {
+            get {
                 return path;
             }
-            set
-            {
+            set {
                 if (this.path != value)
                 {
                     this.path = value;
@@ -103,14 +93,11 @@ namespace Tracks
             }
         }
 
-        public string TrackGeneratorType
-        {
-            get
-            {
+        public string TrackGeneratorType {
+            get {
                 return trackGeneratorType;
             }
-            set
-            {
+            set {
                 if (this.trackGeneratorType != value)
                 {
                     // Changed
@@ -121,10 +108,8 @@ namespace Tracks
         }
 
         // Returns a copy of the internal array
-        public TrackSlice[] TrackSlices
-        {
-            get
-            {
+        public TrackSlice[] TrackSlices {
+            get {
                 if (null == generatedSlices)
                 {
                     generatedSlices = TrackGeneratorInstance.CreateSlices(this, false);
@@ -135,10 +120,8 @@ namespace Tracks
             }
         }
 
-        public ParameterStore ParameterStore
-        {
-            get
-            {
+        public ParameterStore ParameterStore {
+            get {
                 return parameters;
             }
         }
@@ -153,15 +136,18 @@ namespace Tracks
         {
             return referents [index];
         }
+
         public void SetReferent(int index, UnityEngine.Object obj)
         {
             referents [index] = obj;
         }
+
         public int AddReferent(UnityEngine.Object obj)
         {
             referents.Add(obj);
             return referents.Count - 1;
         }
+
         public void RemoveReferent(int index)
         {
             referents.RemoveAt(index);
@@ -339,7 +325,7 @@ namespace Tracks
                     pathPointFlags = PathPoint.NONE;
                 }
                 // TODO we need to provide the Context with a valid Path reference!
-                PathModifierContext context = new PathModifierContext(GetPathModifierContainer(), pathPointFlags);
+                PathModifierContext context = new PathModifierContext(path, GetPathModifierContainer(), pathPointFlags);
                 pathPoints = PathModifierUtil.RunPathModifiers(context, pathPoints, ref pathPointFlags, true);
             }
         }
@@ -373,6 +359,7 @@ namespace Tracks
         protected virtual DefaultPathModifierContainer CreatePathModifierContainer()
         {
             DefaultPathModifierContainer pmc = new DefaultPathModifierContainer(
+                Path.GetPathInfo,
                 OnPathModifiersChanged,
                 ConfigurationChanged,
                 (out int ppFlags) => {

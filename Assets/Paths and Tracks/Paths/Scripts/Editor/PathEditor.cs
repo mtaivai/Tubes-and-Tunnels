@@ -11,7 +11,6 @@ using Util;
 
 namespace Paths.Editor
 {
-
     public class PathMenu
     {
 //        [MenuItem("Paths")]
@@ -19,6 +18,7 @@ namespace Paths.Editor
 //        {
 //        }
     }
+
     public class PathEditor : UnityEditor.Editor
     {
 
@@ -27,12 +27,14 @@ namespace Paths.Editor
         protected const int TB_SHEET_MODIFIERS = 2;
         protected const int TB_SHEET_SETTINGS = 3;
         protected const int TB_SHEET_DEBUG = 4;
-
-        private static string[] TB_TEXTS = {"Path", "Points", "Modifiers", "Settings", "Debug"};
-
-
+        private static string[] TB_TEXTS = {
+            "Path",
+            "Points",
+            "Modifiers",
+            "Settings",
+            "Debug"
+        };
         private Dictionary<int, bool> pointExpanded = new Dictionary<int, bool>();
-
         private int selectedControlPointIndex = -1;
 
         protected int SelectedControlPointIndex {
@@ -44,15 +46,24 @@ namespace Paths.Editor
             }
         }
 
-        private void PathModifiersChanged() {
+        private void PathModifiersChanged()
+        {
             EditorUtility.SetDirty(target);
-            UnityEditor.SceneView.RepaintAll ();
+            UnityEditor.SceneView.RepaintAll();
             ((Path)target).PathModifiersChanged();
         }
 
-        public int DrawDefaultPathInspectorGUI () {
-            
+        public override sealed void OnInspectorGUI()
+        {
+            DrawDefaultPathInspectorGUI();
+            //DrawDefaultInspector();
+        }
+
+        public int DrawDefaultPathInspectorGUI()
+        {
             Path path = target as Path;
+//          bool disableEditing = path.FrozenStatus == Path.PathStatus.Frozen;
+
 
             ParameterStore editorParams = path.EditorParameters;
 
@@ -62,7 +73,8 @@ namespace Paths.Editor
 
 
             //EditorGUI.BeginDisabledGroup(path.PointsDirty == false);
-            if (GUILayout.Button("Refresh" + (path.PointsDirty ? " *" : ""))) {
+            if (GUILayout.Button("Refresh" + (path.PointsDirty ? " *" : "")))
+            {
                 path.ForceUpdatePathPoints();
                 EditorUtility.SetDirty(path);
             }
@@ -71,9 +83,11 @@ namespace Paths.Editor
             EditorGUILayout.EndHorizontal();
 
             string totalDistance = "";
-            if (pointCount > 0) {
+            if (pointCount > 0)
+            {
                 PathPoint lastPoint = path.GetPointAtIndex(pointCount - 1);
-                if (lastPoint.HasDistanceFromBegin) {
+                if (lastPoint.HasDistanceFromBegin)
+                {
                     totalDistance = lastPoint.DistanceFromBegin.ToString();
                 }
             }
@@ -84,57 +98,107 @@ namespace Paths.Editor
             int tbSheet = editorParams.GetInt("ToolbarSelection", 0);
             EditorGUI.BeginChangeCheck();
             tbSheet = GUILayout.Toolbar(tbSheet, TB_TEXTS);
-            if (EditorGUI.EndChangeCheck()) {
+            if (EditorGUI.EndChangeCheck())
+            {
                 editorParams.SetInt("ToolbarSelection", tbSheet);
             }
 
-
-
-            if (tbSheet == TB_SHEET_GENERAL) {
-
-
-
-                //EditorGUILayout.LabelField("", path.PointsDirty ? "*Needs Refresh*" : "Points are up to date");
-                
-
-
-            } else if (tbSheet == TB_SHEET_POINTS) {
+            switch (tbSheet)
+            {
+            case TB_SHEET_GENERAL:
+                DrawGeneralInspectorGUI();
+                break;
+            case TB_SHEET_POINTS:
+                // TODO why do we have the "expanded" pref here? Why not in the DrawPathPointsInspector fn itself?
                 bool pointsExpanded = editorParams.GetBool("PathPointsExpanded", true);
                 DrawPathPointsInspector(ref pointsExpanded);
                 editorParams.SetBool("PathPointsExpanded", pointsExpanded);
-            } else if (tbSheet == TB_SHEET_MODIFIERS) {
-                // Path Modifiers
-                PathModifierEditorUtil.DrawPathModifiersInspector(path, this, path, PathModifiersChanged);
-            } else if (tbSheet == TB_SHEET_SETTINGS) {
-                // Frozen?
-                EditorGUI.BeginChangeCheck();
-                path.FrozenStatus = (Path.PathStatus)EditorGUILayout.EnumPopup("Update Status", path.FrozenStatus);
-                //path.Frozen = EditorGUILayout.Toggle("Frozen", path.Frozen);
-                if (EditorGUI.EndChangeCheck()) {
-                    
-                }
-            } else if (tbSheet == TB_SHEET_DEBUG) {
-                DrawDefaultInspector();
+                break;
+            case TB_SHEET_MODIFIERS:
+                DrawPathModifiersInspectorGUI();
+                break;
+            case TB_SHEET_SETTINGS:
+                DrawSettingsInspectorGUI();
+                break;
+            case TB_SHEET_DEBUG:
+                DrawDebugInspectorGUI();
+                break;
             }
 
             EditorGUILayout.Separator();
+
 
             return tbSheet;
             //DrawDefaultInspector();
         }
 
-        private bool IsPointExpanded(int index) {
-            return pointExpanded.ContainsKey(index) ? pointExpanded[index] : false;
+        protected virtual void DrawGeneralInspectorGUI()
+        {
+            DrawDefaultGeneralInspectorGUI();
         }
 
-        public virtual void DrawPathPointsInspector(ref bool expanded) {
+        protected void DrawDefaultGeneralInspectorGUI()
+        {
+//          Path path = target as Path;
+//          EditorGUILayout.LabelField ("", path.PointsDirty ? "*Needs Refresh*" : "Points are up to date");
+        }
+
+        protected virtual void DrawPathModifiersInspectorGUI()
+        {
+            DrawDefaultPathModifiersInspectorGUI();
+        }
+
+        protected void DrawDefaultPathModifiersInspectorGUI()
+        {
+            Path path = target as Path;
+            PathModifierEditorUtil.DrawPathModifiersInspector(path, this, path, PathModifiersChanged);
+        }
+
+        protected virtual void DrawSettingsInspectorGUI()
+        {
+            DrawDefaultSettingsInspectorGUI();
+        }
+
+        protected void DrawDefaultSettingsInspectorGUI()
+        {
+            Path path = target as Path;
+            EditorGUI.BeginChangeCheck();
+            path.FrozenStatus = (Path.PathStatus)EditorGUILayout.EnumPopup("Update Status", path.FrozenStatus);
+
+            //path.Frozen = EditorGUILayout.Toggle("Frozen", path.Frozen);
+            if (EditorGUI.EndChangeCheck())
+            {
+                
+            }
+        }
+
+        protected virtual void DrawDebugInspectorGUI()
+        {
+            DrawDefaultDebugInspectorGUI();
+        }
+
+        protected void DrawDefaultDebugInspectorGUI()
+        {
+            DrawDefaultInspector();
+        }
+
+        private bool IsPointExpanded(int index)
+        {
+            return pointExpanded.ContainsKey(index) ? pointExpanded [index] : false;
+        }
+
+        protected virtual void DrawPathPointsInspector(ref bool expanded)
+        {
             DrawDefaultPathPointsInspector();
         }
-        public void DrawDefaultPathPointsInspector() {
+
+        protected void DrawDefaultPathPointsInspector()
+        {
             DrawGeneratedPathPointsInspector();
         }
 
-        public void DrawGeneratedPathPointsInspector() {
+        protected void DrawGeneratedPathPointsInspector()
+        {
 
             Path path = target as Path;
 
@@ -143,32 +207,35 @@ namespace Paths.Editor
             PathPoint[] points = path.GetAllPoints();
             bool treeExpanded = EditorGUILayout.Foldout(editorParams.GetBool("OutputPointsExpanded", false), "Output Points (" + points.Length + ")");
             editorParams.SetBool("OutputPointsExpanded", treeExpanded);
-            if (treeExpanded) {
+            if (treeExpanded)
+            {
                 EditorGUI.indentLevel++;
                 DrawPathPointMask("Caps", path.GetOutputFlags());
 
-                for (int i = 0; i < points.Length; i++) {
+                for (int i = 0; i < points.Length; i++)
+                {
                     EditorGUILayout.BeginHorizontal();
-                    pointExpanded[i] = EditorGUILayout.Foldout(IsPointExpanded(i), "[" + i +"]");
-    //              EditorGUILayout.Vector3Field("", points[i].Position);
-                    EditorGUILayout.LabelField("", points[i].Position.ToString() + "; " + points[i].Direction.ToString() + "; " + points[i].DistanceFromPrevious.ToString() + "; " + points[i].DistanceFromBegin.ToString());
+                    pointExpanded [i] = EditorGUILayout.Foldout(IsPointExpanded(i), "[" + i + "]");
+                    //              EditorGUILayout.Vector3Field("", points[i].Position);
+                    EditorGUILayout.LabelField("", points [i].Position.ToString() + "; " + points [i].Direction.ToString() + "; " + points [i].DistanceFromPrevious.ToString() + "; " + points [i].DistanceFromBegin.ToString());
                     EditorGUILayout.EndHorizontal();
-                    if (pointExpanded[i]) {
+                    if (pointExpanded [i])
+                    {
                         EditorGUI.indentLevel++;
-                        DrawPathPointMask("Flags", points[i].Flags);
+                        DrawPathPointMask("Flags", points [i].Flags);
 
-    //                  EditorGUILayout.Vector3Field("Position", points[i].Position);
-    //                  EditorGUILayout.Vector3Field("Direction", points[i].Direction);
-    //                  EditorGUILayout.FloatField("Dist -1", points[i].DistanceFromPrevious);
-    //                  EditorGUILayout.FloatField("Total dist", points[i].DistanceFromBegin);
+                        //                  EditorGUILayout.Vector3Field("Position", points[i].Position);
+                        //                  EditorGUILayout.Vector3Field("Direction", points[i].Direction);
+                        //                  EditorGUILayout.FloatField("Dist -1", points[i].DistanceFromPrevious);
+                        //                  EditorGUILayout.FloatField("Total dist", points[i].DistanceFromBegin);
 
-                        EditorGUILayout.LabelField("Position", points[i].Position.ToString());
-                        EditorGUILayout.LabelField("Forward", points[i].Direction.ToString());
-                        EditorGUILayout.LabelField("Up", points[i].Up.ToString());
-                        EditorGUILayout.LabelField("Right", points[i].Right.ToString());
-                        EditorGUILayout.LabelField("Angle", points[i].Angle.ToString());
-                        EditorGUILayout.LabelField("Dist-1", points[i].DistanceFromPrevious.ToString());
-                        EditorGUILayout.LabelField("Dist-0", points[i].DistanceFromBegin.ToString());
+                        EditorGUILayout.LabelField("Position", points [i].Position.ToString());
+                        EditorGUILayout.LabelField("Forward", points [i].Direction.ToString());
+                        EditorGUILayout.LabelField("Up", points [i].Up.ToString());
+                        EditorGUILayout.LabelField("Right", points [i].Right.ToString());
+                        EditorGUILayout.LabelField("Angle", points [i].Angle.ToString());
+                        EditorGUILayout.LabelField("Dist-1", points [i].DistanceFromPrevious.ToString());
+                        EditorGUILayout.LabelField("Dist-0", points [i].DistanceFromBegin.ToString());
                         EditorGUI.indentLevel--;
 
                     }
@@ -179,7 +246,8 @@ namespace Paths.Editor
             }
         }
 
-        public static void DrawPathPointMask(string label, int flags) {
+        public static void DrawPathPointMask(string label, int flags)
+        {
             Texture2D emptyGridImage = (Texture2D)Resources.Load("btn-empty-grid", typeof(Texture2D));
             Texture2D posImage = (Texture2D)Resources.Load("btn-position", typeof(Texture2D));
             Texture2D dirImage = (Texture2D)Resources.Load("btn-direction", typeof(Texture2D));
@@ -190,9 +258,13 @@ namespace Paths.Editor
             
             
             
-            int btnHeight = 24; int btnWidth = 24;
+            int btnHeight = 24;
+            int btnWidth = 24;
             GUIStyle boxStyle = GUIStyle.none;
-            GUILayoutOption[] boxOptions = {GUILayout.Width(btnWidth), GUILayout.Height(btnHeight)};
+            GUILayoutOption[] boxOptions = {
+                GUILayout.Width(btnWidth),
+                GUILayout.Height(btnHeight)
+            };
             
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.PrefixLabel(label);
@@ -205,18 +277,14 @@ namespace Paths.Editor
             EditorGUILayout.EndHorizontal();
         }
 
-        public override void OnInspectorGUI () {
-            DrawDefaultPathInspectorGUI();
-            //DrawDefaultInspector();
-        }
-
         void OnSceneGUI()
         {
             DrawDefaultSceneGUI();
 
         }
 
-        protected void DrawDefaultSceneGUI() {
+        protected void DrawDefaultSceneGUI()
+        {
             if (selectedControlPointIndex >= 0)
             {
                 Tools.hidden = true;
@@ -257,7 +325,7 @@ namespace Paths.Editor
                 
                 // Direction vector
                 Vector3 prevDir, nextDir;
-                Vector3 dir = PathUtil.IntersectDirection(transformedPoints, i, out prevDir, out nextDir);
+                Vector3 dir = PathUtil.IntersectDirection(transformedPoints, i, false, out prevDir, out nextDir);
                 
                 Handles.color = dirVectorColor;
                 Handles.DrawLine(pt, pt + dir * dirVectorLength);

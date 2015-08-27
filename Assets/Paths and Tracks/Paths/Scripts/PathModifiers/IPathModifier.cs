@@ -7,7 +7,6 @@ using Paths;
 
 namespace Paths
 {
-
     [AttributeUsage(AttributeTargets.All)]
     public sealed class PathModifier : System.Attribute
     {
@@ -33,7 +32,7 @@ namespace Paths
         /// </summary>
         public int generateCaps = PathPoint.NONE;
 
-        public PathModifier()
+        public PathModifier ()
         {
         }
     }
@@ -42,25 +41,38 @@ namespace Paths
     {
         private IPathModifierContainer pathModifierContainer;
         private int inputFlags;
+        private IPathInfo pathInfo;
 
-        public PathModifierContext(IPathModifierContainer pathModifierContainer, int inputFlags)
+        public PathModifierContext (IPathInfo pathInfo, IPathModifierContainer pathModifierContainer, int inputFlags)
         {
+            this.pathInfo = pathInfo;
             this.pathModifierContainer = pathModifierContainer;
             this.inputFlags = inputFlags;
         }
 
-        public IPathModifierContainer PathModifierContainer
+        public PathModifierContext (Path path, IPathModifierContainer pathModifierContainer, int inputFlags)
+            : this(path.GetPathInfo(), pathModifierContainer, inputFlags)
         {
-            get
-            {
+        }
+
+        public PathModifierContext (Path path, int inputFlags) : this(path, path.GetPathModifierContainer(), inputFlags)
+        {
+        }
+
+        public IPathInfo PathInfo {
+            get {
+                return pathInfo;
+            }
+        }
+
+        public IPathModifierContainer PathModifierContainer {
+            get {
                 return pathModifierContainer;
             }
         }
 
-        public int InputFlags
-        {
-            get
-            {
+        public int InputFlags {
+            get {
                 return inputFlags;
             }
         }
@@ -91,7 +103,7 @@ namespace Paths
 
         //void DrawInspectorGUI(TrackInspector trackInspector);
 
-        IPath[] GetPathDependencies();
+        Path[] GetPathDependencies();
 
         string GetName();
 
@@ -106,15 +118,20 @@ namespace Paths
         void SetInstanceDescription(string description);
 
         void Attach(IPathModifierContainer container);
+
         void Detach();
     }
 
     public interface IReferenceContainer
     {
         int GetReferentCount();
+
         UnityEngine.Object GetReferent(int index);
+
         void SetReferent(int index, UnityEngine.Object obj);
+
         int AddReferent(UnityEngine.Object obj);
+
         void RemoveReferent(int index);
     }
 
@@ -155,17 +172,16 @@ namespace Paths
         protected string instanceName;
         protected string instanceDescription;
         private string name;
-
         private IPathModifierContainer container;
 
-        public AbstractPathModifier()
+        public AbstractPathModifier ()
         {
             PathModifierUtil.GetPathModifierCapsFromAttributes(GetType(), out inputCaps, out processCaps, out passthroughCaps, out generateCaps);
             this.name = GetDisplayName(GetType());
         }
 
-
         private bool _onAttach;
+
         public void Attach(IPathModifierContainer container)
         {
             if (!_onAttach)
@@ -186,6 +202,7 @@ namespace Paths
         }
 
         private bool _onDetach;
+
         public void Detach()
         {
             if (!_onDetach)
@@ -333,9 +350,9 @@ namespace Paths
         
         public abstract PathPoint[] GetModifiedPoints(PathPoint[] points, PathModifierContext context);
 
-        public virtual IPath[] GetPathDependencies()
+        public virtual Path[] GetPathDependencies()
         {
-            return new IPath[0];
+            return new Path[0];
         }
 
         public string GetName()
