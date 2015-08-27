@@ -43,19 +43,23 @@ namespace Paths
 		private int inputFlags;
 		private IPathInfo pathInfo;
 
-		public PathModifierContext (IPathInfo pathInfo, IPathModifierContainer pathModifierContainer, int inputFlags)
+		//private Dictionary<string, object> parameters = new Dictionary<string, object>();
+		private ParameterStore parameters;
+
+		public PathModifierContext (IPathInfo pathInfo, IPathModifierContainer pathModifierContainer, int inputFlags, ParameterStore parameters)
 		{
 			this.pathInfo = pathInfo;
 			this.pathModifierContainer = pathModifierContainer;
 			this.inputFlags = inputFlags;
+			this.parameters = parameters;
 		}
 
-		public PathModifierContext (Path path, IPathModifierContainer pathModifierContainer, int inputFlags)
-            : this(path.GetPathInfo(), pathModifierContainer, inputFlags)
+		public PathModifierContext (Path path, IPathModifierContainer pathModifierContainer, int inputFlags, ParameterStore parameters)
+            : this(path.GetPathInfo(), pathModifierContainer, inputFlags, parameters)
 		{
 		}
 
-		public PathModifierContext (Path path, int inputFlags) : this(path, path.GetPathModifierContainer(), inputFlags)
+		public PathModifierContext (Path path, int inputFlags, ParameterStore parameters) : this(path, path.GetPathModifierContainer(), inputFlags, parameters)
 		{
 		}
 
@@ -76,6 +80,12 @@ namespace Paths
 				return inputFlags;
 			}
 		}
+
+		public ParameterStore Parameters {
+			get {
+				return parameters;
+			}
+		}
 	}
 
 	public interface IPathModifier
@@ -84,6 +94,10 @@ namespace Paths
 
 		void SetEnabled (bool value);
 		//void SetEnabled(bool enabled);
+
+		void Attach (IPathModifierContainer container);
+		
+		void Detach ();
 
 		void Reset ();
 
@@ -119,9 +133,6 @@ namespace Paths
 
 		void SetInstanceDescription (string description);
 
-		void Attach (IPathModifierContainer container);
-
-		void Detach ();
 	}
 
 	public interface IReferenceContainer
@@ -160,7 +171,183 @@ namespace Paths
 
 	}
 
-	public abstract class AbstractPathModifier : IPathModifier
+	public abstract class PathModifierInputFilter
+	{
+
+		public delegate PathPoint[] ProcessFilteredPointsDelegate (PathPoint[] points,PathModifierContext context);
+		
+		public abstract PathPoint[] Filter (PathPoint[] points, PathModifierContext context, ProcessFilteredPointsDelegate processCallback);
+
+		public abstract void Serialize (Serializer ser);
+
+
+//		public abstract PathPoint[] Filter (PathPoint[] points, PathModifierContext context);
+	}
+	public class IndexRangePathModifierInputFilter : PathModifierInputFilter
+	{
+		private int firstPointIndex = 0;
+		private int pointCount = -1;
+
+		public int FirstPointIndex {
+			get {
+				return firstPointIndex;
+			}
+			set {
+				firstPointIndex = value;
+				if (firstPointIndex < 0) {
+					firstPointIndex = 0;
+				}
+			}
+		}
+		public int PointCount {
+			get {
+				return pointCount;
+			}
+			set {
+				pointCount = value;
+				if (pointCount < -1) {
+					pointCount = -1;
+				}
+			}
+		}
+		public override void Serialize (Serializer ser)
+		{
+//			base.Serialize (ser);
+			ser.Property ("firstPointIndex", ref firstPointIndex);
+			ser.Property ("pointCount", ref pointCount);
+
+			SerializeConfigParam (firstPointIndexParam, ser);
+
+		}
+
+		protected void SerializeConfigParam (ConfigParam cp, Serializer ser)
+		{
+			ser.Property (cp.Name + ".fromContext", ref cp.fromContext);
+			ser.Property (cp.Name + ".contextParamName", ref cp.contextParamName);
+			ser.EnumProperty (cp.Name + ".contextParamOperator", ref cp.paramOperator);
+			ser.Property (cp.Name + ".contextParamOperand", ref cp.paramOperand);
+			ser.Property (cp.Name + ".value", ref cp.value);
+		}
+
+		public class ConfigParam
+		{
+			public enum ParamOperator : int
+			{
+				None = 0,
+				Plus = 1,
+				Minus = 2,
+			}
+			private string name;
+			private int defaultValue;
+
+			public bool fromContext;
+			public string contextParamName;
+			public int value;
+			public ParamOperator paramOperator = ParamOperator.None;
+			public int paramOperand;
+
+			public ConfigParam (string name, int defaultValue)
+			{
+				this.name = name;
+				this.value = this.defaultValue = defaultValue;
+			}
+			public string Name {
+				get {
+					return name;
+				}
+			}
+			public int DefaultValue {
+				get {
+					return defaultValue;
+				}
+			}
+
+			public int GetInt (PathModifierContext context)
+			{
+				if (fromContext) {
+					int v = contextParamName != null ? context.Parameters.GetInt (contextParamName, defaultValue) : defaultValue;
+					switch (paramOperator) {
+					case ParamOperator.Plus:
+						v += paramOperand;
+						break;
+					case ParamOperator.Minus:
+						v -= paramOperand;
+						break;
+
+					}
+					return v;
+				} else {
+					return value;
+				}
+			}
+		}
+		public ConfigParam firstPointIndexParam = new ConfigParam ("firstPointIndex", 0);
+		public ConfigParam pointCountParam = new ConfigParam ("pointCount", -1);
+
+
+		public override PathPoint[] Filter (PathPoint[] points, PathModifierContext context, ProcessFilteredPointsDelegate processCallback)
+		{
+			int adjustedFirstPointIndex;
+			int adjustedPointCount;
+
+
+			this.firstPointIndex = firstPointIndexParam.GetInt (context);
+			this.pointCount = pointCountParam.GetInt (context);
+			if (pointCount < 0) {
+				// Negative value == include all
+				adjustedPointCount = points.Length;
+			} else {
+				adjustedPointCount = Mathf.Clamp (pointCount, 0, points.Length);
+				// TODO should we update the configuration setting here:
+//				this.pointCount = adjustedPointCount;
+			}
+
+			adjustedFirstPointIndex = Mathf.Clamp (firstPointIndex, 0, points.Length - 1);
+
+			int filteredCount = Mathf.Clamp (adjustedPointCount, 0, points.Length - adjustedFirstPointIndex);
+
+			// Now run the PathModifier with filtered points:
+
+			PathPoint[] pmInputPoints = new PathPoint[filteredCount];
+			for (int i = 0; i < filteredCount; i++) {
+				pmInputPoints [i] = points [i + adjustedFirstPointIndex];
+			}
+
+			PathPoint[] pmResults = processCallback (pmInputPoints, context);
+
+			int resultsCount = points.Length - filteredCount + pmResults.Length;
+
+			// Combine results to input:
+			PathPoint[] results = new PathPoint[resultsCount];
+
+			// First copy original points before filtering (the head):
+			int headSize = adjustedFirstPointIndex;
+			for (int i = 0; i < headSize; i++) {
+				results [i] = points [i];
+			}
+			// Then copy modified points:
+			for (int i = 0; i < pmResults.Length; i++) {
+				results [i + headSize] = pmResults [i];
+			}
+			// And finally the tail:
+			int tailSize = points.Length - pmResults.Length - headSize;
+			int tailOffset = adjustedFirstPointIndex + pmResults.Length;
+			for (int i = 0; i < tailSize; i++) {
+				results [i + tailOffset] = points [i + headSize + pmResults.Length];
+			}
+
+			return results;
+		}
+	}
+
+	public interface IPathModifierInputFilterSupport
+	{
+
+		PathModifierInputFilter GetInputFilter ();
+		void SetInputFilter (PathModifierInputFilter f);
+	}
+
+	public abstract class AbstractPathModifier : IPathModifier, IPathModifierInputFilterSupport
 	{
 
 
@@ -175,6 +362,10 @@ namespace Paths
 		protected string instanceDescription;
 		private string name;
 		private IPathModifierContainer container;
+
+		private PathModifierInputFilter inputFilter;
+
+
 
 		public AbstractPathModifier ()
 		{
@@ -193,7 +384,8 @@ namespace Paths
 					PathModifierUtil.GetPathModifierCapsFromAttributes (GetType (), out inputCaps, out processCaps, out passthroughCaps, out generateCaps);
 					instanceName = "";
 					instanceDescription = "";
-					// Don't reset container!
+					inputFilter = null;
+					// Don't reset the container!
 
 					OnReset ();
 				} finally {
@@ -306,13 +498,20 @@ namespace Paths
 			return (context.InputFlags & (GetProcessFlags (context) | GetPassthroughFlags (context))) | GetGenerateFlags (context);
 		}
 
+		public PathModifierInputFilter GetInputFilter ()
+		{
+			return inputFilter;
+		}
+		public void SetInputFilter (PathModifierInputFilter f)
+		{
+			this.inputFilter = f;
+		}
+
 		public void LoadParameters (ParameterStore store)
 		{
 			// TODO should we serialize inputCaps, outputCaps etc.?
 			if (!_inLoadParameters) {
-				enabled = store.GetBool ("enabled", enabled);
-				instanceName = store.GetString ("instanceName", instanceName);
-				instanceDescription = store.GetString ("instanceDescription", instanceDescription);
+
 				try {
 					_inLoadParameters = true;
 					OnLoadParameters (store);
@@ -325,23 +524,17 @@ namespace Paths
             
 		}
 
-		public virtual void OnSerialize (Serializer ser)
-		{
-		}
-
 		public void OnLoadParameters (ParameterStore store)
 		{
 			Serializer ser = new Serializer (store, false);
-			OnSerialize (ser);
+			Serialize (ser);
 		}
-        
+
 		public void SaveParameters (ParameterStore store)
 		{
 			// TODO should we serialize inputCaps, outputCaps etc.?
 			if (!_inSaveParameters) {
-				store.SetBool ("enabled", enabled);
-				store.SetString ("instanceName", instanceName);
-				store.SetString ("instanceDescription", instanceDescription);
+
 				try {
 					_inSaveParameters = true;
 					OnSaveParameters (store);
@@ -352,14 +545,105 @@ namespace Paths
 				Debug.LogWarning ("SaveParameters() called from OnSaveParameters() - ignoring");
 			}
 		}
-        
+		
 		public void OnSaveParameters (ParameterStore store)
 		{
 			Serializer ser = new Serializer (store, true);
+			Serialize (ser);
+		}
+
+
+
+		private void Serialize (Serializer ser)
+		{
+			ser.Property ("enabled", ref enabled);
+			ser.Property ("instanceName", ref instanceName);
+			ser.Property ("instanceDescription", ref instanceDescription);
+			SerializeInputFilters (ser.WithPrefix ("inputFilters"));
 			OnSerialize (ser);
 		}
+
+		public virtual void OnSerialize (Serializer ser)
+		{
+		}
+
+		private void SerializeInputFilters (Serializer ser)
+		{
+			int count;
+			if (ser.Saving) {
+				// Saving
+
+				// Clean up unused configuration
+				foreach (string inputFilterParam in ser.ParameterStore.FindParametersStartingWith("")) {
+					ser.ParameterStore.RemoveParameter (inputFilterParam);
+				}
+
+				if (null != inputFilter) {
+					count = 1;
+				} else {
+					count = 0;
+				}
+				ser.ParameterStore.SetInt ("Count", count);
+
+			} else {
+				// Loading
+				count = ser.ParameterStore.GetInt ("Count", -1);
+				if (count == 0) {
+					this.inputFilter = null;
+				}
+			}
+			if (count > 0) {
+				inputFilter = SerializeInputFilter (inputFilter, ser.WithPrefix ("Items[0]"));
+			}
+		}
+		private PathModifierInputFilter SerializeInputFilter (PathModifierInputFilter f, Serializer ser)
+		{
+			if (ser.Saving) {
+				string type = f.GetType ().FullName;
+				ser.ParameterStore.SetString ("Type", type);
+			} else {
+				// LOADING
+				string type = ser.ParameterStore.GetString ("Type", null);
+//				if (type == null) {
+//					throw new Exception ("Failed to read 'Type' of PathModifierInputFilter");
+//				}
+				if (null == f || (null != type && f.GetType ().FullName != type)) {
+					f = (PathModifierInputFilter)Activator.CreateInstance (Type.GetType (type));
+				}
+			}
+			f.Serialize (ser);
+			return f;
+		}
+
+
         
-		public abstract PathPoint[] GetModifiedPoints (PathPoint[] points, PathModifierContext context);
+
+        
+		private bool _inGetModifiedPoints;
+
+		public PathPoint[] GetModifiedPoints (PathPoint[] points, PathModifierContext context)
+		{
+			if (!_inGetModifiedPoints) {
+				_inGetModifiedPoints = true;
+				try {
+					PathModifierInputFilter f = GetInputFilter ();
+					if (null != f) {
+						// Run filtered:
+						points = f.Filter (points, context, DoGetModifiedPoints);
+					} else {
+						// Unfiltered:
+						points = DoGetModifiedPoints (points, context);
+					}
+				} finally {
+					_inGetModifiedPoints = false;
+				}
+			} else {
+				throw new Exception ("GetModifiedPoints called from DoGetModifiedPoints. Ignoring.");
+			}
+			return points;
+		}
+
+		protected abstract PathPoint[] DoGetModifiedPoints (PathPoint[] points, PathModifierContext context);
 
 		public virtual Path[] GetPathDependencies ()
 		{

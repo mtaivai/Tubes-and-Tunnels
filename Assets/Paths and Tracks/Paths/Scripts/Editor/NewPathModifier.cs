@@ -31,7 +31,7 @@ namespace Paths.Editor
 			return false;
 		}
         
-		public override PathPoint[] GetModifiedPoints (PathPoint[] points, PathModifierContext context)
+		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points, PathModifierContext context)
 		{
 			throw new NotImplementedException ();
 		}

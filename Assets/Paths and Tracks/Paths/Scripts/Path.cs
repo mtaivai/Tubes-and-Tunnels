@@ -206,7 +206,7 @@ namespace Paths
 				PathPoint[] pp = DoGetPathPoints (out flags);
 				this.rawPathPointFlags = flags;
 
-				pp = PathModifierUtil.RunPathModifiers (new PathModifierContext (this, flags), 
+				pp = PathModifierUtil.RunPathModifiers (new PathModifierContext (this, flags, new ParameterStore ()), 
                                                        pp, ref flags, true);
 
 

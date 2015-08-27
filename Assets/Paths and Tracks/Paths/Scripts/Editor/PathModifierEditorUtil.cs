@@ -79,15 +79,18 @@ namespace Paths.Editor
                 
 			}
 
+			ParameterStore pmParams = new ParameterStore ();
 			if (pathModifiersVisible) {
 				EditorGUI.indentLevel++;
 				int currentInputFlags = context.Path.GetOutputFlagsBeforeModifiers ();
+
 
 				for (int i = 0; i < pathModifiers.Length; i++) {
 					IPathModifier pm = pathModifiers [i];
 
 					IPathInfo pathInfo = context.Path.GetPathInfo ();
-					PathModifierContext pmc = new PathModifierContext (pathInfo, container, currentInputFlags);
+					PathModifierContext pmc = 
+						new PathModifierContext (pathInfo, container, currentInputFlags, pmParams);
 					if (pm.IsEnabled ()) {
 						// TODO could we use pm.GetOutputFlags(pmc) in here?
 						currentInputFlags = ((pm.GetPassthroughFlags (pmc) | pm.GetProcessFlags (pmc)) & currentInputFlags) | pm.GetGenerateFlags (pmc);
@@ -107,6 +110,7 @@ namespace Paths.Editor
 			// Calculate combined output of all PM's:
 			bool hasNewPathModifier = false;
 			int combinedOutputFlags = context.Path.GetOutputFlags ();
+			pmParams = new ParameterStore ();
 			for (int i = 0; i < pathModifiers.Length; i++) {
 				IPathModifier pm = pathModifiers [i];
 				if (pm is NewPathModifier) {
@@ -121,7 +125,8 @@ namespace Paths.Editor
 				//PathModifierUtil.GetPathModifierCaps(pm.GetType(), out inputCaps, out passthroughCaps, out generateCaps);
 				//int inputCaps, passthroughCaps, generateCaps;
 				IPathInfo pathInfo = context.Path.GetPathInfo ();
-				PathModifierContext pmc = new PathModifierContext (pathInfo, container, combinedOutputFlags);
+				PathModifierContext pmc = 
+					new PathModifierContext (pathInfo, container, combinedOutputFlags, pmParams);
 				// TODO could we use pm.GetOutputFlags(pmc) in here?
 				combinedOutputFlags = ((pm.GetProcessFlags (pmc) | pm.GetPassthroughFlags (pmc)) & combinedOutputFlags) | pm.GetGenerateFlags (pmc);
 			}
@@ -196,6 +201,8 @@ namespace Paths.Editor
 
 					EditorGUILayout.Separator ();
 
+					DrawInputFilters (dc);
+
 //                  DrawMasks(pm, pmc, true, false, false);
 
 					DrawMasks (pm, pmc, true, true, true);
@@ -257,6 +264,43 @@ namespace Paths.Editor
 				n = pm.GetName ();
 			}
 			return n;
+		}
+
+		static void DrawInputFilters (DrawContext dc)
+		{
+//			public CustomToolResolver (FindTypesFunc toolTypesFinder, FindTypesFunc editorTypesFinder, 
+//			                           ToolEditorMatcherFunc toolEditorMatcher, DisplayNameResolverFunc displayNameResolver;
+
+			IPathModifierContainer container = dc.container;
+			IPathModifier pm = dc.pm;
+			int index = dc.index;
+			int pmCount = dc.pmCount;
+			TypedCustomToolEditorPrefs visibilityPrefs = dc.visibilityPrefs;
+			UnityEngine.Object dirtyObject = dc.dirtyObject;
+
+			if (pm is IPathModifierInputFilterSupport) {
+				IPathModifierInputFilterSupport ifs = (IPathModifierInputFilterSupport)pm;
+				PathModifierInputFilter f = ifs.GetInputFilter ();
+
+				if (null != f) {
+					EditorGUILayout.LabelField ("Input Filter", f.GetType ().Name);
+					ICustomToolEditor editor = (ICustomToolEditor)PathModifierInputFilterResolver.Instance.CreateToolEditorInstance (f);
+					if (null != editor) {
+						string prefKey = dc.index + ".InputFilterConfigVisible";
+						bool configVisible = visibilityPrefs.GetBool (prefKey, false);
+						configVisible = EditorGUILayout.Foldout (configVisible, "Filter Configuration");
+						visibilityPrefs.SetBool (prefKey, configVisible);
+						if (configVisible) {
+
+							CustomToolEditorContext ctx = 
+								new CustomToolEditorContext (f, dc.context.Target, dc.context.EditorHost, dc.context.TargetModified);
+							EditorGUI.indentLevel++;
+							editor.DrawInspectorGUI (ctx);
+							EditorGUI.indentLevel--;
+						}
+					}
+				}
+			}
 		}
 
 		static void DrawActions (DrawContext dc)

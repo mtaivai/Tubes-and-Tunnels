@@ -16,6 +16,8 @@ namespace Paths
 		private int includedPathRefIndex = -1;
 
 		public int includePosition; // "include at index"
+		private int _includedPointCount;
+		private int _includedIndexOffset;
 		private int _inputPointCount;
 
 		public bool removeDuplicates; // "smart include"
@@ -35,6 +37,8 @@ namespace Paths
 
 			includePosition = -1;
 			_inputPointCount = 0;
+			_includedPointCount = 0;
+			_includedIndexOffset = 0;
 			removeDuplicates = true;
 			alignFirstPoint = false;
 			includedPathPosOffset = Vector3.zero;
@@ -55,6 +59,14 @@ namespace Paths
 			SetIncludedPath (GetContainer ().GetReferenceContainer (), null);
 		}
 
+		public int GetCurrentIncludedPointCount ()
+		{
+			return _includedPointCount;
+		}
+		public int GetCurrentIncludedIndexOffset ()
+		{
+			return _includedIndexOffset;
+		}
 		public int GetCurrentInputPointCount ()
 		{
 			return _inputPointCount;
@@ -105,7 +117,7 @@ namespace Paths
 			}
 		}
 
-		public override PathPoint[] GetModifiedPoints (PathPoint[] points, PathModifierContext context)
+		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points, PathModifierContext context)
 		{
 			this._inputPointCount = points.Length;
 
@@ -181,6 +193,10 @@ namespace Paths
 			this._currentIncludedPathPosOffset = includedPathFirstPointOffset;
 
 			int totalPointCount = includedPointCount + originalPathHeadPointCount + originalPathTailPointCount;
+
+			this._includedPointCount = includedPointCount;
+			this._includedIndexOffset = originalPathHeadPointCount;
+
 			PathPoint[] results = new PathPoint[totalPointCount];
 
 			// Copy originals (two parts: 1. before included and 2. after included)
@@ -207,6 +223,8 @@ namespace Paths
 			}
              
 			// Copy included
+			int resultsArrayOffset = originalPathHeadPointCount;
+
 			if (includedPointCount > 1) {
 
 				// TODO what about these? Should we have configurable process?
@@ -219,10 +237,6 @@ namespace Paths
                         : 0.0f;
 
 //				int includedPointsStartOffset = (includePosition > 0) ? 1 : 0;
-				int resultsArrayOffset = originalPathHeadPointCount;
-
-				// First point offset:
-				;
 
 				Vector3 ptOffs = includedPathFirstPointOffset + 
 					((originalPathHeadPointCount > 0) ? points [originalPathHeadPointCount - 1].Position : Vector3.zero);
@@ -243,6 +257,14 @@ namespace Paths
 					results [resultsIndex] = pp;
 				}
 			}
+
+			// Add parameters
+			ParameterStore param = context.Parameters.WithPrefix ("Include");
+			param.SetInt ("IncludedPathStartIndex", resultsArrayOffset);
+			param.SetInt ("IncludedPathEndIndex", resultsArrayOffset + includedPointCount);
+			param.SetInt ("IncludedPathPointCount", includedPointCount);
+
+
 			return results;
 		}
         

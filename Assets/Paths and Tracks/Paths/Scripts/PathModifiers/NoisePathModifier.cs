@@ -64,7 +64,7 @@ namespace Paths
 		}
 		// TODO we need to recalculate directions and distances!
 		// TODO limit the amplitude between pathpoints!
-		public override PathPoint[] GetModifiedPoints (PathPoint[] points, PathModifierContext context)
+		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points, PathModifierContext context)
 		{
 			System.Random rnd = new System.Random (Seed);
 

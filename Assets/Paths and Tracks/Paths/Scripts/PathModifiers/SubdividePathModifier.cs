@@ -112,7 +112,7 @@ namespace Paths
         }
     */
         
-		public override PathPoint[] GetModifiedPoints (PathPoint[] points, PathModifierContext context)
+		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points, PathModifierContext context)
 		{
 			return DoSubdividePath (points, context);
 		}

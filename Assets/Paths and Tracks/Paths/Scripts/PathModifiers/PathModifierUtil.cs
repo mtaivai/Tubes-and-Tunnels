@@ -29,7 +29,7 @@ namespace Paths
 				if (!mod.IsEnabled ()) {
 					continue;
 				}
-				PathModifierContext pmc = new PathModifierContext (context.PathInfo, context.PathModifierContainer, flags);
+				PathModifierContext pmc = new PathModifierContext (context.PathInfo, context.PathModifierContainer, flags, context.Parameters);
 				pathPoints = mod.GetModifiedPoints (pathPoints, pmc);
 
 

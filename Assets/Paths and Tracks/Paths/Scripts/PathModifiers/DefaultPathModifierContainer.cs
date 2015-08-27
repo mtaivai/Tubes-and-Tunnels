@@ -227,7 +227,7 @@ namespace Paths
 			// Create wrapper context that includes only the PathModifier to apply
 			IPathInfo pathInfo = GetPathInfo ();
 
-			PathModifierContext subContext = new PathModifierContext (pathInfo, pmc, flags);
+			PathModifierContext subContext = new PathModifierContext (pathInfo, pmc, flags, new ParameterStore ());
 			pp = PathModifierUtil.RunPathModifiers (subContext, pp, ref flags, true);
 			//this.pathPointFlags = flags;
 			//this.pathPoints = new List<PathPoint>(pp);

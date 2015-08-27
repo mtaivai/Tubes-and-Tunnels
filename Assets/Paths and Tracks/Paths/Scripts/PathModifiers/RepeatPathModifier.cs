@@ -40,7 +40,7 @@ namespace Paths
 		}
 
 		// TODO distanceFromBegin is not working correctly!
-		public override PathPoint[] GetModifiedPoints (PathPoint[] points, PathModifierContext context)
+		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points, PathModifierContext context)
 		{
 			if (points.Length < 2) {
 				return points;

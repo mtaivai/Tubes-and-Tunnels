@@ -41,8 +41,9 @@ namespace Paths
 			return "This Path Modifier can (re)generate PathPoint components with different algorithms.";
 		}
 
-		public override void Reset ()
+		protected override void OnResetConfiguration ()
 		{
+
 			PositionFunction = PathModifierFunction.Passthrough;
 			DirectionFunction = PathModifierFunction.Generate;
 			UpVectorFunction = PathModifierFunction.Passthrough;
@@ -77,7 +78,7 @@ namespace Paths
 			distanceFromBeginMask = distanceFromPreviousMask;
 		}
 
-		public override PathPoint[] GetModifiedPoints (PathPoint[] points, PathModifierContext context)
+		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points, PathModifierContext context)
 		{
 
 //          int ppFlags = PathPoint.POSITION;

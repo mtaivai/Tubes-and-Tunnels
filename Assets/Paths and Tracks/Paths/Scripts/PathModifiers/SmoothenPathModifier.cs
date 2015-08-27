@@ -25,7 +25,7 @@ namespace Paths
 		public bool keepFirst = true;
 		public bool keepLast = true;
 
-		public override PathPoint[] GetModifiedPoints (PathPoint[] points, PathModifierContext context)
+		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points, PathModifierContext context)
 		{
 			// Moving Average algorithm
 			float halfSubset = (float)subsetSize / 2f;

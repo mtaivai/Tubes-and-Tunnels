@@ -38,13 +38,39 @@ namespace Paths
 		private int allowedDistanceFromBeginFunctionsMask = MaskNone;
 		private int allowedAngleFunctionsMask = MaskNone;
 
-		public ConfigurableProcessPathModifier ()
+		public ConfigurableProcessPathModifier () : base()
 		{
-			Reset ();
+
+
+
+		}
+
+		private bool _onReset;
+
+		protected sealed override void OnReset ()
+		{
+			if (!_onReset) {
+				_onReset = true;
+				try {
+					DoReset ();
+					OnResetConfiguration ();
+				} finally {
+					_onReset = false;
+				}
+			}
+		}
+
+		protected virtual void OnResetConfiguration ()
+		{
+
+		}
+
+		private void DoReset ()
+		{
 			GetAllowedFunctions (
-                out allowedPositionFunctionsMask, out allowedDirectionFunctionsMask, 
-                out allowedDistanceFromPreviousFunctionsMask, out allowedDistanceFromBeginFunctionsMask, 
-                out allowedUpVectorFunctionsMask, out allowedAngleFunctionsMask);
+				out allowedPositionFunctionsMask, out allowedDirectionFunctionsMask, 
+				out allowedDistanceFromPreviousFunctionsMask, out allowedDistanceFromBeginFunctionsMask, 
+				out allowedUpVectorFunctionsMask, out allowedAngleFunctionsMask);
 			// Initial values:
 			if (!IsAllowedFunction (positionFunction, allowedPositionFunctionsMask)) {
 				positionFunction = GetFirstAllowedFunction (AllowedPositionFunctions);
@@ -64,8 +90,6 @@ namespace Paths
 			if (!IsAllowedFunction (angleFunction, allowedAngleFunctionsMask)) {
 				angleFunction = GetFirstAllowedFunction (AllowedAngleFunctions);
 			}
-
-
 		}
 
 		private static PathModifierFunction GetFirstAllowedFunction (PathModifierFunction[] functions)
@@ -77,7 +101,6 @@ namespace Paths
 			}
 		}
 
-		public abstract void Reset ();
 
 		protected abstract void GetAllowedFunctions (out int positionMask, out int directionMask, 
                                                     out int distanceFromBeginMask, out int distanceFromPreviousMask,

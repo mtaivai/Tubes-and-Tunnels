@@ -85,10 +85,16 @@ namespace Util
 			this.arrays = parent.arrays;
 		}
 
+
 		public string Prefix {
 			get {
 				return prefix;
 			}
+		}
+
+		public ParameterStore WithPrefix (string prefix)
+		{
+			return new ParameterStore (this, prefix);
 		}
 
 		public void OnBeforeSerialize ()
@@ -324,6 +330,7 @@ namespace Util
 
 			return arr;
 		}
+
 
 		public string GetString (string name, string defaultValue = null)
 		{
@@ -580,6 +587,24 @@ namespace Util
 			this.store = store;
 			this.saving = saving;
 		}
+
+		public bool Saving {
+			get {
+				return saving;
+			}
+		}
+		public ParameterStore ParameterStore {
+			get {
+				return store;
+			}
+		}
+
+		public Serializer WithPrefix (string prefix)
+		{
+			ParameterStore store2 = new ParameterStore (store, prefix);
+			return new Serializer (store2, saving);
+		}
+
 
 		public void Property (string name, ref string value)
 		{

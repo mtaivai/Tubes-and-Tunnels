@@ -306,8 +306,7 @@ namespace Tracks
 					pathPoints = new PathPoint[0];
 					pathPointFlags = PathPoint.NONE;
 				}
-				// TODO we need to provide the Context with a valid Path reference!
-				PathModifierContext context = new PathModifierContext (path, GetPathModifierContainer (), pathPointFlags);
+				PathModifierContext context = new PathModifierContext (path, GetPathModifierContainer (), pathPointFlags, new ParameterStore ());
 				pathPoints = PathModifierUtil.RunPathModifiers (context, pathPoints, ref pathPointFlags, true);
 			}
 		}
