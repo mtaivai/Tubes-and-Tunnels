@@ -37,8 +37,14 @@ namespace Tracks
 
 
 		// TODO should this be serialized?
-		private bool autoUpdateWithPath = false;
-		private bool autoUpdateMesh = false;
+		[SerializeField]
+		private bool
+			autoUpdateWithPath = false;
+
+		[SerializeField]
+		private bool
+			autoUpdateMesh = false;
+
 		[SerializeField]
 		private List<UnityEngine.Object>
 			referents = new List<UnityEngine.Object> ();

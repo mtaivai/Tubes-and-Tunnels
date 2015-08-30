@@ -312,7 +312,7 @@ namespace Paths.Editor
                 
 				// Direction vector
 				Vector3 prevDir, nextDir;
-				Vector3 dir = PathUtil.IntersectDirection (transformedPoints, i, false, out prevDir, out nextDir);
+				Vector3 dir = PathUtil.GetPathDirectionAtPoint (transformedPoints, i, false, out prevDir, out nextDir);
                 
 				Handles.color = dirVectorColor;
 				Handles.DrawLine (pt, pt + dir * dirVectorLength);

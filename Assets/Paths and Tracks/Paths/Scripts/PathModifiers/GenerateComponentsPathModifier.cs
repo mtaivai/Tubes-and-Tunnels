@@ -90,6 +90,7 @@ namespace Paths
 //          }
 			int ppFlags = GetOutputFlags (context);
 
+			bool loopPath = context.PathInfo.IsLoopPath ();
 			Vector3 normalizedConstantUpVector = constantUpVector.normalized;
 
 
@@ -104,7 +105,8 @@ namespace Paths
 
 				Vector3 dir;
 				if (DirectionFunction == PathModifierFunction.Generate) {
-					dir = PathUtil.IntersectDirection (points, i, false, Vector3.zero, out prevDir, out nextDir);
+					dir = PathUtil.GetPathDirectionAtPoint (points, i, loopPath, Vector3.zero, out prevDir, out nextDir);
+					points [i].Direction = dir;
 					prevAndNextDirKnown = true;
                     
 				} else if (DirectionFunction == PathModifierFunction.Passthrough) {
@@ -118,7 +120,7 @@ namespace Paths
 				bool angleKnown = false;
 				if (AngleFunction == PathModifierFunction.Generate) {
 					if (!prevAndNextDirKnown) {
-						dir = PathUtil.IntersectDirection (points, i, false, Vector3.zero, out prevDir, out nextDir);
+						dir = PathUtil.GetPathDirectionAtPoint (points, i, false, Vector3.zero, out prevDir, out nextDir);
 						prevAndNextDirKnown = true;
 					}
 
@@ -144,11 +146,14 @@ namespace Paths
 				if (UpVectorFunction == PathModifierFunction.Generate) {
 
 					if (!prevAndNextDirKnown) {
-						dir = PathUtil.IntersectDirection (points, i, false, Vector3.zero, out prevDir, out nextDir);
+						dir = PathUtil.GetPathDirectionAtPoint (points, i, false, Vector3.zero, out prevDir, out nextDir);
 						prevAndNextDirKnown = true;
 					}
 
-
+					// TODO rename UpVectorAlgorithms
+					// TODO remove "Bank" algorithm as standalone algorithm; maybe 
+					// we could have another PM like "CurvesPathModifier" that supports Camber
+					// (yes, refactor term "Bank" to "Camber")
 					if (upVectorAlgorithm == UpVectorAlgorithm.Constant) {
 						up = normalizedConstantUpVector;
 					} else if (upVectorAlgorithm == UpVectorAlgorithm.PlaneNormal) {
@@ -160,11 +165,12 @@ namespace Paths
 						up = Vector3.up;
 
 						// Tube with consistent face orientation (allows loop without twisting):
-//                        Vector3 cross = Vector3.Cross(-prevDir, nextDir).normalized;
+						Vector3 cross = Vector3.Cross (-prevDir, nextDir);
+						up = cross.normalized;
 
-						Vector3 rotateAroundVector = GetRotateAroundVector (generateUpVectorPlane);
+						//Vector3 rotateAroundVector = GetRotateAroundVector (generateUpVectorPlane);
                        
-						up = Quaternion.AngleAxis (-90, rotateAroundVector) * dir;
+						//up = Quaternion.AngleAxis (-90, rotateAroundVector) * dir;
 
 
 					} else if (upVectorAlgorithm == UpVectorAlgorithm.Bank) {

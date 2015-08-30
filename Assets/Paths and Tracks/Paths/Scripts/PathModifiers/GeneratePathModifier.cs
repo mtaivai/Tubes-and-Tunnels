@@ -14,6 +14,8 @@ namespace Paths
                   generateCaps=PathPoint.POSITION | PathPoint.DIRECTION | PathPoint.UP | PathPoint.DISTANCES)]
 	public class GeneratePathModifier : ConfigurableProcessPathModifier
 	{
+		// TODO this is always discarding the existing path! Add behaviour like in IncludePathModifer
+		// or even better, make a common subclass for both. Yes, that's what we'll do!
 		public enum GenerateFunction
 		{
 			Straight,
@@ -130,7 +132,7 @@ namespace Paths
 
 				switch (DirectionFunction) {
 				case PathModifierFunction.Generate:
-					dir = PathUtil.IntersectDirection (positions, i, loopPath, out prevDir, out nextDir);
+					dir = PathUtil.GetPathDirectionAtPoint (positions, i, loopPath, out prevDir, out nextDir);
 					dirKnown = true;
 					prevAndNextDirKnown = true;
 					break;
@@ -152,7 +154,7 @@ namespace Paths
                     
 					if (!(dirKnown && prevAndNextDirKnown)) {
 
-						dir = PathUtil.IntersectDirection (positions, i, loopPath, out prevDir, out nextDir);
+						dir = PathUtil.GetPathDirectionAtPoint (positions, i, loopPath, out prevDir, out nextDir);
 						dirKnown = prevAndNextDirKnown = true;
 					}
 					Vector3 cross = Vector3.Cross (-prevDir, nextDir).normalized;

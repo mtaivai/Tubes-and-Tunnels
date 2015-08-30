@@ -13,9 +13,12 @@ namespace Paths.Polyline
 		private List<Vector3>
 			controlPoints = new List<Vector3> ();
 
+		[SerializeField]
+		private bool
+			loop = false;
+
 		// not serialized
 
-		private bool loop = false;
 
 		public override bool IsLoop ()
 		{
@@ -79,12 +82,12 @@ namespace Paths.Polyline
 //          return pathPoints[index];
 //      }
 
-		protected override PathPoint[] DoGetPathPoints (out int outputFlags)
+		protected override List<PathPoint> DoGetPathPoints (out int outputFlags)
 		{
 			int cpCount = (null != controlPoints) ? controlPoints.Count : 0;
-			PathPoint[] pp = new PathPoint[cpCount];
+			List<PathPoint> pp = new List<PathPoint> ();
 			for (int i = 0; i < cpCount; i++) {
-				pp [i] = DoGetPathPointAtIndex (i);
+				pp.Add (DoGetPathPointAtIndex (i));
 			}
 			// TODO currently we don't generate distances!
 			outputFlags = PathPoint.POSITION | PathPoint.DIRECTION;

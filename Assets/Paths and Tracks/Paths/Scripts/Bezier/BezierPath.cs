@@ -162,12 +162,12 @@ namespace Paths.Bezier
 //				
 //			}
 //		}
-		protected override PathPoint[] DoGetPathPoints (out int outputFlags)
+		protected override List<PathPoint> DoGetPathPoints (out int outputFlags)
 		{
 			List<PathPoint> points = null;
 			DoGeneratePathPoints (ref points, pointsPerSegment, true, true, true);
 			outputFlags = PathPoint.POSITION | PathPoint.DIRECTION | PathPoint.UP;
-			return points.ToArray ();
+			return points;
 		}
 		
 		public Vector3 GetControlPoint (int index, Transform transform = null)

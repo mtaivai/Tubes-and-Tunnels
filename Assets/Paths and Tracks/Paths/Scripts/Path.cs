@@ -5,6 +5,13 @@ using System;
 
 using Util;
 
+// TODO we need a GetPoint(float t) method, either directly in a path
+// or as a separate utility. For pure bezier paths it would be easy to implement,
+// but for polyline or composite paths it woudl need some more effort by
+// implementing a smart smoothing / interpolating algorithm. One possiblity would
+// be to convert polyline path to bezier path on-the-fly.
+
+
 namespace Paths
 {
 	public delegate void PathChangedEventHandler (object sender,EventArgs e);
@@ -16,9 +23,9 @@ namespace Paths
 		public static readonly Color FinalPathLineColor = Color.cyan;
 		public static readonly Color FinalPathPointMarkerColor = Color.cyan;
 		public static readonly Color FinalPathFirstPointMarkerColor = Color.yellow;
-		public static readonly Color UpVectorColor = Color.green;
-		public static readonly Color DirVectorColor = Color.blue;
-		public static readonly Color RightVectorColor = Color.red;
+		public static readonly Color UpVectorColor = new Color (0.1f, 1f, 0.1f);
+		public static readonly Color DirVectorColor = new Color (0.1f, 0.1f, 1f);
+		public static readonly Color RightVectorColor = new Color (1f, 0.1f, 0.1f);
 		public static readonly float UpVectorLength = 1.0f;
 		public static readonly float DirVectorLength = 1.0f;
 		public static readonly float RightVectorLength = 1.0f;
@@ -33,8 +40,21 @@ namespace Paths
 //      bool IsLoop ();
 //
 //  }
+
+	// TODO do we really need separate IPathInfo? Maybe yes, because some path related
+	// tools can be used without the actual Path object, for example PathModifiers don't
+	// really need a reference to Path, the just need valid array of PathPoints. In some
+	// cases we don't have the original Path instance available, for example Track has
+	// its own set of PathModifiers.
 	public interface IPathInfo
 	{
+		/// <summary>
+		/// Determines whether this instance is loop path, i.e. the last point is connected
+		/// to the first point. The returned last point has always the same position, direction,
+		/// up vector etc as the first but its distance components are measured from the last
+		/// actual point (or the last control point) to the first point.
+		/// </summary>
+		/// <returns><c>true</c> if this instance is loop path; otherwise, <c>false</c>.</returns>
 		bool IsLoopPath ();
 //      int GetPointCount();
 	}
@@ -63,6 +83,8 @@ namespace Paths
 			ManualRefresh,
 			Frozen
 		}
+
+
 
 		public event PathChangedEventHandler Changed;
 
@@ -102,8 +124,12 @@ namespace Paths
 //            }
 //        }
 
+		private bool totalDistanceKnown = false;
+		private float totalDistance;
 
 		private IPathInfo pathInfo;
+
+		private long updateToken = 0;
 
 		public IPathInfo GetPathInfo ()
 		{
@@ -178,7 +204,8 @@ namespace Paths
 
 		//void PathGeneratorModified(IPathGenerator pathGenerator);
 		//IPathGenerator GetPathGenerator();
-        
+
+		// TODO this is already in IPathInfo! Do we need it in here?
 		public abstract bool IsLoop ();
         
 		//int GetSegmentCount();
@@ -188,7 +215,18 @@ namespace Paths
 //      public abstract int GetPointCount();
 //      public abstract PathPoint GetPointAtIndex(int index);
 
-		protected abstract PathPoint[] DoGetPathPoints (out int outputFlags);
+		/// <summary>
+		/// Called to get / produce path points. This will be called if the internal cache
+		/// is invalidated, i.e. the path configuration has been changed.
+		/// </summary>
+		/// <returns>All path points, excluding the last point in looped paths (whose position is equal to position of first point)</returns>
+		/// <param name="outputFlags">Output flags.</param>
+		protected abstract List<PathPoint> DoGetPathPoints (out int outputFlags);
+
+		protected PathPoint[] DoGetPathPointsArray (out int outputFlags)
+		{
+			return DoGetPathPoints (out outputFlags).ToArray ();
+		}
 
 		public void ForceUpdatePathPoints ()
 		{
@@ -202,17 +240,56 @@ namespace Paths
 			bool doRefresh = frozenStatus == PathStatus.Dynamic || (manualRefresh && frozenStatus == PathStatus.ManualRefresh);
 			if (doRefresh && (null == pathPoints || pathPointsDirty)) {
 
+				this.totalDistanceKnown = false;
+
 				int flags;
-				PathPoint[] pp = DoGetPathPoints (out flags);
+
+
+				List<PathPoint> rawPathPoints = DoGetPathPoints (out flags);
 				this.rawPathPointFlags = flags;
 
+				// DoGetPathPoints doesn't return the last point for looped paths. So PathModifiers
+				// will not have it on their input and it shouldn't be on their output!
+
+				// TODO could we change PathModifier to get input as List (and also to return lists)
+				PathPoint[] pp = rawPathPoints.ToArray ();
 				pp = PathModifierUtil.RunPathModifiers (new PathModifierContext (this, flags, new ParameterStore ()), 
                                                        pp, ref flags, true);
 
 
 				this.pathPointFlags = flags;
 				this.pathPoints = new List<PathPoint> (pp);
+
+				// Add last point for looped paths:
+				// TODO add some documentation to DoGetPathPoints() and PathModifiers for looped paths
+				// - DoGetPathPoints() should not return the last point (i.e. the duplicated first point)
+				// - PathModifiers are fed without the last duplicated point and it's added after automatically
+				//   after the last pathmodifier
+				if (IsLoop () && pathPoints.Count > 1) {
+					// Duplicate of the first point, except for distance components
+					PathPoint lastPoint = new PathPoint (pathPoints [0]);
+					bool setDistanceFromPrevious = PathPoint.IsFlag (flags, PathPoint.DISTANCE_FROM_PREVIOUS);
+					bool setDistanceFromBegin = PathPoint.IsFlag (flags, PathPoint.DISTANCE_FROM_BEGIN);
+					
+					float distFromPrev;
+					if (setDistanceFromPrevious || setDistanceFromBegin) {
+						distFromPrev = (pathPoints [0].Position - pathPoints [pathPoints.Count - 1].Position).magnitude;
+						if (setDistanceFromPrevious) {
+							lastPoint.DistanceFromPrevious = distFromPrev;
+						}
+						if (setDistanceFromBegin) {
+							lastPoint.DistanceFromBegin = pathPoints [pathPoints.Count - 1].DistanceFromBegin + distFromPrev;
+						}
+					}
+					pathPoints.Add (lastPoint);
+				}
+
+
 				pathPointsDirty = false;
+
+				// TODO this could be incremental, would it be better?
+				this.updateToken = System.DateTime.Now.Millisecond;
+
 				FireChangedEvent ();
 
 			} else if (pathPoints == null) {
@@ -220,10 +297,19 @@ namespace Paths
 			}
 
 		}
+		public bool IsUpToDate (long statusToken)
+		{
+			return statusToken == this.updateToken;
+		}
+		public long GetStatusToken ()
+		{
+			return this.updateToken;
+		}
 
 		public PathPoint[] GetAllPoints ()
 		{
 			UpdatePathPoints (false);
+			// TODO we should return a deep clone instead!
 			return pathPoints.ToArray ();
 		}
         
@@ -236,7 +322,42 @@ namespace Paths
 		public PathPoint GetPointAtIndex (int index)
 		{
 			UpdatePathPoints (false);
+			// TODO we should return a clone instead!
 			return pathPoints [index];
+		}
+
+
+
+		public float GetTotalDistance ()
+		{
+			UpdatePathPoints (false);
+			if (!this.totalDistanceKnown) {
+				float td = 0.0f;
+
+				PathPoint[] points = GetAllPoints ();
+				if (points.Length == 0) {
+					td = 0.0f;
+				} else {
+					// TODO we should have a configuration option to force "always calculate total distance"
+
+					// Do we have "DistanceFromBegin" flag?
+					if (PathPoint.IsFlag (GetOutputFlags (), PathPoint.DISTANCE_FROM_BEGIN) && 
+						points [points.Length - 1].HasDistanceFromBegin) {
+						// Use the already calculated value:
+						td = points [points.Length - 1].DistanceFromBegin;
+					} else {
+						// Calculate now
+						for (int i = 1; i < points.Length; i++) {
+							float d = (points [i].Position - points [i - 1].Position).magnitude;
+							td += d;
+						}
+					}
+				}
+
+				this.totalDistanceKnown = true;
+				this.totalDistance = td;
+			}
+			return this.totalDistance;
 		}
 
 		public int GetOutputFlags ()
@@ -310,7 +431,7 @@ namespace Paths
                 GetPathInfo,
                 PathModifiersChanged,
                 PathPointsChanged,
-                DoGetPathPoints,
+                DoGetPathPointsArray,
                 () => {
 				this.pathPointsDirty = true;},
                 setPathPointsFunc,
@@ -348,12 +469,15 @@ namespace Paths
 				Vector3 pt1 = transform.TransformPoint (pp [i].Position);
 				Gizmos.DrawLine (pt0, pt1);
 			}
-			if (IsLoop () && pp.Length > 1) {
-				// Connect last and first points:
-				Vector3 pt0 = transform.TransformPoint (pp [0].Position);
-				Vector3 pt1 = transform.TransformPoint (pp [pp.Length - 1].Position);
-				Gizmos.DrawLine (pt0, pt1);
-			}
+
+			// GetAllPoints() already returns the last point for loop, which is 
+			// equal to the first point
+//			if (IsLoop () && pp.Length > 1) {
+//				// Connect last and first points:
+//				Vector3 pt0 = transform.TransformPoint (pp [0].Position);
+//				Vector3 pt1 = transform.TransformPoint (pp [pp.Length - 1].Position);
+//				Gizmos.DrawLine (pt0, pt1);
+//			}
 
 			// Direction Vectors (Forward, Right and Up) and point markers
 			Color upVectorColor = PathGizmoPrefs.UpVectorColor;
