@@ -600,7 +600,7 @@ namespace Paths.Bezier
 			
 			// Follow the path!
 			
-			PathPoint[] pathPoints = GetAllPoints ();
+			PathPoint[] pathPoints = GetDefaultDataSet ().GetAllPoints ();
 			
 			// Connect control points:
 			if (pathPoints.Length > 0) {

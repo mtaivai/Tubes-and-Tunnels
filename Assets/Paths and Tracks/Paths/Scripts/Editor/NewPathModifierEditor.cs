@@ -15,7 +15,7 @@ namespace Paths.Editor
 	[CustomToolEditor(typeof(NewPathModifier))]
 	internal class NewPathModifierEditor : AbstractPathModifierEditor
 	{
-		public override void DrawInspectorGUI (PathModifierEditorContext context)
+		protected override void OnDrawConfigurationGUI ()
 		{
 
 			CustomToolResolver toolResolver = PathModifierResolver.Instance;

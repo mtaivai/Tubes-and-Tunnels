@@ -21,6 +21,7 @@ namespace Paths
 			}
 			return n;
 		}
+
 		public static PathPoint[] RunPathModifiers (PathModifierContext context, PathPoint[] pathPoints, ref int flags, bool fixResultFlags)
 		{
 			IPathModifier[] modifiers = context.PathModifierContainer.GetPathModifiers ();
@@ -30,8 +31,8 @@ namespace Paths
 					continue;
 				}
 				PathModifierContext pmc = new PathModifierContext (context.PathInfo, context.PathModifierContainer, flags, context.Parameters);
-				pathPoints = mod.GetModifiedPoints (pathPoints, pmc);
 
+				pathPoints = mod.GetModifiedPoints (pathPoints, pmc);
 
 				if (fixResultFlags) {
 					bool gotNulls = false;

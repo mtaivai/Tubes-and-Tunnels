@@ -16,7 +16,7 @@ namespace Paths.Editor
 	public class SubdividePathModifierEditor : AbstractPathModifierEditor
 	{
 
-		public override void DrawInspectorGUI (PathModifierEditorContext context)
+		protected override void OnDrawConfigurationGUI ()
 		{
 			SubdividePathModifier pm = (SubdividePathModifier)context.PathModifier;
 

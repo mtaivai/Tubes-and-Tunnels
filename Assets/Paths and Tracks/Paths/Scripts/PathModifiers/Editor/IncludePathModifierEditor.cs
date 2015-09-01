@@ -179,8 +179,10 @@ namespace Paths.Editor
 	[CustomToolEditor(typeof(IncludePathModifier))]
 	public class IncludePathModifierEditor : AbstractPathModifierEditor
 	{
-		public override void DrawInspectorGUI (PathModifierEditorContext context)
+		protected override void OnDrawConfigurationGUI ()
 		{
+			//DrawDefaultInspectorGUI ();
+			//return;
 			IncludePathModifier pm = (IncludePathModifier)context.PathModifier;
             
 			Path includedPath = pm.GetIncludedPath (context.PathModifierContainer.GetReferenceContainer ());
@@ -257,19 +259,25 @@ namespace Paths.Editor
 			if (containerPath == path) {
 				return true;
 			}
-			IReferenceContainer refContainer = containerPath.GetPathModifierContainer ().GetReferenceContainer ();
-			IPathModifier[] pathModifiers = containerPath.GetPathModifierContainer ().GetPathModifiers ();
-			foreach (IPathModifier pm in pathModifiers) {
-				if (!(pm is IncludePathModifier)) {
-					continue;
-				}
-				IncludePathModifier ipm = (IncludePathModifier)pm;
-				if (ipm.GetIncludedPath (refContainer) == path) {
-					return true;
-				} else {
-					// Recursive lookup
-					if (IsPathIncludedIn (path, ipm.GetIncludedPath (refContainer))) {
+			int dsCount = containerPath.GetDataSetCount ();
+
+			for (int i = 0; i < dsCount; i++) {
+				IPathModifierContainer pmc = containerPath.GetDataSetAtIndex (i).GetPathModifierContainer ();
+				IPathModifier[] pathModifiers = pmc.GetPathModifiers ();
+				IReferenceContainer refContainer = pmc.GetReferenceContainer ();
+
+				foreach (IPathModifier pm in pathModifiers) {
+					if (!(pm is IncludePathModifier)) {
+						continue;
+					}
+					IncludePathModifier ipm = (IncludePathModifier)pm;
+					if (ipm.GetIncludedPath (refContainer) == path) {
 						return true;
+					} else {
+						// Recursive lookup
+						if (IsPathIncludedIn (path, ipm.GetIncludedPath (refContainer))) {
+							return true;
+						}
 					}
 				}
 

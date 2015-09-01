@@ -37,56 +37,6 @@ namespace Paths
 		}
 	}
 
-	public class PathModifierContext
-	{
-		private IPathModifierContainer pathModifierContainer;
-		private int inputFlags;
-		private IPathInfo pathInfo;
-
-		//private Dictionary<string, object> parameters = new Dictionary<string, object>();
-		private ParameterStore parameters;
-
-		public PathModifierContext (IPathInfo pathInfo, IPathModifierContainer pathModifierContainer, int inputFlags, ParameterStore parameters)
-		{
-			this.pathInfo = pathInfo;
-			this.pathModifierContainer = pathModifierContainer;
-			this.inputFlags = inputFlags;
-			this.parameters = parameters;
-		}
-
-		public PathModifierContext (Path path, IPathModifierContainer pathModifierContainer, int inputFlags, ParameterStore parameters)
-            : this(path.GetPathInfo(), pathModifierContainer, inputFlags, parameters)
-		{
-		}
-
-		public PathModifierContext (Path path, int inputFlags, ParameterStore parameters) : this(path, path.GetPathModifierContainer(), inputFlags, parameters)
-		{
-		}
-
-		public IPathInfo PathInfo {
-			get {
-				return pathInfo;
-			}
-		}
-
-		public IPathModifierContainer PathModifierContainer {
-			get {
-				return pathModifierContainer;
-			}
-		}
-
-		public int InputFlags {
-			get {
-				return inputFlags;
-			}
-		}
-
-		public ParameterStore Parameters {
-			get {
-				return parameters;
-			}
-		}
-	}
 
 	public interface IPathModifier
 	{
@@ -148,6 +98,97 @@ namespace Paths
 		void RemoveReferent (int index);
 	}
 
+	[Serializable]
+	public class PathDataSnapshot
+	{
+		[SerializeField]
+		private string
+			name;
+
+		[SerializeField]
+		private PathPoint[]
+			points;
+
+		[SerializeField]
+		private int
+			flags;
+
+		public PathDataSnapshot (string name, PathPoint[] points, int flags)
+		{
+			if (null == name) {
+				throw new ArgumentException ("Mandatory argument 'name' is not specified (is null)");
+			}
+			if (null == points) {
+				throw new ArgumentException ("Mandatory argument 'points' is not specified (is null)");
+			}
+			this.name = name;
+			this.points = points;
+			this.flags = flags;
+		}
+		/// <summary>
+		/// Construct a deep clone.
+		/// </summary>
+		/// <param name="name">Name.</param>
+		/// <param name="points">Points.</param>
+		/// <param name="flags">Flags.</param>
+		public PathDataSnapshot (PathDataSnapshot src)
+		{
+			this.name = src.name;
+			this.points = new PathPoint[src.points.Length];
+			for (int i = 0; i < this.points.Length; i++) {
+				this.points [i] = new PathPoint (src.points [i]);
+			}
+			this.flags = src.flags;
+		}
+		public string Name {
+			get {
+				return name;
+			}
+		}
+		public PathPoint[] Points {
+			get {
+				return points;
+			}
+		}
+		public int Flags {
+			get {
+				return flags;
+			}
+		}
+	}
+
+	public interface IPathSnapshotManager
+	{
+		bool SupportsSnapshots ();
+		bool ContainsSnapshot (string name);
+		void StoreSnapshot (string name, PathPoint[] points, int flags);
+		PathDataSnapshot GetSnapshot (string name);
+
+	}
+	public sealed class UnsupportedSnapshotManager : IPathSnapshotManager
+	{
+		public static readonly UnsupportedSnapshotManager Instance = new UnsupportedSnapshotManager ();
+		private UnsupportedSnapshotManager ()
+		{
+		}
+		public bool SupportsSnapshots ()
+		{
+			return false;
+		}
+		public bool ContainsSnapshot (string name)
+		{
+			return false;
+		}
+		public void StoreSnapshot (string name, PathPoint[] points, int flags)
+		{
+			throw new NotSupportedException ("StoreSnapshot is not supported");
+		}
+		public PathDataSnapshot GetSnapshot (string name)
+		{
+			throw new NotSupportedException ("GetSnapshot is not supported");
+		}
+	}
+
 	public interface IPathModifierContainer
 	{
 
@@ -167,7 +208,7 @@ namespace Paths
 
 		IReferenceContainer GetReferenceContainer ();
 
-
+		IPathSnapshotManager GetPathSnapshotManager ();
 
 	}
 
@@ -262,10 +303,15 @@ namespace Paths
 				}
 			}
 
+			private static int GetInt (Dictionary<string, object> dict, string key, int defaultValue)
+			{
+				return dict.ContainsKey (key) ? TypeUtil.ToInt (dict [key], defaultValue) : defaultValue;
+			}
+
 			public int GetInt (PathModifierContext context)
 			{
 				if (fromContext) {
-					int v = contextParamName != null ? context.Parameters.GetInt (contextParamName, defaultValue) : defaultValue;
+					int v = contextParamName != null ? GetInt (context.Parameters, contextParamName, defaultValue) : defaultValue;
 					switch (paramOperator) {
 					case ParamOperator.Plus:
 						v += paramOperand;

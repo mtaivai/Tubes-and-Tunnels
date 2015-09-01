@@ -48,7 +48,11 @@ namespace Util.Editor
 			this.editorHost = e;
 			//          this.toolResolver = toolResolver;
 			this.targetModifiedFunc = targetModifiedFunc;
+			if (null == editorPrefs) {
+				editorPrefs = new DictionaryCustomToolEditorPrefs ();
+			}
 			this.editorPrefs = editorPrefs;
+
 		}
         
 		public object CustomTool {

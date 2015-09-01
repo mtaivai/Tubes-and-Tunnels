@@ -31,17 +31,20 @@ namespace Paths.Editor
 	{
 		delegate void DrawFunctionOptionsFunc (PathModifierEditorContext context);
 
-		public override sealed void DrawInspectorGUI (PathModifierEditorContext context)
+		protected override sealed void OnDrawConfigurationGUI ()
 		{
-			OnDrawInspectorGUI (context);
+			OnDrawConfigurableInspectorGUI ();
 		}
 
-		public virtual void OnDrawInspectorGUI (PathModifierEditorContext context)
+
+
+
+		public virtual void OnDrawConfigurableInspectorGUI ()
 		{
-			DrawDefaultInspectorGUI (context);
+			DrawDefaultConfigurableInspectorGUI ();
 		}
 
-		public void DrawDefaultInspectorGUI (PathModifierEditorContext context)
+		public void DrawDefaultConfigurableInspectorGUI ()
 		{
 			//            ConfigurableProcessPathModifier pm = (ConfigurableProcessPathModifier)context.PathModifier;
 			DrawFunctionSelections (context);

@@ -7,6 +7,7 @@ using Paths;
 
 namespace Paths
 {
+
 	[PathModifier(requiredInputFlags=PathPoint.NONE, 
                   processCaps=PathPoint.NONE,
                   passthroughCaps=PathPoint.NONE, 
@@ -126,8 +127,10 @@ namespace Paths
 			PathPoint[] includedPoints;
 			Path includedPath = GetIncludedPath (context.PathModifierContainer.GetReferenceContainer ());
 			if (null != includedPath) {
-				includedPoints = includedPath.GetAllPoints ();
-				ppFlags &= includedPath.GetOutputFlags ();
+				// TODO what about other than default path data sets?
+				PathData pathData = includedPath.GetDefaultDataSet ();
+				includedPoints = pathData.GetAllPoints ();
+				ppFlags &= pathData.GetOutputFlags ();
 			} else {
 				includedPoints = new PathPoint[0];
 			}
@@ -259,10 +262,9 @@ namespace Paths
 			}
 
 			// Add parameters
-			ParameterStore param = context.Parameters.WithPrefix ("Include");
-			param.SetInt ("IncludedPathStartIndex", resultsArrayOffset);
-			param.SetInt ("IncludedPathEndIndex", resultsArrayOffset + includedPointCount);
-			param.SetInt ("IncludedPathPointCount", includedPointCount);
+			context.Parameters.Add ("Include.IncludedPathStartIndex", resultsArrayOffset);
+			context.Parameters.Add ("Include.IncludedPathEndIndex", resultsArrayOffset + includedPointCount);
+			context.Parameters.Add ("Include.IncludedPathPointCount", includedPointCount);
 
 
 			return results;

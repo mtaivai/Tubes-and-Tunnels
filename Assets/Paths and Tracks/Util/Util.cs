@@ -90,6 +90,46 @@ namespace Util
 
 	public class TypeUtil
 	{
+
+		public static T Convert<T> (object val, T defaultValue)
+		{
+			if (typeof(T) == typeof(int)) {
+				return (T)(object)ToInt (val, (int)(object)defaultValue);
+			} else {
+				throw new ArgumentException ("Unsupported target type: " + typeof(T));
+			}
+		}
+
+		public static int ToInt (object val, int defaultValue)
+		{
+			if (null != val) {
+				if (val is int) {
+					return (int)val;
+				} else if (val is short) { 
+					return (short)val;
+				} else if (val is long) {
+					return (int)(long)val;
+				} else if (val is byte) {
+					return (int)(byte)val;
+				} else if (val is float) {
+					return (int)(float)val;
+				} else if (val is double) {
+					return (int)(double)val;
+				} else if (val is bool) {
+					return ((bool)val) ? 1 : 0;
+				} else {
+					int intVal;
+					if (int.TryParse (val.ToString (), out intVal)) {
+						return intVal;
+					} else {
+						return defaultValue;
+					}
+				}
+			} else {
+				return defaultValue;
+			}
+		}
+
 		public static Type[] FindImplementingTypes (Type baseType)
 		{
 			List<Type> foundTypes = new List<Type> ();

@@ -172,7 +172,7 @@ namespace Util.Editor
 
 		public override bool ContainsEditorPrefKey (string key)
 		{
-			return store.HasParameter (key);
+			return store.ContainsParameter (key);
 		}
         
 		public override string GetEditorPrefValue (string key, string defaultValue)

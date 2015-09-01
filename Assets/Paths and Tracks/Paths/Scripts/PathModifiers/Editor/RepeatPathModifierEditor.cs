@@ -16,7 +16,7 @@ namespace Paths.Editor
 	public class RepeatPathModifierEditor : AbstractPathModifierEditor
 	{
         
-		public override void DrawInspectorGUI (PathModifierEditorContext context)
+		protected override void OnDrawConfigurationGUI ()
 		{
 			RepeatPathModifier pm = (RepeatPathModifier)context.PathModifier;
             

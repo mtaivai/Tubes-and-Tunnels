@@ -162,6 +162,75 @@ namespace Tracks
 //      public const int TB_SHEET_SETTINGS = 0;
 
 
+		private class TrackPathData : PathData
+		{
+			private Track track;
+
+			public TrackPathData (Track track)
+			{
+				this.track = track;
+			}
+			public Path GetPath ()
+			{
+				return track.Path;
+			}
+			public int GetId ()
+			{
+				return 0;
+			}
+
+			public string GetName ()
+			{
+				return "Default";
+			}
+			public Color GetColor ()
+			{
+				return PathGizmoPrefs.FinalPathLineColor;
+			}
+			public PathDataInputSource GetInputSource ()
+			{
+				return PathDataInputSourcePath.Instance;
+			}
+			public IPathSnapshotManager GetPathSnapshotManager ()
+			{
+				return UnsupportedSnapshotManager.Instance;
+			}
+			public IPathModifierContainer GetPathModifierContainer ()
+			{
+				return track.GetPathModifierContainer ();
+			}
+
+			public PathPoint[] GetAllPoints ()
+			{
+				throw new NotImplementedException ();
+			}
+
+			public int GetPointCount ()
+			{
+				throw new NotImplementedException ();
+			}
+
+			public PathPoint GetPointAtIndex (int index)
+			{
+				throw new NotImplementedException ();
+			}
+
+			public int GetOutputFlags ()
+			{
+				throw new NotImplementedException ();
+			}
+
+			public int GetOutputFlagsBeforeModifiers ()
+			{
+				throw new NotImplementedException ();
+			}
+
+			public float GetTotalDistance ()
+			{
+				throw new NotImplementedException ();
+			}
+		}
+
 		public override void OnInspectorGUI ()
 		{
 			this.track = target as Track;
@@ -180,8 +249,10 @@ namespace Tracks
 				if (null != track.Path) {
 					EditorGUILayout.HelpBox ("Track's Path Modifiers can be used to modify the path before it's feed to the Track Generator. Modifiers will not modify the original Path.", MessageType.Info);
 
+					PathData pathData = new TrackPathData (track);
 					PathModifierEditorContext context = new PathModifierEditorContext (
-                        track.GetPathModifierContainer (), null, track.Path, this, PathModifiersChanged, editorPrefs);
+                        pathData, track.Path, this, PathModifiersChanged, editorPrefs);
+
 					// 
 //                  this.target, null, track.Path, this, TrackGeneratorModified, editorPrefs
 
@@ -189,6 +260,22 @@ namespace Tracks
 				}
 			} else if (selectedSheet == SHEET_MESH) {
 				DrawMeshInspectorSheet ();
+
+				EditorGUILayout.Separator ();
+				EditorGUILayout.Separator ();
+
+				if (GUILayout.Button ("Generate Colliders")) {
+
+					MeshCollider mc = track.GetComponent<MeshCollider> ();
+					if (null == mc) {
+						mc = track.gameObject.AddComponent<MeshCollider> ();
+					}
+
+					track.GenerateTrackColliders ();
+
+
+
+				}
             
 			} else if (selectedSheet == SHEET_SETTINGS) {
 				EditorGUI.BeginChangeCheck ();

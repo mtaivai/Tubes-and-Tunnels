@@ -51,7 +51,6 @@ namespace Util
 	[System.Serializable]
 	public class ParameterStore
 	{
-
 		private const string VALUE_ENTRY_PREFIX = "values.";
 		private const string ARRAY_ENTRY_PREFIX = "arrays.";
 		private String prefix = "";
@@ -289,10 +288,8 @@ namespace Util
 				Modified ();
 			}
 		}
-
-		public bool HasParameter (string name)
+		public bool ContainsParameter (string name)
 		{
-//          return GetParameter(name) != null || GetArrayParameter(name) != null;
 			name = AddNamePrefix (name);
 			return values.ContainsKey (name) || arrays.ContainsKey (name);
 		}

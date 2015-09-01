@@ -13,6 +13,11 @@ namespace Tracks
 		[SerializeField]
 		private Path
 			path;
+
+		[SerializeField]
+		private Path
+			lowResPath;
+
 		[SerializeField]
 		private string
 			trackGeneratorType;
@@ -298,21 +303,32 @@ namespace Tracks
             
 				mf.mesh = generatedMesh;
 			}
-        
+		}
 
+		public void GenerateTrackColliders ()
+		{
+
+//			MeshCollider mc = track.GetComponent<MeshCollider> ();
+//			if (null == mc) {
+//				mc = track.gameObject.AddComponent<MeshCollider> ();
+//			}
+//
+//			xxx ();
+//			mc.sharedMesh = m;
 		}
 
 		protected void UpdatePathPoints ()
 		{
 			if (null == pathPoints) {
+				PathData pathData = path.GetDefaultDataSet ();
 				if (null != path) {
-					pathPoints = path.GetAllPoints ();
-					pathPointFlags = path.GetOutputFlags ();
+					pathPoints = pathData.GetAllPoints ();
+					pathPointFlags = pathData.GetOutputFlags ();
 				} else {
 					pathPoints = new PathPoint[0];
 					pathPointFlags = PathPoint.NONE;
 				}
-				PathModifierContext context = new PathModifierContext (path, GetPathModifierContainer (), pathPointFlags, new ParameterStore ());
+				PathModifierContext context = new PathModifierContext (path.GetPathInfo (), GetPathModifierContainer (), pathPointFlags);
 				pathPoints = PathModifierUtil.RunPathModifiers (context, pathPoints, ref pathPointFlags, true);
 			}
 		}
@@ -345,17 +361,18 @@ namespace Tracks
 
 		protected virtual DefaultPathModifierContainer CreatePathModifierContainer ()
 		{
+			PathData pathData = path.GetDefaultDataSet ();
 			DefaultPathModifierContainer pmc = new DefaultPathModifierContainer (
                 Path.GetPathInfo,
                 OnPathModifiersChanged,
                 ConfigurationChanged,
                 (out int ppFlags) => {
-				ppFlags = path.GetOutputFlags ();
-				return path.GetAllPoints ();
+				ppFlags = pathData.GetOutputFlags ();
+				return pathData.GetAllPoints ();
 			},
             PathPointsChanged,
                 null,
-                this);
+                this, null);
                 
             
 

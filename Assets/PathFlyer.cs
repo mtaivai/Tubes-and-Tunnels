@@ -24,9 +24,10 @@ public class PathFlyer : MonoBehaviour
 	// Use this for initialization
 	void Start ()
 	{
-		pathPoints = path.GetAllPoints ();
+		PathData pathData = path.GetDefaultDataSet ();
+		pathPoints = pathData.GetAllPoints ();
 		currentDistance = 0.0f;
-		totalDistance = path.GetTotalDistance ();
+		totalDistance = pathData.GetTotalDistance ();
 		ppLookup = new PathPositionLookup (path);
 	}
 
@@ -129,9 +130,10 @@ public class PathFlyer : MonoBehaviour
 		public PathPoint[] GetPathPoints ()
 		{
 			if (null == _pathPoints || !path.IsUpToDate (currentStatusToken)) {
-				_pathPoints = path.GetAllPoints ();
+				PathData pathData = path.GetDefaultDataSet ();
+				_pathPoints = pathData.GetAllPoints ();
 				// TODO generate required components!
-				int flags = path.GetOutputFlags ();
+				int flags = pathData.GetOutputFlags ();
 				if (!PathPoint.IsFlag (flags, PathPoint.DISTANCES) && _pathPoints.Length > 0) {
 
 					_pathPoints [0].DistanceFromPrevious = 0.0f;

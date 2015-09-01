@@ -21,23 +21,29 @@ namespace Paths.Editor
 	/// </summary>
 	public class PathModifierEditorContext : CustomToolEditorContext
 	{
-		private IPathModifierContainer pathModifierContainer;
+		private PathData pathData;
+		private PathModifierContext pathModifierContext;
 
-		public PathModifierEditorContext (IPathModifierContainer container, IPathModifier customTool, Path target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc)
-            : base(customTool, target, e, targetModifiedFunc)
-		{
-			this.pathModifierContainer = container;
-		}
 
-		public PathModifierEditorContext (IPathModifierContainer container, IPathModifier customTool, Path target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc, CustomToolEditorPrefs prefs)
+
+		public PathModifierEditorContext (PathData data, PathModifierContext pmContext, IPathModifier customTool, Path target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc, TypedCustomToolEditorPrefs prefs)
             : base(customTool, target, e, targetModifiedFunc, prefs)
 		{
-			this.pathModifierContainer = container;
+			this.pathData = data;
+			this.pathModifierContext = pmContext;
+			if (null == pmContext && null != customTool) {
+				pmContext =
+					new PathModifierContext (target.GetPathInfo (), data.GetPathModifierContainer (), data.GetOutputFlagsBeforeModifiers ());
+			}
+		}
+		public PathModifierEditorContext (PathData data, Path target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc, TypedCustomToolEditorPrefs prefs)
+			: this(data, null, null, target, e, targetModifiedFunc, prefs)
+		{
 		}
 
 		public IPathModifierContainer PathModifierContainer {
 			get {
-				return pathModifierContainer;
+				return pathData.GetPathModifierContainer ();
 			}
 		}
 
@@ -46,30 +52,32 @@ namespace Paths.Editor
 				return (IPathModifier)CustomTool;
 			}
 		}
-        
+		public PathData PathData {
+			get {
+				return pathData;
+			}
+		}
 		public Path Path {
 			get {
 				return (Path)Target;
 			}
 		}
-
+		public PathModifierContext PathModifierContext {
+			get {
+				return pathModifierContext;
+			}
+		}
+		public TypedCustomToolEditorPrefs EditorPrefs {
+			get {
+				return (TypedCustomToolEditorPrefs)CustomToolEditorPrefs;
+			}
+		}
 
 	}
 
 	public interface IPathModifierEditor : ICustomToolEditor
 	{
 	}
-
-	public abstract class AbstractPathModifierEditor : IPathModifierEditor
-	{
-		public void DrawInspectorGUI (CustomToolEditorContext context)
-		{
-			DrawInspectorGUI ((PathModifierEditorContext)context);
-		}
-
-		public abstract void DrawInspectorGUI (PathModifierEditorContext context);
-	}
-
 
 
 

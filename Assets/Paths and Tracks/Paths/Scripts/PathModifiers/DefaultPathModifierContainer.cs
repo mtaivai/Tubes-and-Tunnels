@@ -68,6 +68,10 @@ namespace Paths
 		{
 			this.referenceContainer = container;
 		}
+		public IPathSnapshotManager GetPathSnapshotManager ()
+		{
+			return UnsupportedSnapshotManager.Instance;
+		}
 	}
 
 	public class DefaultPathModifierContainer : IPathModifierContainer
@@ -93,7 +97,9 @@ namespace Paths
 		private DoGetPathPointsDelegate DoGetPathPoints;
 		private SetPathPointsDirtyDelegate SetPathPointsDirty;
 		private SetPathPointsDelegate SetPathPoints;
+
 		private IReferenceContainer referenceContainer;
+		private IPathSnapshotManager snapshotManager;
 
 		//private Action<PathPoint[]> DoGetPathPoints;
 
@@ -103,7 +109,8 @@ namespace Paths
                                             DoGetPathPointsDelegate doGetPathPointsFunc,
                                             SetPathPointsDirtyDelegate setPathPointsDirtyFunc,
                                             SetPathPointsDelegate setPathPointsFunc,
-                                            IReferenceContainer referenceContainer)
+                                            IReferenceContainer referenceContainer,
+		                                     IPathSnapshotManager snapshotManager)
 		{
 			this.GetPathInfo = getPathInfoFunc;
 			this.PathModifiersChanged = pathModifiersChangedFunc;
@@ -112,6 +119,10 @@ namespace Paths
 			this.SetPathPointsDirty = setPathPointsDirtyFunc;
 			this.SetPathPoints = setPathPointsFunc;
 			this.referenceContainer = referenceContainer;
+			this.snapshotManager = snapshotManager;
+			if (null == this.snapshotManager) {
+				this.snapshotManager = UnsupportedSnapshotManager.Instance;
+			}
 		}
 
 		public void LoadPathModifiers (ParameterStore parameterStore)
@@ -227,7 +238,7 @@ namespace Paths
 			// Create wrapper context that includes only the PathModifier to apply
 			IPathInfo pathInfo = GetPathInfo ();
 
-			PathModifierContext subContext = new PathModifierContext (pathInfo, pmc, flags, new ParameterStore ());
+			PathModifierContext subContext = new PathModifierContext (pathInfo, pmc, flags);
 			pp = PathModifierUtil.RunPathModifiers (subContext, pp, ref flags, true);
 			//this.pathPointFlags = flags;
 			//this.pathPoints = new List<PathPoint>(pp);
@@ -246,6 +257,14 @@ namespace Paths
 		public IReferenceContainer GetReferenceContainer ()
 		{
 			return referenceContainer;
+		}
+		public IPathSnapshotManager GetPathSnapshotManager ()
+		{
+			return snapshotManager;
+		}
+		public void SetPathBranchManager (IPathSnapshotManager branchManager)
+		{
+			this.snapshotManager = branchManager;
 		}
 	}
     
