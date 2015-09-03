@@ -19,6 +19,7 @@ namespace Paths.Editor
 //        }
 	}
 
+
 	[CustomEditor(typeof(Path), true)]
 	public class PathEditor : AbstractPathEditor<Path, IPathData>
 	{
@@ -27,7 +28,7 @@ namespace Paths.Editor
 
 
 	// TODO refactor this class; it's getting too complex
-	public class AbstractPathEditor<TPath, TPathData> : UnityEditor.Editor where TPath: Path where TPathData: IPathData
+	public class AbstractPathEditor<TPath, TPathData> : UnityEditor.Editor, ICUstomToolEditorHost where TPath: Path where TPathData: IPathData
 	{
 
 		public enum ToolbarSheet : int
@@ -51,16 +52,44 @@ namespace Paths.Editor
 		private Dictionary<int, bool> pointExpanded = new Dictionary<int, bool> ();
 		private int _selectedControlPointIndex = -1;
 
+		private Dictionary<object, ICustomToolEditor> _cachedCustomToolEditors = new Dictionary<object, ICustomToolEditor> ();
+
 		protected TPath path;
 		protected TPathData pathData;
 		protected ParameterStore editorParams;
 
-		private void Init ()
+		protected AbstractPathEditor ()
+		{
+
+		}
+
+		protected void InitGUI ()
 		{
 			this.path = target as TPath;
 			this.editorParams = path.EditorParameters;
 			UpdateDataSetSelection ();
 		}
+		public void SetEditorFor (object customToolInstance, ICustomToolEditor editor)
+		{
+			if (null == editor) {
+				if (_cachedCustomToolEditors.ContainsKey (customToolInstance)) {
+					_cachedCustomToolEditors.Remove (customToolInstance);
+				}
+			} else {
+				_cachedCustomToolEditors [customToolInstance] = editor;
+			}
+		}
+
+		public ICustomToolEditor GetEditorFor (object customToolInstance)
+		{
+			if (_cachedCustomToolEditors.ContainsKey (customToolInstance)) {
+				return _cachedCustomToolEditors [customToolInstance];
+			} else {
+				return null;
+			}
+		}
+
+
 		private void UpdateDataSetSelection ()
 		{
 			pathData = (TPathData)PathEditorUtil.GetSelectedDataSet (path, editorParams, true);
@@ -89,20 +118,13 @@ namespace Paths.Editor
 			EditorUtility.SetDirty (target);
 			UnityEditor.SceneView.RepaintAll ();
 
-			//pathData.
-
-//			pathData.GetPathModifierContainer ().SaveConfiguration ();
-
 			pathData.GetPathModifierContainer ().ConfigurationChanged ();
 
-			//pathData.PathModifiersChanged();
-
-//			pathData.PathModifiersChanged ();
 		}
 
 		public override sealed void OnInspectorGUI ()
 		{
-			Init ();
+			InitGUI ();
 
 //          bool disableEditing = path.FrozenStatus == Path.PathStatus.Frozen;
 
@@ -174,7 +196,34 @@ namespace Paths.Editor
 
 		protected void DrawDataSetSelection ()
 		{
-			PathEditorUtil.DrawDataSetSelection (path, editorParams);
+			IPathData ds = PathEditorUtil.GetSelectedDataSet (path, editorParams, true);
+			
+			int dataSetIndex = path.IndexOfDataSet (ds);
+			
+			List<string> dataSetNames;
+			List<int> dataSetIds;
+			PathEditorUtil.FindAvailableDataSets (path, out dataSetNames, out dataSetIds, " (default)");
+			
+			
+			EditorGUILayout.BeginHorizontal ();
+			EditorGUI.BeginChangeCheck ();
+			dataSetIndex = EditorGUILayout.Popup ("Data Set", dataSetIndex, dataSetNames.ToArray ());
+			if (EditorGUI.EndChangeCheck ()) {
+				int dataSetId = dataSetIds [dataSetIndex];
+				PathEditorUtil.SetSelectedDataSet (dataSetId, editorParams);
+				ds = path.FindDataSetById (dataSetId);
+			}
+			
+			EditorGUI.BeginChangeCheck ();
+			Color color = ds.GetColor ();
+			color = EditorGUILayout.ColorField (color, GUILayout.MaxWidth (40));
+			if (EditorGUI.EndChangeCheck ()) {
+				Undo.RecordObject (path, "Set Data Set color");
+				ds.SetColor (color);
+				EditorUtility.SetDirty (path);
+			}
+			EditorGUILayout.EndHorizontal ();
+		
 			UpdateDataSetSelection ();
 		}
 
@@ -187,7 +236,7 @@ namespace Paths.Editor
 		{
 //          Path path = target as Path;
 //          EditorGUILayout.LabelField ("", path.PointsDirty ? "*Needs Refresh*" : "Points are up to date");
-			DrawInputSourceSelection ();
+//			DrawInputSourceSelection ();
 		}
 
 		protected virtual void DrawPathModifiersInspectorGUI ()
@@ -202,10 +251,10 @@ namespace Paths.Editor
 			PathModifierEditorUtil.DrawPathModifiersInspector (path, pathData, this, path, PathModifiersChanged);
 		}
 
-		protected void DrawInputSourceSelection ()
-		{
-			PathEditorUtil.DrawInputSourceSelection (path, pathData);
-		}
+//		protected void DrawInputSourceSelection ()
+//		{
+//			PathEditorUtil.DrawInputSourceSelection (path, pathData);
+//		}
 
 
 
@@ -289,12 +338,22 @@ namespace Paths.Editor
 //			EditorGUILayout.Foldout (true, "XXX");
 //
 
+		
+
 			///////////// BEGIN REAL IMPL ////////////
 
 //			int count = path.GetDataSetCount ();
 			for (int i = 0; i < count; i++) {
 
 				IPathData ds = path.GetDataSetAtIndex (i);
+
+				/////////////// EXPERIMENTAL BEGIN ///////////////////////
+
+			
+
+
+				/////////////// EXPERIMENTAL END   ///////////////////////
+
 				bool isDefault = path.IsDefaultDataSet (ds);
 
 				EditorGUILayout.BeginHorizontal ();
@@ -305,7 +364,7 @@ namespace Paths.Editor
 				//EditorGUILayout.PrefixLabel ("[" + i.ToString () + "]");
 
 				EditorGUI.BeginChangeCheck ();
-				isDefault = GUILayout.Toggle (isDefault, new GUIContent ("Def", "Default dataset"), GUILayout.ExpandWidth (false));
+				isDefault = GUILayout.Toggle (isDefault, new GUIContent ("Def", "Default dataset"), EditorStyles.miniButtonLeft, GUILayout.ExpandWidth (false));
 				if (EditorGUI.EndChangeCheck () && isDefault) {
 					Undo.RecordObject (target, "Set default data set to '" + ds.GetName () + "'");
 					path.SetDefaultDataSetId (ds.GetId ());
@@ -315,7 +374,7 @@ namespace Paths.Editor
 
 				EditorGUI.BeginChangeCheck ();
 				bool drawGizmos = ds.IsDrawGizmos ();
-				drawGizmos = GUILayout.Toggle (drawGizmos, new GUIContent ("Gz", "Draw Gizmos on Scene View"), GUILayout.ExpandWidth (false));
+				drawGizmos = GUILayout.Toggle (drawGizmos, new GUIContent ("Gz", "Draw Gizmos on Scene View"), EditorStyles.miniButtonRight, GUILayout.ExpandWidth (false));
 				if (EditorGUI.EndChangeCheck ()) {
 //					Undo.RecordObject (target, "Set default data set to '" + ds.GetName () + "'");
 //					path.SetDefaultDataSetId (ds.GetId ());
@@ -343,7 +402,7 @@ namespace Paths.Editor
 //				EditorGUILayout.Toggle (isDefault, GUILayout.ExpandWidth (false));
 
 				EditorGUI.BeginDisabledGroup (i <= 0 || !path.IsSetDataSetIndexSupported ());
-				if (GUILayout.Button (new GUIContent ("^", "Move this data set upwards"), GUILayout.ExpandWidth (false))) {
+				if (GUILayout.Button (new GUIContent ("^", "Move this data set upwards"), EditorStyles.miniButtonLeft, GUILayout.ExpandWidth (false))) {
 					path.SetDataSetIndex (ds, i - 1);
 //					if (ds.GetId () == pathData.GetId ()) {
 //						this.SetPathDataIndex (i - 1);
@@ -353,7 +412,7 @@ namespace Paths.Editor
 				EditorGUI.EndDisabledGroup ();
 
 				EditorGUI.BeginDisabledGroup (i >= count - 1 || !path.IsSetDataSetIndexSupported ());
-				if (GUILayout.Button (new GUIContent ("v", "Move this data set downwards"), GUILayout.ExpandWidth (false))) {
+				if (GUILayout.Button (new GUIContent ("v", "Move this data set downwards"), EditorStyles.miniButtonRight, GUILayout.ExpandWidth (false))) {
 					path.SetDataSetIndex (ds, i + 1);
 //					if (ds.GetId () == pathData.GetId ()) {
 //						this.SetPathDataIndex (i + 1);
@@ -375,26 +434,26 @@ namespace Paths.Editor
 
 
 				EditorGUI.BeginDisabledGroup (isDefault);
-				if (GUILayout.Button (new GUIContent ("X", "Permanently remove this data set"), GUILayout.ExpandWidth (false))) {
+				if (GUILayout.Button (new GUIContent ("X", "Permanently remove this data set"), EditorStyles.miniButton, GUILayout.ExpandWidth (false))) {
 
-					List<IPathData> targets = ((AbstractPathData)ds).FindDataTargets (path);
+//					List<IPathData> targets = ((AbstractPathData)ds).FindDataTargets (path);
 
 
 					int cpCount = ds.GetControlPointCount ();
 					int pmCount = ds.GetPathModifierContainer ().GetPathModifiers ().Length;
 					string message = "Do you want to permanently remove Path Data Set '" + ds.GetName () + "'?";
 
-					if (cpCount > 0 || pmCount > 0 || targets.Count > 0) {
+					if (cpCount > 0 || pmCount > 0 /*|| targets.Count > 0*/) {
 						message += " The data set has " + cpCount + " control point(s), " + pmCount + " Path Modifier(s).";
-						message += " It's source for following data sets in this Path: ";
-						for (int ti = 0; ti < targets.Count; ti++) {
-							string targetName = targets [ti].GetName ();
-							if (ti > 0) {
-								message += ", ";
-							}
-							message += "'" + targetName + "'";
-						}
-						message += ".";
+//						message += " It's source for following data sets in this Path: ";
+//						for (int ti = 0; ti < targets.Count; ti++) {
+//							string targetName = targets [ti].GetName ();
+//							if (ti > 0) {
+//								message += ", ";
+//							}
+//							message += "'" + targetName + "'";
+//						}
+//						message += ".";
 					} else {
 						message += " The data set doesn't have any control points or path modifiers.";
 					}
@@ -412,7 +471,7 @@ namespace Paths.Editor
 			}
 			EditorGUILayout.BeginHorizontal ();
 			EditorGUILayout.PrefixLabel ("Actions");
-			if (GUILayout.Button ("Add New")) {
+			if (GUILayout.Button ("Add New", EditorStyles.miniButton)) {
 				Undo.RecordObject (target, "Add Data Set");
 				path.AddDataSet ();
 				EditorUtility.SetDirty (target);
@@ -525,9 +584,9 @@ namespace Paths.Editor
 			EditorGUILayout.EndHorizontal ();
 		}
 
-		void OnSceneGUI ()
+		protected void OnSceneGUI ()
 		{
-			Init ();
+			InitGUI ();
 			DrawDefaultSceneGUI ();
 
 		}
@@ -540,7 +599,7 @@ namespace Paths.Editor
 				Tools.hidden = false;
 			}
 			//
-			//            DrawPath();
+			DrawPath ();
 			DrawControlPointHandles ();
 		}
 
@@ -559,7 +618,6 @@ namespace Paths.Editor
 			Handles.color = PathEditorPrefs.ControlPointConnectionLineColor;
 			Handles.DrawPolyLine (transformedPoints);
 
-
 			// Draw directions of Control Points
 			Color dirVectorColor = PathEditorPrefs.DirVectorColor;
 			float dirVectorLength = PathEditorPrefs.DirVectorLength;
@@ -573,53 +631,6 @@ namespace Paths.Editor
                 
 				Handles.color = dirVectorColor;
 				Handles.DrawLine (pt, pt + dir * dirVectorLength);
-                
-				// UP vector
-				//                Vector3 upDir;
-				//                if (i == 0) {
-				//                    upDir = Vector3.up;
-				//                } else {
-				//                    upDir = Vector3.Cross(transformedPoints[i - 1], pt).normalized;
-				//                }
-                
-				// Path angle:
-				float angle = Vector3.Angle (prevDir, nextDir);
-				//                float dot = Vector3.Dot(prevDir, nextDir);
-				Vector3 cross = Vector3.Cross (prevDir, nextDir);
-				if (cross.y < 0.0f) {
-					angle = -angle;
-				}
-				if (i == 2) {
-					//                    Debug.Log("Angle: " + angle + "; dot=" + dot + "; cross=" + cross);
-				}
-                
-				Vector3 upDir = Vector3.up;
-				upDir = Quaternion.AngleAxis (angle / 10f, dir) * upDir;
-                
-				//upDir = Vector3.Reflect(prevDir, Vector3.up);
-				// Angle between 
-                
-				//                Vector3 planeDir;
-				//                if (i > 0 && i < cpCount - 1) {
-				//                    planeDir = (transformedPoints[i - 1] - transformedPoints[i + 1]).normalized;
-				//                } else {
-				//                    planeDir = dir;
-				//                }
-				//                upDir = Quaternion.AngleAxis(90, planeDir) * dir;
-				//                //upDir = Quaternion.LookRotation(dir) * Vector3.up;
-				//
-				//
-				//                if (i == 0) {
-				//                    // First or only point
-				//                    upDir = (cpCount > 1) ? (Vector3.Cross(transformedPoints[i + 1], pt).normalized) : Vector3.up;
-				//                } else {
-				//                    // Last or middle point
-				//                    upDir = (Vector3.Cross(transformedPoints[i - 1], pt).normalized);
-				//                }
-				//
-				//
-				Handles.color = Color.green;
-				//Handles.DrawLine(pt, pt + upDir * 5.0f);
 			}
             
             

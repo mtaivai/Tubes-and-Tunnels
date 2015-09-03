@@ -8,26 +8,62 @@ using Paths;
 namespace Paths
 {
 
-	[PathModifier(requiredInputFlags=PathPoint.NONE, 
-                  processCaps=PathPoint.NONE,
-                  passthroughCaps=PathPoint.NONE, 
-                  generateCaps=PathPoint.ALL)]
+	//contextParams={"1", "2"}
+	[PathModifier(requiredInputFlags = PathPoint.NONE, 
+                  processCaps = PathPoint.NONE,
+                  passthroughCaps = PathPoint.NONE, 
+                  generateCaps = PathPoint.ALL
+	              )]
+	[ProducesContextParams(
+		IncludePathModifier.IncludedPathStartIndexParam,
+		IncludePathModifier.IncludedPathEndIndexParam,
+		IncludePathModifier.IncludedPathPointCountParam
+	)]
 	public class IncludePathModifier : AbstractPathModifier
 	{
+		public const string IncludedPathStartIndexParam = "Include.IncludedPathStartIndex";
+		public const string IncludedPathEndIndexParam = "Include.IncludedPathEndIndex";
+		public const string IncludedPathPointCountParam = "Include.IncludedPathPointCount";
+
+//		private bool includedPathIsSelf = true;
 		private int includedPathRefIndex = -1;
 
+
+		public int includedPathDataSetId;
+		public bool includedPathFromSnapshot;
+		public string includedPathSnapshotName;
 		public int includePosition; // "include at index"
+		public bool removeDuplicates; // "smart include"
+		public bool alignFirstPoint; // align first point of the included path with the point in "includePositino"
+		public Vector3 includedPathPosOffset;
+
 		private int _includedPointCount;
 		private int _includedIndexOffset;
 		private int _inputPointCount;
 
-		public bool removeDuplicates; // "smart include"
 
-		public bool alignFirstPoint;
-
-		public Vector3 includedPathPosOffset;
 		private Vector3 _currentIncludedPathPosOffset;
 //		Vector3 includePosition
+
+		public IncludePathModifier ()
+		{
+
+		}
+
+
+
+		public int CurrentIncludedPointCount {
+			get { return _includedPointCount; }
+		}
+		public int CurrentIncludedIndexOffset {
+			get { return _includedIndexOffset; }
+		}
+		public int CurrentInputPointCount {
+			get { return _inputPointCount; }
+		}
+		public Vector3 CurrentIncludedPathPosOffset {
+			get { return _currentIncludedPathPosOffset; }
+		}
 
 		protected override void OnReset ()
 		{
@@ -35,6 +71,10 @@ namespace Paths
 			if (null != container) {
 				SetIncludedPath (container.GetReferenceContainer (), null);
 			}
+//			includedPathIsSelf = true;
+			includedPathDataSetId = 0;
+			includedPathFromSnapshot = false;
+			includedPathSnapshotName = "";
 
 			includePosition = -1;
 			_inputPointCount = 0;
@@ -46,9 +86,16 @@ namespace Paths
 			_currentIncludedPathPosOffset = includedPathPosOffset;
 
 		}
+
+
 		public override void OnSerialize (Serializer store)
 		{
+
 			store.Property ("includedPathRefIndex", ref includedPathRefIndex);
+			store.Property ("includedPathDataSetId", ref includedPathDataSetId);
+			store.Property ("includedPathFromSnapshot", ref includedPathFromSnapshot);
+			store.Property ("includedPathSnapshotName", ref includedPathSnapshotName);
+
 			store.Property ("includePosition", ref includePosition);
 			store.Property ("removeDuplicates", ref removeDuplicates);
 			store.Property ("alignFirstPoint", ref alignFirstPoint);
@@ -60,22 +107,17 @@ namespace Paths
 			SetIncludedPath (GetContainer ().GetReferenceContainer (), null);
 		}
 
-		public int GetCurrentIncludedPointCount ()
+		public override int GetGenerateFlags (PathModifierContext context)
 		{
-			return _includedPointCount;
+			IReferenceContainer refContainer = context.PathModifierContainer.GetReferenceContainer ();
+			IPathData includedData = GetIncludedPathData (refContainer);
+			if (null != includedData) {
+				return includedData.GetOutputFlags ();
+			} else {
+				return PathPoint.NONE;
+			}
 		}
-		public int GetCurrentIncludedIndexOffset ()
-		{
-			return _includedIndexOffset;
-		}
-		public int GetCurrentInputPointCount ()
-		{
-			return _inputPointCount;
-		}
-		public Vector3 GetCurrentIncludedPathPosOffset ()
-		{
-			return _currentIncludedPathPosOffset;
-		}
+
 		public Path GetIncludedPath (IReferenceContainer refContainer)
 		{
 			Path refPath;
@@ -96,6 +138,19 @@ namespace Paths
 			}
 			return refPath;
 		}
+
+		public IPathData GetIncludedPathData (Path includedPath, IReferenceContainer refContainer)
+		{
+			IPathData data = null != includedPath ? includedPath.FindDataSetById (includedPathDataSetId) : null;
+			return data;
+		}
+		public IPathData GetIncludedPathData (IReferenceContainer refContainer)
+		{
+			Path includedPath = GetIncludedPath (refContainer);
+			IPathData data = null != includedPath ? includedPath.FindDataSetById (includedPathDataSetId) : null;
+			return data;
+		}
+
 
 		public void SetIncludedPath (IReferenceContainer refContainer, Path includedPath)
 		{
@@ -118,20 +173,37 @@ namespace Paths
 			}
 		}
 
-		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points, PathModifierContext context)
+		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points)
 		{
 			this._inputPointCount = points.Length;
 
 			int ppFlags = GetOutputFlags (context);
 
 			PathPoint[] includedPoints;
-			Path includedPath = GetIncludedPath (context.PathModifierContainer.GetReferenceContainer ());
-			if (null != includedPath) {
+			IPathData data = GetIncludedPathData (context.PathModifierContainer.GetReferenceContainer ());
+			if (null != data) {
 				// TODO what about other than default path data sets?
-				IPathData pathData = includedPath.GetDefaultDataSet ();
-				includedPoints = pathData.GetAllPoints ();
-				ppFlags &= pathData.GetOutputFlags ();
+				if (includedPathFromSnapshot) {
+					IPathSnapshotManager sm = data.GetPathSnapshotManager ();
+					if (!sm.SupportsSnapshots ()) {
+						// TODO add error to context
+						Debug.LogWarning ("Requested include of snapshot '" + includedPathSnapshotName + "' but dataset " + data.GetName () + " does not support snapshots");
+						includedPoints = new PathPoint[0];
+					} else if (!sm.ContainsSnapshot (includedPathSnapshotName)) {
+						Debug.LogWarning ("Requested snapshot '" + includedPathSnapshotName + "' not found in dataset " + data.GetName ());
+						includedPoints = new PathPoint[0];
+					} else {
+						PathDataSnapshot ss = sm.GetSnapshot (includedPathSnapshotName);
+						includedPoints = ss.Points;
+						ppFlags = ss.Flags;
+					}
+				} else {
+					includedPoints = data.GetAllPoints ();
+					ppFlags &= data.GetOutputFlags ();
+				}
 			} else {
+				// TODO log warning
+				// TODO add errors to context?
 				includedPoints = new PathPoint[0];
 			}
 
@@ -231,11 +303,11 @@ namespace Paths
 			if (includedPointCount > 1) {
 
 				// TODO what about these? Should we have configurable process?
-				bool updateDistFromPrev = PathPoint.IsDistanceFromPrevious (ppFlags);
-				bool updateDistFromBegin = updateDistFromPrev && PathPoint.IsDistanceFromBegin (ppFlags);
+				bool setDistFromPrev = PathPoint.IsDistanceFromPrevious (ppFlags);
+				bool setDistFromBegin = setDistFromPrev && PathPoint.IsDistanceFromBegin (ppFlags);
 
 				// Initial total distance:
-				float totalDistance = updateDistFromBegin ? 
+				float totalDistance = setDistFromBegin ? 
                     (points.Length > 0 ? points [points.Length - 1].DistanceFromBegin : 0.0f)
                         : 0.0f;
 
@@ -246,15 +318,19 @@ namespace Paths
 				for (int i = 0; i < includedPointCount; i++) {
 					int includedPointsIndex = i + includedPointsOffset;
 
-					if (updateDistFromBegin) {
+					if (setDistFromBegin) {
 						totalDistance += includedPoints [includedPointsIndex].DistanceFromPrevious;
 					}
-					float distFromPrevious = updateDistFromPrev ? includedPoints [includedPointsIndex].DistanceFromPrevious : 0.0f;
+					float distFromPrevious = setDistFromPrev ? includedPoints [includedPointsIndex].DistanceFromPrevious : 0.0f;
 
 					PathPoint pp = new PathPoint (includedPoints [includedPointsIndex], ppFlags);
 					pp.Position += ptOffs;
-					pp.DistanceFromPrevious = distFromPrevious;
-					pp.DistanceFromBegin = totalDistance;
+					if (setDistFromPrev) {
+						pp.DistanceFromPrevious = distFromPrevious;
+					}
+					if (setDistFromBegin) {
+						pp.DistanceFromBegin = totalDistance;
+					}
 
 					int resultsIndex = i + resultsArrayOffset;
 					results [resultsIndex] = pp;
@@ -262,9 +338,11 @@ namespace Paths
 			}
 
 			// Add parameters
-			context.Parameters.Add ("Include.IncludedPathStartIndex", resultsArrayOffset);
-			context.Parameters.Add ("Include.IncludedPathEndIndex", resultsArrayOffset + includedPointCount);
-			context.Parameters.Add ("Include.IncludedPathPointCount", includedPointCount);
+			// TODO we'll have a method or attribute defining available context params!!!
+
+			AddContextParameter (IncludedPathStartIndexParam, resultsArrayOffset);
+			AddContextParameter (IncludedPathEndIndexParam, resultsArrayOffset + includedPointCount);
+			AddContextParameter (IncludedPathPointCountParam, includedPointCount);
 
 
 			return results;

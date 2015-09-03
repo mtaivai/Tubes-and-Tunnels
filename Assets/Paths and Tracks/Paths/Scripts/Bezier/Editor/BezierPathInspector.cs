@@ -13,7 +13,6 @@ namespace Paths.Bezier.Editor
 	[CustomEditor(typeof(BezierPath))]
 	public class BezierPathInspector : AbstractPathEditor<BezierPath, AbstractPathData>
 	{
-		private BezierPath path;
 		private Transform transform;
 		private GUIStyle labelStyle;
 		int selectedControlPointIndex = -1;

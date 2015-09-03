@@ -373,7 +373,7 @@ namespace Tracks.Tube
 
 		private int CalculateTriangleCount (int sliceCount, bool doubleSided)
 		{
-			const int verticesPerTriangle = 3;
+//			const int verticesPerTriangle = 3;
         
 			int trianglesPerFace = doubleSided ? 4 : 2;
         

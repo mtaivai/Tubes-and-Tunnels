@@ -20,7 +20,7 @@ namespace Paths
 		{
 			store.Property ("snapshotName", ref snapshotName);
 		}
-		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points, PathModifierContext context)
+		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points)
 		{
 			// TODO detect recursive / infinite loops, i.e. circular references
 

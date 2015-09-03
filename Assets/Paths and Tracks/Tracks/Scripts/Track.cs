@@ -167,7 +167,7 @@ namespace Tracks
 		private void RegisterPathChangedListener ()
 		{
 //          Debug.Log ("Registering PathChangedEventHandler on '" + path + "': " + this.gameObject.name);
-			PathChangedEventHandler d = new PathChangedEventHandler (PathChanged);
+			PathChangedEventHandler d = PathChanged;
 			path.Changed -= d;
 			path.Changed += d;
 		}
@@ -175,13 +175,13 @@ namespace Tracks
 		private void UnregisterPathChangedListener ()
 		{
 //          Debug.Log ("Unregistering PathChangedEventHandler on '" + path + "': " + this.gameObject.name);
-			path.Changed -= new PathChangedEventHandler (PathChanged);
+			path.Changed -= PathChanged;
 		}
 
-		internal void PathChanged (object sender, EventArgs e)
+		internal void PathChanged (PathChangedEvent e)
 		{
 			//NewPath path = (NewPath)sender;
-			Debug.Log ("PathChanged: " + sender + ", " + e);
+			Debug.Log ("PathChanged: " + e);
             
 			ConfigurationChanged ();
             
@@ -319,8 +319,8 @@ namespace Tracks
 
 		protected void UpdatePathPoints ()
 		{
-			if (null == pathPoints) {
-				IPathData pathData = path.FindDataSetByName ("MeshGenerator");
+			if (null == pathPoints && null != path) {
+				IPathData pathData = path.FindDataSetByName ("StdRes");
 
 				if (null != path) {
 					pathPoints = pathData.GetAllPoints ();
@@ -365,15 +365,11 @@ namespace Tracks
 			IPathData pathData = path.GetDefaultDataSet ();
 			DefaultPathModifierContainer pmc = new DefaultPathModifierContainer (
                 pathData.GetPathInfo,
-                /*OnPathModifiersChanged,*/
-                /*ConfigurationChanged,*/
                 (out int ppFlags) => {
 				ppFlags = pathData.GetOutputFlags ();
-				return pathData.GetAllPoints ();
-			},
-            /*PathPointsChanged,*/
+				return pathData.GetAllPoints (); },
                 null,
-                this, null, parameters);
+                () => (IReferenceContainer)this, () => null, () => parameters);
                 
 			// TODO should "parameters" above be a child ParamaterStore with prefix "pathModifiers."?
 

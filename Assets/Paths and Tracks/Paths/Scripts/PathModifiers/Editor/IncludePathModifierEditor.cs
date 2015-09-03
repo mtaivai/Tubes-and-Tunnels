@@ -20,16 +20,29 @@ namespace Paths.Editor
 //	{
 //	}
 
+	public class PathModifierInputFilterEditorContext : CustomToolEditorContext
+	{
+		private PathModifierEditorContext pathModifierEditorContext;
+
+		public PathModifierInputFilterEditorContext (PathModifierInputFilter customTool, PathModifierEditorContext pmec)
+		: base(customTool, pmec.Target, pmec.EditorHost, pmec.TargetModified, pmec.EditorPrefs)
+		{
+			this.pathModifierEditorContext = pmec;
+		}
+		public PathModifierEditorContext PathModifierEditorContext {
+			get { return pathModifierEditorContext; }
+		}
+	}
 
 	[CustomToolEditor(typeof(IndexRangePathModifierInputFilter))]
 	public class IndexRangePathModifierInputFilterEditor : ICustomToolEditor
 	{
-		CustomToolEditorContext context;
+		PathModifierInputFilterEditorContext context;
 		IndexRangePathModifierInputFilter filter;
 
 		public void DrawInspectorGUI (CustomToolEditorContext context)
 		{
-			this.context = context;
+			this.context = (PathModifierInputFilterEditorContext)context;
 			this.filter = (IndexRangePathModifierInputFilter)context.CustomTool;
 			OnDrawInspectorGUI ();
 		}
@@ -55,42 +68,57 @@ namespace Paths.Editor
 
 		void ConfigParamField (IndexRangePathModifierInputFilter.ConfigParam configParam, string label = null)
 		{
-
-
 			label = StringUtil.IsEmpty (label) ? configParam.Name : label;
 
+			List<string> availableParams = new List<string> ();
 
-			int selectedParamIndex = configParam.fromContext ? 1 : 0;
-			string[] availableParams = {
-				"[Value]",
-				"[Parameter]",
-				"Include.IncludedPathStartIndex",
-				"Include.IncludedPathEndIndex",
-				"Include.IncludedPathPointCount"
-			};
-			bool predefinedParameter = false;
-			for (int i = 0; i < availableParams.Length; i++) {
-				if (configParam.contextParamName == availableParams [i]) {
-					selectedParamIndex = i;
-					predefinedParameter = true;
-					break;
-				}
+			availableParams.Add ("[Value]");
+			int valueSelectionIndex = availableParams.Count - 1;
+
+			availableParams.Add ("[Parameter]");
+			int customParamSelectionIndex = availableParams.Count - 1;
+
+			int firstPredefParamSelectionindex = availableParams.Count;
+			 
+			Dictionary<string, object> p = context.PathModifierEditorContext.PathModifierContext.Parameters;
+			foreach (string pn in p.Keys) {
+				availableParams.Add (pn);
 			}
+
+			int selectedParamIndex;
+
+			bool predefinedParameter = false;
+			if (configParam.fromContext) {
+				selectedParamIndex = customParamSelectionIndex;
+				for (int i = 0; i < availableParams.Count; i++) {
+					if (configParam.contextParamName == availableParams [i]) {
+						selectedParamIndex = i;
+						predefinedParameter = true;
+						break;
+					}
+				}
+			} else {
+				selectedParamIndex = valueSelectionIndex;
+			}
+
 
 			EditorGUILayout.BeginHorizontal ();
 			EditorGUI.BeginChangeCheck ();
+
+			// Don't expand popup width if "value" is specified (to leave room for the input field)
 			selectedParamIndex = EditorGUILayout.Popup (label, 
-				selectedParamIndex, availableParams, GUILayout.ExpandWidth (selectedParamIndex > 1));
-			configParam.fromContext = (selectedParamIndex >= 1);
+				selectedParamIndex, availableParams.ToArray (), GUILayout.ExpandWidth (selectedParamIndex != valueSelectionIndex));
+
+			configParam.fromContext = (selectedParamIndex != valueSelectionIndex);
 			if (EditorGUI.EndChangeCheck ()) {
-				if (selectedParamIndex >= 2) {
+				if (selectedParamIndex >= firstPredefParamSelectionindex) {
 					configParam.contextParamName = availableParams [selectedParamIndex];
-				} else if (selectedParamIndex == 1 && predefinedParameter) {
+				} else if (selectedParamIndex == customParamSelectionIndex && predefinedParameter) {
 					configParam.contextParamName = "";
 				}
 				context.TargetModified ();
 			}
-			if (selectedParamIndex == 1) {
+			if (selectedParamIndex == customParamSelectionIndex) {
 
 				int indentLevel = EditorGUI.indentLevel;
 				EditorGUI.indentLevel = 0;
@@ -184,35 +212,64 @@ namespace Paths.Editor
 			//DrawDefaultInspectorGUI ();
 			//return;
 			IncludePathModifier pm = (IncludePathModifier)context.PathModifier;
-            
-			Path includedPath = pm.GetIncludedPath (context.PathModifierContainer.GetReferenceContainer ());
+			IReferenceContainer refContainer = context.PathModifierContainer.GetReferenceContainer ();
+
+			Path includedPath = pm.GetIncludedPath (refContainer);
 			EditorGUI.BeginChangeCheck ();
-			Path newPath = (Path)EditorGUILayout.ObjectField ("Included Path", includedPath, typeof(Path), true);
+			Path newPath = (Path)EditorGUILayout.ObjectField ("Included Path", includedPath, typeof(Path), true, GUILayout.ExpandWidth (true));
 			if (EditorGUI.EndChangeCheck ()) {
 				// TODO Undo.RecordObject
-				if (newPath == context.Path) {
-					EditorUtility.DisplayDialog ("Recursive Include", "Path can't be included recursively to itself!", "Got it!");
-				} else if (IsPathIncludedIn (context.Path, newPath)) {
-					EditorUtility.DisplayDialog (
-                        "Recursive Include", 
-                        "Path '" + newPath.name + "' already includes '" + context.Path.name + "'", 
-                        "Got it!");
-				} else {
-					pm.SetIncludedPath (context.PathModifierContainer.GetReferenceContainer (), newPath);
-				}
+
+				// TODO reimplement following with data sets:
+//				if (newPath == context.Path) {
+//					EditorUtility.DisplayDialog ("Recursive Include", "Path can't be included recursively to itself!", "Got it!");
+//				} else if (IsPathIncludedIn (context.Path, newPath)) {
+//					EditorUtility.DisplayDialog (
+//                        "Recursive Include", 
+//                        "Path '" + newPath.name + "' already includes '" + context.Path.name + "'", 
+//                        "Got it!");
+//				} else {
+				pm.SetIncludedPath (context.PathModifierContainer.GetReferenceContainer (), newPath);
+//				}
+
+
 				//EditorUtility.SetDirty(context.Target);
 				context.TargetModified ();
 				//              trackInspector.TrackGeneratorModified();
 			}
-            
+
+			int dsId = pm.includedPathDataSetId;
+			bool fromSnapshot = pm.includedPathFromSnapshot;
+			string snapshotName = pm.includedPathSnapshotName;
+			if (null != newPath) {
+				//EditorGUI.indentLevel++;
+
+				if (PathModifierEditorUtil.DrawDataSetSelection (newPath, ref dsId, ref fromSnapshot, ref snapshotName, context)) {
+					// TODO UNDO
+
+					pm.includedPathDataSetId = dsId;
+					pm.includedPathFromSnapshot = fromSnapshot;
+					pm.includedPathSnapshotName = snapshotName;
+
+					// TODO RECORD UNDO
+					context.TargetModified ();
+					EditorUtility.SetDirty (context.Path);
+
+
+				}
+				//EditorGUI.indentLevel--;
+			}
+
+
 			// TODO this is not up-to-date when we first draw the inspector!
-			int inputPointCount = pm.GetCurrentInputPointCount ();
+			int inputPointCount = pm.CurrentInputPointCount;
 			int sliderPos = pm.includePosition;
 			if (sliderPos < 0) {
 				sliderPos = inputPointCount;
 			}
 			EditorGUI.BeginChangeCheck ();
-			sliderPos = EditorGUILayout.IntSlider ("Insert At Index", sliderPos, 0, inputPointCount);
+			//sliderPos = EditorGUILayout.IntSlider ("Insert At Index", sliderPos, 0, inputPointCount);
+			sliderPos = EditorGUILayout.IntField ("Insert at Index", sliderPos);
 			if (EditorGUI.EndChangeCheck ()) {
 				// TODO record UNDO!
 				pm.includePosition = sliderPos;
@@ -226,6 +283,8 @@ namespace Paths.Editor
 				context.TargetModified ();
 			}
 
+
+
 			EditorGUI.BeginChangeCheck ();
 			EditorGUI.BeginDisabledGroup (pm.includePosition == 0);
 			pm.alignFirstPoint = EditorGUILayout.Toggle ("Align First Point", pm.alignFirstPoint);
@@ -234,11 +293,13 @@ namespace Paths.Editor
 				// TODO record UNDO!
 				context.TargetModified ();
 			}
+//			
+
 
 			if (pm.alignFirstPoint) {
 				EditorGUI.BeginDisabledGroup (true);
 				// TODO this is not up-to-date when we first draw the inspector!
-				EditorGUILayout.Vector3Field ("Position Offset", pm.GetCurrentIncludedPathPosOffset ());
+				EditorGUILayout.Vector3Field ("Position Offset", pm.CurrentIncludedPathPosOffset);
 				EditorGUI.EndDisabledGroup ();
 			} else {
 				EditorGUI.BeginChangeCheck ();
@@ -249,8 +310,8 @@ namespace Paths.Editor
 				}
 			}
 			// TODO these are not up-to-date when we first draw the inspector!
-			EditorGUILayout.LabelField ("Included Index Offs", "" + pm.GetCurrentIncludedIndexOffset ());
-			EditorGUILayout.LabelField ("Included Point Count", "" + pm.GetCurrentIncludedPointCount ());
+//			EditorGUILayout.LabelField ("Included Index Offs", "" + pm.GetCurrentIncludedIndexOffset ());
+//			EditorGUILayout.LabelField ("Included Point Count", "" + pm.GetCurrentIncludedPointCount ());
 
 		}
 

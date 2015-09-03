@@ -64,7 +64,7 @@ namespace Paths
 		}
 		// TODO we need to recalculate directions and distances!
 		// TODO limit the amplitude between pathpoints!
-		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points, PathModifierContext context)
+		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points)
 		{
 			System.Random rnd = new System.Random (Seed);
 
@@ -72,8 +72,7 @@ namespace Paths
 
 			for (int i = 0; i < points.Length; i++) {
 
-				Vector3 pos, dir;
-				float distFromBegin, distFromPrev;
+				Vector3 pos;
 
 				if (positionOutput == PositionOutputType.Process) {
 					Vector3 displacement = NoiseVolume * (float)rnd.Next (100) / 100.0f;

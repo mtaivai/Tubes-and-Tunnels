@@ -9,10 +9,10 @@ public class PathFlyer : MonoBehaviour
 	public Path path;
 	public float speed = 5.56f; // m/s = 20 km/h
 
-	private PathPoint[] pathPoints;
+//	private PathPoint[] pathPoints;
 
 	public float currentDistance = 0.0f;
-	private float totalDistance;
+//	private float totalDistance;
 	PathPositionLookup ppLookup;
 
 	public int prevPtIndex;
@@ -24,10 +24,10 @@ public class PathFlyer : MonoBehaviour
 	// Use this for initialization
 	void Start ()
 	{
-		IPathData pathData = path.GetDefaultDataSet ();
-		pathPoints = pathData.GetAllPoints ();
+//		IPathData pathData = path.GetDefaultDataSet ();
+//		pathPoints = pathData.GetAllPoints ();
 		currentDistance = 0.0f;
-		totalDistance = pathData.GetTotalDistance ();
+//		totalDistance = pathData.GetTotalDistance ();
 		ppLookup = new PathPositionLookup (path);
 	}
 
@@ -46,7 +46,7 @@ public class PathFlyer : MonoBehaviour
 
 //		currentDistance += Time.deltaTime * speed; // m/s
 
-		float previousDistance = this.currentDistance;
+//		float previousDistance = this.currentDistance;
 
 
 		currentDistance += Time.deltaTime * speed;
@@ -242,7 +242,7 @@ public class PathFlyer : MonoBehaviour
 				Debug.LogError ("WHOA! Didn't found previous point!!!");
 			}
 			// Extrapolate forwards from the found point
-			int nextAfterNextPtIndex = Repeat (nextPtIndex + 1, lastPointIndex);//nextPtIndex >= (pathPoints.Length - 1) ? 0 : nextPtIndex + 1;
+//			int nextAfterNextPtIndex = Repeat (nextPtIndex + 1, lastPointIndex);//nextPtIndex >= (pathPoints.Length - 1) ? 0 : nextPtIndex + 1;
 //				PathPoint nextAfterNextPt = pathPoints [nextAfterNextPtIndex];
 			
 			Vector3 targetPos = nextPt.Position;

@@ -98,16 +98,16 @@ namespace Paths
 		}
 
 
-		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points, PathModifierContext context)
+		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points)
 		{
 
-			int ppFlags = GetOutputFlags (context);
+//			int ppFlags = GetOutputFlags (context);
 			// Linear shift
 			// Scaling
 
-			bool scaleBeforeTranslate = false;
+//			bool scaleBeforeTranslate = false;
            
-			float len = points.Length;
+//			float len = points.Length;
 
 			Quaternion rotStart = Quaternion.Euler (rotateStart);
 			Quaternion rotEnd = Quaternion.Euler (rotateEnd);

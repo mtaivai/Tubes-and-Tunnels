@@ -528,7 +528,7 @@ namespace Paths.Bezier
 				}
 
 				Vector3 up;
-				Vector3 right;
+//				Vector3 right;
 				if (includeXY) {
 					up = GetSegment (t).upVector;
 					// "right" vector is the "up" vector rotated 90 degrees by z axis

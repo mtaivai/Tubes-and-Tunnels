@@ -71,7 +71,7 @@ namespace Paths
 
 		}
 
-		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points, PathModifierContext context)
+		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points)
 		{
 			int ppFlags = GetOutputFlags (context);
 
@@ -204,7 +204,7 @@ namespace Paths
 				//rotation = 0.0f;
 
 				// TODO What's this????
-				Quaternion rot = Quaternion.AngleAxis (-90, Vector3.up);
+//				Quaternion rot = Quaternion.AngleAxis (-90, Vector3.up);
 
 				// TODO add configuration for "dir"????
 				float dir = 1.0f;
@@ -248,7 +248,7 @@ namespace Paths
 		public float magnitude = 1.0f;
 		public bool replaceExisting = false;
 
-		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points, PathModifierContext context)
+		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points)
 		{
 
 			int ppFlags = (GetPassthroughFlags (context) & context.InputFlags) | GetGenerateFlags (context);

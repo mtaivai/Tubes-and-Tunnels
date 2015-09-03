@@ -200,10 +200,10 @@ namespace Tracks
 			{
 				throw new NotImplementedException ();
 			}
-			public PathDataInputSource GetInputSource ()
-			{
-				return PathDataInputSourceSelf.Instance;
-			}
+//			public PathDataInputSource GetInputSource ()
+//			{
+//				return PathDataInputSourceSelf.Instance;
+//			}
 			public IPathSnapshotManager GetPathSnapshotManager ()
 			{
 				return UnsupportedSnapshotManager.Instance;

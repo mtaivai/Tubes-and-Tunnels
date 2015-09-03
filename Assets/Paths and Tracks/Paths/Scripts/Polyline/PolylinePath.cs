@@ -22,7 +22,6 @@ namespace Paths.Polyline
 
 			public PolylinePathData (int id) : base(id, "")
 			{
-				
 			}
 
 			public override bool IsLoop ()
@@ -46,11 +45,7 @@ namespace Paths.Polyline
 			//				this.name = name;
 			//			}
 			
-			
-			protected override void FireChangedEvent ()
-			{
-//				((PolylinePath)path).FireChangedEvent ();
-			}
+
 
 			protected override List<PathPoint> DoGetPathPoints (out int outputFlags)
 			{
@@ -256,8 +251,6 @@ namespace Paths.Polyline
 //          UpdatePathPoints();
 //          return pathPoints[index];
 //      }
-
-
 
 		// Use this for initialization
 		void Start ()

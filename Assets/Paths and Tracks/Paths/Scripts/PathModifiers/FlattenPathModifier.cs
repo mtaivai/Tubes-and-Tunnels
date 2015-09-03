@@ -20,7 +20,7 @@ namespace Paths
 		{
 		}
 
-		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points, PathModifierContext context)
+		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points)
 		{
 
 			int ppFlags = GetOutputFlags (context);
