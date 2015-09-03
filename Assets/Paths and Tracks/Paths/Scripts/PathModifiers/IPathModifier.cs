@@ -32,11 +32,33 @@ namespace Paths
 		/// </summary>
 		public int generateCaps = PathPoint.NONE;
 
+
 		public PathModifier ()
 		{
 		}
 	}
 
+	[AttributeUsage(AttributeTargets.Class)]
+	public sealed class ProducesContextParams : System.Attribute
+	{
+		private string[] contextParams;
+		public ProducesContextParams (params string[] contextParams)
+		{
+			this.contextParams = new string[contextParams.Length];
+			for (int i = 0; i < contextParams.Length; i++) {
+				this.contextParams [i] = contextParams [i];
+			}
+		}
+		public string[] ContextParams {
+			get {
+				string[] arr = new string[contextParams.Length];
+				for (int i = 0; i < arr.Length; i++) {
+					arr [i] = contextParams [i];
+				}
+				return arr;
+			}
+		}
+	}
 
 	public interface IPathModifier
 	{
@@ -82,6 +104,8 @@ namespace Paths
 		string GetInstanceDescription ();
 
 		void SetInstanceDescription (string description);
+
+		string[] GetProducedContextParameters ();
 
 	}
 
@@ -338,53 +362,58 @@ namespace Paths
 
 		public override PathPoint[] Filter (PathPoint[] points, PathModifierContext context, ProcessFilteredPointsDelegate processCallback)
 		{
-			int adjustedFirstPointIndex;
-			int adjustedPointCount;
-
-
-			this.firstPointIndex = firstPointIndexParam.GetInt (context);
-			this.pointCount = pointCountParam.GetInt (context);
-			if (pointCount < 0) {
-				// Negative value == include all
-				adjustedPointCount = points.Length;
+			PathPoint[] results;
+			if (points.Length == 0) {
+				results = new PathPoint[0];
 			} else {
-				adjustedPointCount = Mathf.Clamp (pointCount, 0, points.Length);
-				// TODO should we update the configuration setting here:
-//				this.pointCount = adjustedPointCount;
-			}
+				int adjustedFirstPointIndex;
+				int adjustedPointCount;
 
-			adjustedFirstPointIndex = Mathf.Clamp (firstPointIndex, 0, points.Length - 1);
 
-			int filteredCount = Mathf.Clamp (adjustedPointCount, 0, points.Length - adjustedFirstPointIndex);
+				this.firstPointIndex = firstPointIndexParam.GetInt (context);
+				this.pointCount = pointCountParam.GetInt (context);
+				if (pointCount < 0) {
+					// Negative value == include all
+					adjustedPointCount = points.Length;
+				} else {
+					adjustedPointCount = Mathf.Clamp (pointCount, 0, points.Length);
+					// TODO should we update the configuration setting here:
+					//				this.pointCount = adjustedPointCount;
+				}
 
-			// Now run the PathModifier with filtered points:
+				adjustedFirstPointIndex = Mathf.Clamp (firstPointIndex, 0, points.Length - 1);
 
-			PathPoint[] pmInputPoints = new PathPoint[filteredCount];
-			for (int i = 0; i < filteredCount; i++) {
-				pmInputPoints [i] = points [i + adjustedFirstPointIndex];
-			}
+				int filteredCount = Mathf.Clamp (adjustedPointCount, 0, points.Length - adjustedFirstPointIndex);
 
-			PathPoint[] pmResults = processCallback (pmInputPoints, context);
+				// Now run the PathModifier with filtered points:
 
-			int resultsCount = points.Length - filteredCount + pmResults.Length;
+				PathPoint[] pmInputPoints = new PathPoint[filteredCount];
+				for (int i = 0; i < filteredCount; i++) {
+					pmInputPoints [i] = points [i + adjustedFirstPointIndex];
+				}
 
-			// Combine results to input:
-			PathPoint[] results = new PathPoint[resultsCount];
+				PathPoint[] pmResults = processCallback (pmInputPoints, context);
 
-			// First copy original points before filtering (the head):
-			int headSize = adjustedFirstPointIndex;
-			for (int i = 0; i < headSize; i++) {
-				results [i] = points [i];
-			}
-			// Then copy modified points:
-			for (int i = 0; i < pmResults.Length; i++) {
-				results [i + headSize] = pmResults [i];
-			}
-			// And finally the tail:
-			int tailSize = points.Length - pmResults.Length - headSize;
-			int tailOffset = adjustedFirstPointIndex + pmResults.Length;
-			for (int i = 0; i < tailSize; i++) {
-				results [i + tailOffset] = points [i + headSize + pmResults.Length];
+				int resultsCount = points.Length - filteredCount + pmResults.Length;
+
+				// Combine results to input:
+				results = new PathPoint[resultsCount];
+
+				// First copy original points before filtering (the head):
+				int headSize = adjustedFirstPointIndex;
+				for (int i = 0; i < headSize; i++) {
+					results [i] = points [i];
+				}
+				// Then copy modified points:
+				for (int i = 0; i < pmResults.Length; i++) {
+					results [i + headSize] = pmResults [i];
+				}
+				// And finally the tail:
+				int tailSize = points.Length - pmResults.Length - headSize;
+				int tailOffset = adjustedFirstPointIndex + pmResults.Length;
+				for (int i = 0; i < tailSize; i++) {
+					results [i + tailOffset] = points [i + headSize + pmResults.Length];
+				}
 			}
 
 			return results;
@@ -416,12 +445,24 @@ namespace Paths
 
 		private PathModifierInputFilter inputFilter;
 
+		private List<string> initialProducedContextParameters = new List<string> ();
+		private List<string> producedContextParameters = new List<string> ();
 
+		private PathModifierContext _context;
 
 		public AbstractPathModifier ()
 		{
 			this.name = GetDisplayName (GetType ());
 			Reset ();
+		}
+
+		protected PathModifierContext context {
+			get {
+				return this._context;
+			}
+			private set {
+				this._context = value;
+			}
 		}
 
 		private bool _onReset;
@@ -437,6 +478,10 @@ namespace Paths
 					instanceDescription = "";
 					inputFilter = null;
 					// Don't reset the container!
+					//container = null;
+
+					ResolveInitialProducedContextParameters ();
+					this.producedContextParameters = new List<string> (initialProducedContextParameters);
 
 					OnReset ();
 				} finally {
@@ -450,6 +495,20 @@ namespace Paths
 		{
 
 		}
+
+		private void ResolveInitialProducedContextParameters ()
+		{
+			initialProducedContextParameters = new List<string> ();
+			// TODO read from Annotation
+			object[] attrs = GetType ().GetCustomAttributes (typeof(ProducesContextParams), true);
+			foreach (object attrObj in attrs) {
+				ProducesContextParams pcp = attrObj as ProducesContextParams;
+				if (null != pcp) {
+					initialProducedContextParameters.AddRange (pcp.ContextParams);
+				}
+			}
+		}
+
 
 		private bool _onAttach;
 
@@ -492,7 +551,6 @@ namespace Paths
 
 		public virtual void OnDetach ()
 		{
-
 		}
 
 		protected IPathModifierContainer GetContainer ()
@@ -666,6 +724,7 @@ namespace Paths
 			return f;
 		}
 
+
 		private bool _inGetModifiedPoints;
 
 		public PathPoint[] GetModifiedPoints (PathPoint[] points, PathModifierContext context)
@@ -673,6 +732,7 @@ namespace Paths
 			if (!_inGetModifiedPoints) {
 				_inGetModifiedPoints = true;
 				try {
+					producedContextParameters.Clear ();
 					PathModifierInputFilter f = GetInputFilter ();
 					if (null != f) {
 						// Run filtered:
@@ -682,6 +742,7 @@ namespace Paths
 						points = DoGetModifiedPoints (points, context);
 					}
 				} finally {
+
 					_inGetModifiedPoints = false;
 				}
 			} else {
@@ -690,7 +751,17 @@ namespace Paths
 			return points;
 		}
 
-		protected abstract PathPoint[] DoGetModifiedPoints (PathPoint[] points, PathModifierContext context);
+		private PathPoint[] DoGetModifiedPoints (PathPoint[] points, PathModifierContext context)
+		{
+			try {
+				this.context = context;
+				return DoGetModifiedPoints (points);
+			} finally {
+				this.context = null;
+			}
+		}
+
+		protected abstract PathPoint[] DoGetModifiedPoints (PathPoint[] points);
 
 		public virtual Path[] GetPathDependencies ()
 		{
@@ -726,7 +797,20 @@ namespace Paths
 		{
 			this.instanceDescription = description;
 		}
-	}
 
+
+		public string[] GetProducedContextParameters ()
+		{
+			return producedContextParameters.ToArray ();
+		}
+
+		protected void AddContextParameter (string name, object value)
+		{
+			context.Parameters.Add (name, value);
+			if (!producedContextParameters.Contains (name)) {
+				producedContextParameters.Add (name);
+			}
+		}
+	}
 
 }

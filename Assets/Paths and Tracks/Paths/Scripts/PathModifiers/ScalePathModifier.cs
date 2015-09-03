@@ -14,7 +14,7 @@ namespace Paths
 	{
 		public Vector3 scaling = new Vector3 (1f, 1f, 1f);
 
-		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points, PathModifierContext context)
+		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points)
 		{
 			int ppFlags = GetOutputFlags (context);
 			for (int i = 0; i < points.Length; i++) {

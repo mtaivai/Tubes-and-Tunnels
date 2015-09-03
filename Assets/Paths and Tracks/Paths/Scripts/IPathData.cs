@@ -51,7 +51,6 @@ namespace Paths
 		// TODO do we really need this?
 		IPathInfo GetPathInfo ();
 
-		PathDataInputSource GetInputSource ();
 		IPathSnapshotManager GetPathSnapshotManager ();
 		IPathModifierContainer GetPathModifierContainer ();
 
@@ -84,9 +83,10 @@ namespace Paths
 		
 	}
 
+
 	public interface IAttachableToPath
 	{
-		void AttachToPath (Path path);
+		void AttachToPath (Path path, PathChangedEventHandler dataChangedHandler);
 		void DetachFromPath (Path path);
 	}
 
@@ -94,9 +94,8 @@ namespace Paths
 	[Serializable]
 	public abstract class AbstractPathData : IPathData, IAttachableToPath, ISerializationCallbackReceiver, IPathSnapshotManager
 	{
-
-
-		private Path path;
+		private Path _path;
+		private PathChangedEventHandler pathChangedEventHandler;
 
 		private DefaultPathModifierContainer pathModifierContainer = null;
 		
@@ -116,17 +115,17 @@ namespace Paths
 		private bool
 			drawGizmos = true;
 		
-		[SerializeField]
-		private PathDataInputSource.SourceType
-			sourceType = PathDataInputSource.SourceType.Self;
-		
-		[SerializeField]
-		private PathDataInputSourceDataSet
-			dataSetSource = new PathDataInputSourceDataSet ();
-		
+//		[SerializeField]
+//		private PathDataInputSource.SourceType
+//			sourceType = PathDataInputSource.SourceType.Self;
+//		
+//		[SerializeField]
+//		private PathDataInputSourceDataSet
+//			dataSetSource = new PathDataInputSourceDataSet ();
+//		
 		
 		// NOt serialized:
-		private PathDataInputSource _cachedInputSourceObj = null;
+//		private PathDataInputSource _cachedInputSourceObj = null;
 		
 		[SerializeField]
 		private List<PathPoint>
@@ -184,54 +183,20 @@ namespace Paths
 			updateToken = 0;// TODO use GenerateUpdateToken() to generate random
 		}
 
+		// TODO change "path" to regular field
+		private Path path {
+			set {
+				this._path = value;
+			}
+			get {
+				return this._path;
+
+			}
+		}
 		// TODO move abstract methods HERE
 
 
 
-		public List<IPathData> FindDataTargets (Path targetPath)
-		{
-			List<IPathData> targets = new List<IPathData> ();
-			// TODO would it be possible to find all Path instances. GameObject.FindObjectsOfType returns
-			// only enabled objects
-//		Path[] pathObjects = GameObject.FindObjectsOfType<Path> ();
-
-			bool targetIsSelf = (targetPath == path);
-
-			int dsCount = targetPath.GetDataSetCount ();
-			for (int i = 0; i < dsCount; i++) {
-				IPathData ds = targetPath.GetDataSetAtIndex (i);
-				if (ds.GetId () == this.GetId ()) {
-					// Skip itself
-					continue;
-				}
-
-				PathDataInputSource inputSource = ds.GetInputSource ();
-				if (inputSource is PathDataInputSourceDataSet) {
-
-					PathDataInputSourceDataSet dsInputSource = (PathDataInputSourceDataSet)inputSource;
-					Path sourcePath;
-					if (dsInputSource.IsSourcePathSelf ()) {
-						sourcePath = targetPath;
-					} else if (dsInputSource.IsSourcePathParent ()) {
-						sourcePath = Path.FindParentPathObject (targetPath.transform);
-					} else {
-						sourcePath = dsInputSource.GetSourcePath ();
-					}
-					if (sourcePath == this.path) {
-						// so far so good
-						int dsId = dsInputSource.GetDataSetId ();
-						if (dsId < 0) {
-							dsId = targetPath.GetDefaultDataSetId ();
-						}
-						if (dsId == GetId ()) {
-							// Yep, we are source of "ds"
-							targets.Add (ds);
-						}
-					}
-				}
-			}
-			return targets;
-		}
 
 		// TODO move this away from here!
 		public class AlreadyAttachedToPathException : Exception
@@ -241,7 +206,7 @@ namespace Paths
 	
 
 		private bool _inAttachToPath;
-		public void AttachToPath (Path path)
+		public void AttachToPath (Path path, PathChangedEventHandler dataChangedHandler)
 		{
 			if (!_inAttachToPath) {
 				if (null == path) {
@@ -252,6 +217,7 @@ namespace Paths
 				} else if (this.path != path) {
 					this.path = path;
 
+
 					_inAttachToPath = true;
 					try {
 						OnAttachToPath (path);
@@ -259,6 +225,7 @@ namespace Paths
 						_inAttachToPath = false;
 					}
 				}
+				this.pathChangedEventHandler = dataChangedHandler;
 			}
 		}
 
@@ -276,7 +243,7 @@ namespace Paths
 
 				if (this.path != null) {
 					this.path = null;
-
+					this.pathChangedEventHandler = null;
 
 					_inDetachFromPath = true;
 					try {
@@ -291,7 +258,18 @@ namespace Paths
 		{
 		}
 
-		protected abstract void FireChangedEvent ();
+		protected void FireChangedEvent ()
+		{
+			if (null != pathChangedEventHandler) {
+				Debug.Log ("Firing PathChangedEvent from PathData: " + GetName ());
+				try {
+					PathChangedEvent ev = new PathChangedEvent (path, this);
+					pathChangedEventHandler (ev);
+				} catch (Exception e) {
+					Debug.LogError ("Catched an exception from event handler: " + e);
+				}
+			}
+		}
 
 		public bool IsUpToDate ()
 		{
@@ -307,11 +285,12 @@ namespace Paths
 			parameterStore.OnBeforeSerialize ();
 			// TODO should we save pathmodifiers in here????
 		}
+
 		public void OnAfterDeserialize ()
 		{
 			parameterStore.OnAfterDeserialize ();
 			
-			this._cachedInputSourceObj = null;
+//			this._cachedInputSourceObj = null;
 			
 			//				 Materialize PathModifiers
 			IPathModifierContainer pmc = GetPathModifierContainer ();
@@ -376,40 +355,6 @@ namespace Paths
 		}
 
 		public abstract bool IsLoop ();
-		
-		public PathDataInputSource GetInputSource ()
-		{
-			if (null == _cachedInputSourceObj) {
-				switch (sourceType) {
-				case PathDataInputSource.SourceType.None:
-					_cachedInputSourceObj = PathDataInputSourceNone.Instance;
-					break;
-				case PathDataInputSource.SourceType.Self:
-					_cachedInputSourceObj = PathDataInputSourceSelf.Instance;
-					break;
-				case PathDataInputSource.SourceType.DataSet:
-					_cachedInputSourceObj = dataSetSource;
-					break;
-				default:
-					throw new ArgumentException ("Invalid internal source type: " + sourceType);
-				}
-			}
-			return _cachedInputSourceObj;
-		}
-		
-		public void SetInputSourceType (PathDataInputSource.SourceType type)
-		{
-			this._cachedInputSourceObj = null;
-			this.sourceType = type;
-		}
-		public void SetInputSource (PathDataInputSource inputSource)
-		{
-			this._cachedInputSourceObj = null;
-			this.sourceType = inputSource.GetSourceType ();
-			if (inputSource is PathDataInputSourceDataSet) {
-				this.dataSetSource = (PathDataInputSourceDataSet)inputSource;
-			}
-		}
 
 		public abstract int GetControlPointCount ();
 		public abstract Vector3 GetControlPointAtIndex (int index);
@@ -499,7 +444,7 @@ namespace Paths
 				try {
 					pathPointsDirty = true;
 					OnPathPointsChanged ();
-					FireChangedEvent ();
+					//FireChangedEvent ();
 				} finally {
 					_inPathPointsChanged = false;
 				}
@@ -538,7 +483,7 @@ namespace Paths
 		// TODO move this to top of the class
 		// TODO we should implement real thread-safe locking (lock)
 		private bool _inUpdatePathPoints = false;
-		public void UpdatePathPoints (bool manualRefresh)
+		private void UpdatePathPoints (bool manualRefresh)
 		{
 			bool doRefresh = path.FrozenStatus == Path.PathStatus.Dynamic
 				|| (manualRefresh && path.FrozenStatus == Path.PathStatus.ManualRefresh);
@@ -552,6 +497,9 @@ namespace Paths
 				try {
 					_inUpdatePathPoints = true;
 					DoUpdatePathPoints ();
+
+					FireChangedEvent ();
+					// TODO should we fire an event here
 				} finally {
 					_inUpdatePathPoints = false;
 				}
@@ -630,104 +578,15 @@ namespace Paths
 			
 			// TODO this could be incremental, would it be better?
 			this.updateToken = System.DateTime.Now.Millisecond;
-			
-			FireChangedEvent ();
+
 		}
 
-		
-		List<PathPoint> GetInputPoints (out int flags)
+		// TODO should this be virtual method?
+		protected List<PathPoint> GetInputPoints (out int flags)
 		{
-			PathDataInputSource inputSource = GetInputSource ();
-			PathDataInputSource.SourceType sourceType = inputSource.GetSourceType ();
-			
-			List<PathPoint> inputPoints;
-			switch (sourceType) {
-			case PathDataInputSource.SourceType.None:
-				inputPoints = new List<PathPoint> ();
-				flags = 0;
-				break;
-			case PathDataInputSource.SourceType.Self:
-				inputPoints = DoGetPathPoints (out flags);
-				break;
-			case PathDataInputSource.SourceType.DataSet:
-				inputPoints = GetInputPointsFromDataSet (out flags);
-				break;
-			default:
-				Debug.LogError ("Unsupported / unknown path input source type: " + sourceType);
-				inputPoints = new List<PathPoint> ();
-				flags = 0;
-				// TODO ADD ERROR
-				break;
-			}
-			return inputPoints;
+			return DoGetPathPoints (out flags);
 		}
-		
-		List<PathPoint> GetInputPointsFromDataSet (out int flags)
-		{
-			List<PathPoint> inputPoints = new List<PathPoint> ();
-			flags = 0;
-			
-			PathDataInputSourceDataSet dataSetSource = (PathDataInputSourceDataSet)GetInputSource ();
-			int dsId = dataSetSource.GetDataSetId ();
-			
-			Path sourcePath;
-			if (dataSetSource.IsSourcePathSelf ()) {
-				sourcePath = path;
-			} else if (dataSetSource.IsSourcePathParent ()) {
-				sourcePath = Path.FindParentPathObject (path.transform);
-			} else {
-				sourcePath = dataSetSource.GetSourcePath ();
-			}
-			if (null == sourcePath) {
-				Debug.LogWarning ("No Source path found for data set: " + this.GetName ());
-			}
-			
-			IPathData sourceDataSet;
-			
-			if (sourcePath != null) {
-				if (dsId < 0) {
-					// Use default
-					dsId = sourcePath.GetDefaultDataSetId ();
-				}
-				sourceDataSet = sourcePath.FindDataSetById (dsId);
-			} else {
-				sourceDataSet = null;
-			}
-			if (null == sourceDataSet) {
-				// TODO ADD ERROR
-				Debug.LogWarning ("Source PathData with id " + dsId + " not found");
-			} else if (this == sourceDataSet) {
-				// TODO ADD ERROR
-				Debug.LogWarning ("Source PathData refers to itself; id = " + dsId);
-			} else {
-				bool fromSnapshot = dataSetSource.IsFromSnapshot ();
-				if (fromSnapshot) {
-					string snapshotName = dataSetSource.GetSnapshotName ();
-					
-					// Get snapshot
-					IPathSnapshotManager snapshotManager = sourceDataSet.GetPathSnapshotManager ();
-					if (!snapshotManager.SupportsSnapshots ()) {
-						// TODO add error!
-						Debug.LogWarning ("Source dataset does not support snapshots: " + sourceDataSet.GetName ());
-					} else if (!snapshotManager.ContainsSnapshot (snapshotName)) {
-						// TODO add error
-						Debug.LogWarning ("No such snapshot found in source dataset '" + sourceDataSet.GetName () + "': '" + snapshotName + "'");
-					} else {
-						PathDataSnapshot snapshot = snapshotManager.GetSnapshot (snapshotName);
-						inputPoints.AddRange (snapshot.Points);
-						flags = snapshot.Flags;
-					}
-					
-				} else {
-					inputPoints.AddRange (sourceDataSet.GetAllPoints ());
-					flags = sourceDataSet.GetOutputFlags ();
-				}
-			}
-			
-			return inputPoints;
-		}
-		
-		
+
 		public IPathModifierContainer GetPathModifierContainer ()
 		{
 			if (null == this.pathModifierContainer) {
@@ -764,7 +623,7 @@ namespace Paths
 				GetPathInfo,
 				DoGetPathPointsArray,
 				ApplyPointsToControlPoints,
-				path, GetPathSnapshotManager (), parameterStore);
+				() => path, GetPathSnapshotManager, () => parameterStore);
 			// TODO should parameterStore above be a child store with prefic "pathModifiers."?
 			pmc.PathModifiersChanged += new PathModifiersChangedHandler (PathModifiersChanged);
 			return pmc;

@@ -22,6 +22,13 @@ namespace Util.Editor
 	{
 		void DrawInspectorGUI (CustomToolEditorContext context);
 	}
+
+	public interface ICUstomToolEditorHost
+	{
+		void SetEditorFor (object customToolInstance, ICustomToolEditor editor);
+		ICustomToolEditor GetEditorFor (object customToolInstance);
+
+	}
     
 	public class CustomToolEditorContext
 	{

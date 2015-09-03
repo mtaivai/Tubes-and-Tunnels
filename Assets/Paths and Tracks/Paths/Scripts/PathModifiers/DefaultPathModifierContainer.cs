@@ -108,26 +108,26 @@ namespace Paths
 		private DoGetPathPointsDelegate DoGetPathPoints;
 		private SetPathPointsDelegate SetPathPoints;
 
-		private IReferenceContainer referenceContainer;
-		private IPathSnapshotManager snapshotManager;
-		private ParameterStore parameterStore;
+		private Func<IReferenceContainer> getReferenceContainer;
+		private Func<IPathSnapshotManager> getSnapshotManager;
+		private Func<ParameterStore> getParameterStore;
 
 		public DefaultPathModifierContainer (GetPathInfoDelegate getPathInfoFunc,
                                             DoGetPathPointsDelegate doGetPathPointsFunc,
                                             SetPathPointsDelegate setPathPointsFunc,
-                                            IReferenceContainer referenceContainer,
-		                                     IPathSnapshotManager snapshotManager,
-		                                     ParameterStore parameterStore)
+		                                     Func<IReferenceContainer> getReferenceContainerFunc,
+		                                     Func<IPathSnapshotManager> getSnapshotManagerFunc,
+		                                     Func<ParameterStore> getParameterStoreFunc)
 		{
 			this.GetPathInfo = getPathInfoFunc;
 			this.DoGetPathPoints = doGetPathPointsFunc;
 			this.SetPathPoints = setPathPointsFunc;
-			this.referenceContainer = referenceContainer;
-			this.snapshotManager = snapshotManager;
-			if (null == this.snapshotManager) {
-				this.snapshotManager = UnsupportedSnapshotManager.Instance;
-			}
-			this.parameterStore = parameterStore;
+			this.getReferenceContainer = getReferenceContainerFunc;
+			this.getSnapshotManager = getSnapshotManagerFunc;
+//			if (null == this.snapshotManager) {
+//				this.snapshotManager = UnsupportedSnapshotManager.Instance;
+//			}
+			this.getParameterStore = getParameterStoreFunc;
 		}
 
 		private void LoadPathModifiers (ParameterStore parameterStore)
@@ -136,7 +136,6 @@ namespace Paths
 			foreach (IPathModifier pm in pathModifierInstances) {
 				pm.Attach (this);
 			}
-			RegisterListenerOnIncludedPaths ();
 		}
 		public void LoadConfiguration ()
 		{
@@ -146,7 +145,6 @@ namespace Paths
 		private void SavePathModifiers (ParameterStore parameterStore)
 		{
 			PathModifierUtil.SavePathModifiers (parameterStore, pathModifierInstances);
-			RegisterListenerOnIncludedPaths ();
 
 		}
 		public void SaveConfiguration ()
@@ -172,39 +170,6 @@ namespace Paths
 			return PathModifierUtil.RunPathModifiers (context, pp, ref flags, fixResultFlags);
 		}
 
-		void RegisterListenerOnIncludedPaths ()
-		{
-			// Do we have included paths?
-			foreach (IPathModifier pm in pathModifierInstances) {
-				if (!pm.IsEnabled ()) {
-					continue;
-				}
-				Path[] depPaths = pm.GetPathDependencies ();
-				foreach (Path p in depPaths) {
-					RegisterListenerOnIncludedPath (p);
-				}
-			}
-		}
-
-		void IncludedPathChanged (object sender, EventArgs e)
-		{
-			Debug.Log ("Included Path Changed: sender=" + sender);
-			this.ConfigurationChanged ();
-		}
-
-		void RegisterListenerOnIncludedPath (Path p)
-		{
-			PathChangedEventHandler d = new PathChangedEventHandler (IncludedPathChanged);
-			p.Changed -= d;
-			p.Changed += d;
-		}
-
-		void UnregisterListenerOnIncludedPath (Path p)
-		{
-			PathChangedEventHandler d = new PathChangedEventHandler (IncludedPathChanged);
-			p.Changed -= d;
-		}
-
 		public IPathModifier[] GetPathModifiers ()
 		{
 			return pathModifierInstances.ToArray ();
@@ -226,8 +191,8 @@ namespace Paths
         
 		public void RemovePathModifer (int index)
 		{
-			pathModifierInstances [index].Detach ();
 			pathModifierInstances.RemoveAt (index);
+			pathModifierInstances [index].Detach ();
 			ConfigurationChanged ();
 		}
         
@@ -271,20 +236,20 @@ namespace Paths
 
 		public IReferenceContainer GetReferenceContainer ()
 		{
-			return referenceContainer;
+			return getReferenceContainer ();
 		}
 		public IPathSnapshotManager GetPathSnapshotManager ()
 		{
-			return snapshotManager;
+			return getSnapshotManager ();
 		}
 		// TODO rename this method to SetPathSnapshotManager
-		public void SetPathBranchManager (IPathSnapshotManager branchManager)
-		{
-			this.snapshotManager = branchManager;
-		}
+//		public void SetPathBranchManager (IPathSnapshotManager branchManager)
+//		{
+//			this.snapshotManager = branchManager;
+//		}
 		public ParameterStore GetParameterStore ()
 		{
-			return parameterStore;
+			return getParameterStore ();
 		}
 
 	}

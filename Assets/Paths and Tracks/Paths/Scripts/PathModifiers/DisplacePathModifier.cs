@@ -13,7 +13,7 @@ namespace Paths
 	{
 		public Vector3 displacement;
 
-		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points, PathModifierContext context)
+		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points)
 		{
 			for (int i = 0; i < points.Length; i++) {
 				points [i].Position += displacement;

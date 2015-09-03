@@ -42,13 +42,15 @@ namespace Paths
 						if (null == pp) {
 							gotNulls = true;
 							pathPoints [i] = new PathPoint ();
-							pathPoints [i].Flags = outputFlags;
+							//pathPoints [i].Flags = outputFlags;
 						} else {
 							if (pp.Flags != outputFlags) {
-								pathPoints [i].Flags = outputFlags;
+//								pathPoints [i].Flags = outputFlags;
+								outputFlags &= pathPoints [i].Flags;
 							}
 						}
 					}
+					flags = outputFlags;
 					if (gotNulls) {
 						Debug.LogWarning ("PathModifier " + GetDisplayName (mod) + " (" + mod.GetType ().FullName + ") returned null point(s)");
 					}

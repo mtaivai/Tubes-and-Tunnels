@@ -78,7 +78,7 @@ namespace Paths
 			distanceFromBeginMask = distanceFromPreviousMask;
 		}
 
-		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points, PathModifierContext context)
+		protected override PathPoint[] DoGetModifiedPoints (PathPoint[] points)
 		{
 
 //          int ppFlags = PathPoint.POSITION;

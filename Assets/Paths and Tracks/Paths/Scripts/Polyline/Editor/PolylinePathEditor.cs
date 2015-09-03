@@ -16,7 +16,7 @@ namespace Paths.Polyline.Editor
 		[MenuItem("Paths/Create/Create Polyline Path")]
 		private static void CreatePolylinePathOption ()
 		{
-			GameObject go = new GameObject ("Polyline Path", typeof(PolylinePath));
+			new GameObject ("Polyline Path", typeof(PolylinePath));
 		}
 
 		[MenuItem("Paths/Create/Create Polyline Path with Track")]
@@ -88,7 +88,7 @@ namespace Paths.Polyline.Editor
         
 			EditorGUILayout.HelpBox ("Control Points are shared by all data sets having Input Source set to 'Self'.", MessageType.Info);
 
-			PolylinePath path = (PolylinePath)target;
+//			PolylinePath path = (PolylinePath)target;
 
 			int cpCount = pathData.GetControlPointCount ();
 			expanded = EditorGUILayout.Foldout (expanded, "Control Points (" + cpCount + ")");
@@ -249,27 +249,7 @@ namespace Paths.Polyline.Editor
 			Tools.hidden = false;
 		}
 
-		void OnSceneGUI ()
-		{
-//            if (SelectedControlPointIndex >= 0)
-//            {
-//                Tools.hidden = true;
-//            } else
-//            {
-//                Tools.hidden = false;
-//            }
-			//PolylinePath path = target as PolylinePath;
-        
-			//DrawPath();
-
-			// Draw something interesting
-			//DrawControlPointHandles();
-			DrawDefaultSceneGUI ();
-		}
-
-
-
-
+	
 
 	}
     

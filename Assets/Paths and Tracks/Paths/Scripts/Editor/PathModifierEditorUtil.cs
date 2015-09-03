@@ -18,6 +18,98 @@ namespace Paths.Editor
 	public class PathModifierEditorUtil
 	{
 
+		public static bool DrawDataSetSelection (Path path, ref int selectedId, ref bool fromSnapshot, ref string snapshotName, PathModifierEditorContext context)
+		{
+//			UnityEngine.Object target = path;
+
+			bool pathChanged = false;
+			
+			// Data set
+			List<string> dataSetNames;
+			List<int> dataSetIds;
+			
+//			IPathData pathData = path.FindDataSetById (selectedId);
+
+			int excludedId = context.PathData.GetId ();
+			PathEditorUtil.FindAvailableDataSets (path, excludedId, out dataSetNames, out dataSetIds, " (default)");
+			
+			// Selection for the Default data set:
+			string defaultDsName;
+			int defaultDsId = path.GetDefaultDataSetId ();
+			if (excludedId != defaultDsId) {
+				IPathData defaultDs = path.FindDataSetById (defaultDsId);
+				defaultDsName = defaultDs.GetName ();
+				
+				dataSetNames.Insert (0, "<Default: " + defaultDsName + ">");
+				dataSetIds.Insert (0, 0);
+			}
+			
+
+			if (selectedId != 0 && !dataSetIds.Contains (selectedId) && selectedId != excludedId) {
+				dataSetNames.Insert (1, "** Deleted Data Set **");
+				dataSetIds.Insert (1, selectedId);
+			}
+
+			List<string> dataSetDisplayNames = new List<string> ();
+			dataSetDisplayNames.AddRange (dataSetNames);
+
+
+			// Find selected index
+			int selectedDsIndex = dataSetIds.IndexOf (selectedId);
+
+			EditorGUI.BeginChangeCheck ();
+			selectedDsIndex = EditorGUILayout.Popup ("Data set", selectedDsIndex, dataSetDisplayNames.ToArray (), GUILayout.ExpandWidth (true));
+			if (EditorGUI.EndChangeCheck ()) {
+				//Undo.RecordObject (path, "Change Source Path Data Set");
+
+				selectedId = dataSetIds [selectedDsIndex];
+				pathChanged = true;
+				
+			}
+			// Source path is self?
+			//
+			//
+			// SNAPSHOT selection:
+			
+			EditorGUILayout.BeginHorizontal ();
+						
+			EditorGUI.BeginChangeCheck ();
+			fromSnapshot = EditorGUILayout.Toggle ("From Snapshot", fromSnapshot, GUILayout.ExpandWidth (false));
+			if (EditorGUI.EndChangeCheck ()) {
+				//Undo.RecordObject (path, "Changed Include Path Modifier DataSet/Snapshot");
+							
+				//dataSetSource = path.SetDataSetInputSource (pathData, dataSetSource.WithFromSnapshot (fromSnapshot));
+							
+				pathChanged = true;
+			}
+						
+			// TODO currently we have no easy way to find available snapshots - they are created 
+			// when path modifiers of the source dataset are ran
+			EditorGUI.BeginDisabledGroup (!fromSnapshot);
+			EditorGUI.BeginChangeCheck ();
+			snapshotName = GUILayout.TextField (snapshotName);
+			if (EditorGUI.EndChangeCheck ()) {
+				//Undo.RecordObject (path, "Change Include Path Modifier DataSet/Snapshot");
+				//dataSetSource = path.SetDataSetInputSource (pathData, dataSetSource.WithSnapshotName (snapshotName));
+							
+				pathChanged = true;
+			}
+			EditorGUI.EndDisabledGroup ();
+			
+			EditorGUILayout.EndHorizontal ();
+			
+			//
+			
+//			EditorGUI.indentLevel--;
+			
+			if (pathChanged) {
+				//EditorUtility.SetDirty (path);
+				// TODO should we notify the path?
+				//				path.PathPointsChanged ();
+			}
+			return pathChanged;
+		}
+
 		public static void DrawPathModifiersInspector (Path path, IPathData pathData, UnityEditor.Editor editor, UnityEngine.Object dirtyObject, CustomToolEditorContext.TargetModifiedFunc modifiedCallback)
 		{
 //			Path path = pathData.GetPath ();
@@ -110,6 +202,14 @@ namespace Paths.Editor
 						context.PathData, pmc, pm, context.Path, context.EditorHost, context.TargetModified, pmEditorPrefs);
 
 					DoDrawPathModifierInspector (pmec);
+
+					// Add known context parameter names:
+					string[] knownContextParams = pm.GetProducedContextParameters ();
+					foreach (string ctxParam in knownContextParams) {
+						if (!pmParams.ContainsKey (ctxParam)) {
+							pmParams.Add (ctxParam, null);
+						}
+					}
 				}
 				EditorGUI.indentLevel--;
 			}
@@ -179,30 +279,57 @@ namespace Paths.Editor
 				pmTitle += " (disabled)";
 			}
 			bool itemVisible = EditorGUILayout.Foldout (prefs.GetBool ("Visible"), pmTitle);
-
 			prefs.SetBool ("Visible", itemVisible);
 			if (itemVisible) {
-				EditorGUI.indentLevel++;
+//				EditorGUI.indentLevel++;
 
-				IPathModifierEditor pme = (IPathModifierEditor)PathModifierResolver.Instance.CreateToolEditorInstance (pm);
+
+				IPathModifierEditor pme = GetEditorForPathModifier (pm, context);
+
+
 //				TypedCustomToolEditorPrefs pmPrefs = new PrefixCustomToolEditorPrefs (prefs, "[" + index + "].");
 //
 //				PathModifierEditorContext pmeCtx = new PathModifierEditorContext (
 //                    dc.context.PathData, null, pm, dc.context.Path, dc.context.EditorHost, dc.context.TargetModified, pmPrefs);
 //
-				if (null == pme) {
-					Debug.LogWarning ("No IPathModifierEditor found for PathModifier: " + pm);
-					pme = new FallbackPathModifierEditor ();
-				}
+
 				pme.DrawInspectorGUI (context);
 
 
 			
 				EditorGUILayout.Separator ();
-				EditorGUI.indentLevel--;
+//				EditorGUI.indentLevel--;
 			}
                 
 
+		}
+
+		public static IPathModifierEditor GetEditorForPathModifier (IPathModifier pm, PathModifierEditorContext context)
+		{
+			IPathModifierEditor pme;
+			
+			ICUstomToolEditorHost cteh = context.EditorHost as ICUstomToolEditorHost;
+			if (null != cteh) {
+				ICustomToolEditor cte = cteh.GetEditorFor (pm);
+				pme = cte as IPathModifierEditor;
+				if (null == pme && null != cte) {
+					Debug.LogWarning ("Failed to get IPathModifierEditor for '" + pm + "' from ICustomToolEditorHost: " + cteh);
+				}
+			} else {
+				pme = null;
+			}
+			
+			if (null == pme) {
+				pme = PathModifierResolver.Instance.CreateToolEditorInstance (pm) as IPathModifierEditor;
+				if (null == pme) {
+					Debug.LogWarning ("No IPathModifierEditor found for PathModifier '" + pm + "'; using FallbackPathModifierEditor.");
+					pme = new FallbackPathModifierEditor ();
+				}
+				if (null != cteh) {
+					cteh.SetEditorFor (pm, pme);
+				}
+			}
+			return pme;
 		}
 
 		public static PathModifierFunction NextPathModifierFunction (PathModifierFunction f)
