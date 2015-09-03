@@ -18,11 +18,13 @@ namespace Paths.Editor
 	public class PathModifierEditorUtil
 	{
 
-		public static void DrawPathModifiersInspector (PathData pathData, UnityEditor.Editor editor, UnityEngine.Object dirtyObject, CustomToolEditorContext.TargetModifiedFunc modifiedCallback)
+		public static void DrawPathModifiersInspector (Path path, IPathData pathData, UnityEditor.Editor editor, UnityEngine.Object dirtyObject, CustomToolEditorContext.TargetModifiedFunc modifiedCallback)
 		{
-			Path path = pathData.GetPath ();
-			Util.ParameterStore store = path.GetParameterStore ();
-			TypedCustomToolEditorPrefs prefs = new ParameterStoreCustomToolEditorPrefs (store);
+//			Path path = pathData.GetPath ();
+			IPathModifierContainer pmc = pathData.GetPathModifierContainer ();
+			ParameterStore pmcParams = pmc.GetParameterStore ();
+
+			TypedCustomToolEditorPrefs prefs = new PrefixCustomToolEditorPrefs (new ParameterStoreCustomToolEditorPrefs (pmcParams), "Editor.");
             
 			// Path Modifiers
 			PathModifierEditorContext context = new PathModifierEditorContext (
@@ -38,9 +40,9 @@ namespace Paths.Editor
 			IPathModifierContainer container = context.PathModifierContainer;
 			IPathModifier[] pathModifiers = container.GetPathModifiers ();
 
-			// TODO add PathData to context!
-			PathData pathData = context.Path.GetDefaultDataSet ();
+			IPathData pathData = context.PathData;
 
+			// TODO is prefs already prefixed????
 			PrefixCustomToolEditorPrefs editorPrefs = new PrefixCustomToolEditorPrefs (
                 context.CustomToolEditorPrefs, "PathModifiers");
 
@@ -92,7 +94,7 @@ namespace Paths.Editor
 				for (int i = 0; i < pathModifiers.Length; i++) {
 					IPathModifier pm = pathModifiers [i];
 
-					IPathInfo pathInfo = context.Path.GetPathInfo ();
+					IPathInfo pathInfo = pathData.GetPathInfo ();
 
 					PathModifierContext pmc = 
 						new PathModifierContext (pathInfo, container, currentInputFlags, pmParams);
@@ -135,7 +137,7 @@ namespace Paths.Editor
 				//int inputCaps, passthroughCaps, generateCaps;
 				//PathModifierUtil.GetPathModifierCaps(pm.GetType(), out inputCaps, out passthroughCaps, out generateCaps);
 				//int inputCaps, passthroughCaps, generateCaps;
-				IPathInfo pathInfo = context.Path.GetPathInfo ();
+				IPathInfo pathInfo = pathData.GetPathInfo ();
 				PathModifierContext pmc = 
 					new PathModifierContext (pathInfo, container, combinedOutputFlags, pmParams);
 				// TODO could we use pm.GetOutputFlags(pmc) in here?
@@ -188,11 +190,13 @@ namespace Paths.Editor
 //				PathModifierEditorContext pmeCtx = new PathModifierEditorContext (
 //                    dc.context.PathData, null, pm, dc.context.Path, dc.context.EditorHost, dc.context.TargetModified, pmPrefs);
 //
-				if (null != pme) {
-					pme.DrawInspectorGUI (context);
-				} else {
-					new FallbackCustomToolEditor ().DrawInspectorGUI (context);
+				if (null == pme) {
+					Debug.LogWarning ("No IPathModifierEditor found for PathModifier: " + pm);
+					pme = new FallbackPathModifierEditor ();
 				}
+				pme.DrawInspectorGUI (context);
+
+
 			
 				EditorGUILayout.Separator ();
 				EditorGUI.indentLevel--;

@@ -114,7 +114,34 @@ namespace Paths.Bezier
 		
 		#region	Overriden methods
 
-		
+
+		public override int GetDataSetCount ()
+		{
+			return 0;
+		}
+		public override IPathData GetDataSetAtIndex (int index)
+		{
+			return null;
+		}
+		protected override void DoInsertDataSet (int index, IPathData data)
+		{
+			throw new NotImplementedException ();
+		}
+		protected override void DoRemoveDataSet (int index)
+		{
+			throw new NotImplementedException ();
+		}
+		protected override IPathData CreatePathData (int id)
+		{
+			throw new NotImplementedException ();
+		}
+
+//		protected override void OnAttachPathData (IPathData data)
+//		{
+//
+//		}
+
+
 		void xOnDrawGizmos ()
 		{
 			DrawPath ();
@@ -137,10 +164,6 @@ namespace Paths.Bezier
 		
 		#region	Methods
 
-		public override bool IsLoop ()
-		{
-			return Loop;
-		}
 
 		public PathPoint[] GeneratePathPoints (int resolution)
 		{
@@ -154,7 +177,7 @@ namespace Paths.Bezier
 			//this.directions = null;
 //			this.pathPoints = null;
 //			this.pathPointsDirty = true;
-			PathPointsChanged ();
+//			PathPointsChanged ();
 		}
 //		public void UpdatePathPoints() {
 //			if (pathPointsDirty || null == pathPoints) {
@@ -162,13 +185,13 @@ namespace Paths.Bezier
 //				
 //			}
 //		}
-		protected override List<PathPoint> DoGetPathPoints (out int outputFlags)
-		{
-			List<PathPoint> points = null;
-			DoGeneratePathPoints (ref points, pointsPerSegment, true, true, true);
-			outputFlags = PathPoint.POSITION | PathPoint.DIRECTION | PathPoint.UP;
-			return points;
-		}
+//		protected override List<PathPoint> DoGetPathPoints (out int outputFlags)
+//		{
+//			List<PathPoint> points = null;
+//			DoGeneratePathPoints (ref points, pointsPerSegment, true, true, true);
+//			outputFlags = PathPoint.POSITION | PathPoint.DIRECTION | PathPoint.UP;
+//			return points;
+//		}
 		
 		public Vector3 GetControlPoint (int index, Transform transform = null)
 		{
@@ -242,20 +265,20 @@ namespace Paths.Bezier
 			SetPointsDirty ();
 		}
 		
-		public override int GetControlPointCount ()
-		{
-			return this.controlPoints.Length;
-		}
-
-		public override Vector3 GetControlPointAtIndex (int index)
-		{
-			return GetControlPoint (index);
-		}
-
-		public override void SetControlPointAtIndex (int index, Vector3 pt)
-		{
-			this.SetControlPoint (index, pt);
-		}
+//		public override int GetControlPointCount ()
+//		{
+//			return this.controlPoints.Length;
+//		}
+//
+//		public override Vector3 GetControlPointAtIndex (int index)
+//		{
+//			return GetControlPoint (index);
+//		}
+//
+//		public override void SetControlPointAtIndex (int index, Vector3 pt)
+//		{
+//			this.SetControlPoint (index, pt);
+//		}
 
 		void Reset ()
 		{

@@ -128,7 +128,7 @@ namespace Paths
 			Path includedPath = GetIncludedPath (context.PathModifierContainer.GetReferenceContainer ());
 			if (null != includedPath) {
 				// TODO what about other than default path data sets?
-				PathData pathData = includedPath.GetDefaultDataSet ();
+				IPathData pathData = includedPath.GetDefaultDataSet ();
 				includedPoints = pathData.GetAllPoints ();
 				ppFlags &= pathData.GetOutputFlags ();
 			} else {

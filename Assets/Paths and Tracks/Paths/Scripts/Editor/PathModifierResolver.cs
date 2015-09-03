@@ -66,9 +66,7 @@ namespace Paths.Editor
 			//DisplayNameResolver = AbstractPathModifier.GetDisplayName;
 			//FallbackDisplayNameResolver = null;
 		}
-		
-		
-		
+
 	}
 
 	public class PathModifierResolver : CustomToolResolver

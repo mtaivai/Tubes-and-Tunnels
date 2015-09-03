@@ -71,7 +71,7 @@ namespace Tracks
 		{
 			Track track = target as Track;
 			EditorUtility.SetDirty (track);
-			track.OnPathModifiersChanged ();
+//			track.OnPathModifiersChanged ();
 		}
 
 		void SetMeshDirty ()
@@ -162,7 +162,7 @@ namespace Tracks
 //      public const int TB_SHEET_SETTINGS = 0;
 
 
-		private class TrackPathData : PathData
+		private class TrackPathData : IPathData
 		{
 			private Track track;
 
@@ -170,9 +170,9 @@ namespace Tracks
 			{
 				this.track = track;
 			}
-			public Path GetPath ()
+			public IPathInfo GetPathInfo ()
 			{
-				return track.Path;
+				throw new NotImplementedException ();
 			}
 			public int GetId ()
 			{
@@ -187,9 +187,22 @@ namespace Tracks
 			{
 				return PathGizmoPrefs.FinalPathLineColor;
 			}
+			public void SetColor (Color value)
+			{
+				throw new NotImplementedException ();
+			}
+			public bool IsDrawGizmos ()
+			{
+				return true;
+			}
+
+			public void SetDrawGizmos (bool value)
+			{
+				throw new NotImplementedException ();
+			}
 			public PathDataInputSource GetInputSource ()
 			{
-				return PathDataInputSourcePath.Instance;
+				return PathDataInputSourceSelf.Instance;
 			}
 			public IPathSnapshotManager GetPathSnapshotManager ()
 			{
@@ -229,6 +242,33 @@ namespace Tracks
 			{
 				throw new NotImplementedException ();
 			}
+
+
+		
+			public int GetControlPointCount ()
+			{
+				throw new NotImplementedException ();
+			}
+
+			public Vector3 GetControlPointAtIndex (int index)
+			{
+				throw new NotImplementedException ();
+			}
+
+			public void SetControlPointAtIndex (int index, Vector3 pt)
+			{
+				throw new NotImplementedException ();
+			}
+
+			public bool IsUpToDate ()
+			{
+				throw new NotImplementedException ();
+			}
+
+			public long GetStatusToken ()
+			{
+				throw new NotImplementedException ();
+			}
 		}
 
 		public override void OnInspectorGUI ()
@@ -249,7 +289,7 @@ namespace Tracks
 				if (null != track.Path) {
 					EditorGUILayout.HelpBox ("Track's Path Modifiers can be used to modify the path before it's feed to the Track Generator. Modifiers will not modify the original Path.", MessageType.Info);
 
-					PathData pathData = new TrackPathData (track);
+					IPathData pathData = new TrackPathData (track);
 					PathModifierEditorContext context = new PathModifierEditorContext (
                         pathData, track.Path, this, PathModifiersChanged, editorPrefs);
 

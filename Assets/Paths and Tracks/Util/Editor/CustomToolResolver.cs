@@ -147,6 +147,7 @@ namespace Util.Editor
 			if (attributes.Length == 0) {
 				attributes = editorTypeCandidate.GetCustomAttributes (typeof(CustomToolEditor), true);
 			}
+
 			foreach (object attrObj in attributes) {
 				CustomToolEditor cte = (CustomToolEditor)attrObj;
 				int match = Util.TypeUtil.HierarchyDistance (toolType, cte.inspectedType);
@@ -202,6 +203,7 @@ namespace Util.Editor
 			}
 			return types;
 		}
+
 
 		public Type FindEditorType (Type toolType)
 		{

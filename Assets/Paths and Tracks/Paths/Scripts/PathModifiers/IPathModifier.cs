@@ -7,7 +7,7 @@ using Paths;
 
 namespace Paths
 {
-	[AttributeUsage(AttributeTargets.All)]
+	[AttributeUsage(AttributeTargets.Class)]
 	public sealed class PathModifier : System.Attribute
 	{
 		public string displayName;
@@ -210,6 +210,11 @@ namespace Paths
 
 		IPathSnapshotManager GetPathSnapshotManager ();
 
+		// TODO is this required?
+		ParameterStore GetParameterStore ();
+
+		//void SaveConfiguration ();
+		void ConfigurationChanged ();
 	}
 
 	public abstract class PathModifierInputFilter
@@ -661,10 +666,6 @@ namespace Paths
 			return f;
 		}
 
-
-        
-
-        
 		private bool _inGetModifiedPoints;
 
 		public PathPoint[] GetModifiedPoints (PathPoint[] points, PathModifierContext context)

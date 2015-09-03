@@ -178,18 +178,42 @@ namespace Util
 		public static int HierarchyDistance (Type type, Type superType)
 		{
 			int dist;
+
 			if (type.Equals (superType)) {
 				dist = 0;
 			} else {
-				Type baseType = type.BaseType;
-				if (null != baseType) {
-					dist = HierarchyDistance (baseType, superType);
-					if (dist >= 0) {
-						dist += 1;
+				dist = -1;
+				if (superType.IsInterface) {
+					int shortestDist = int.MaxValue;
+					Type[] intfs = type.GetInterfaces ();
+					foreach (Type intf in intfs) {
+						dist = HierarchyDistance (intf, superType);
+						if (dist < shortestDist) {
+							shortestDist = dist;
+							if (shortestDist == 0) {
+								break;
+							}
+						}
 					}
-				} else {
-					dist = -1;
+					if (shortestDist >= 0 && shortestDist < int.MaxValue) {
+						dist = shortestDist + 1;
+					} else {
+						dist = -1;
+					}
+				} 
+
+				if (dist < 0) {
+					Type baseType = type.BaseType;
+					if (null != baseType) {
+						dist = HierarchyDistance (baseType, superType);
+						if (dist >= 0) {
+							dist += 1;
+						}
+					} else {
+						dist = -1;
+					}
 				}
+
 			}
 			return dist;
 		}

@@ -11,7 +11,7 @@ using Paths.Editor;
 namespace Paths.Bezier.Editor
 {
 	[CustomEditor(typeof(BezierPath))]
-	public class BezierPathInspector : PathEditor
+	public class BezierPathInspector : AbstractPathEditor<BezierPath, AbstractPathData>
 	{
 		private BezierPath path;
 		private Transform transform;

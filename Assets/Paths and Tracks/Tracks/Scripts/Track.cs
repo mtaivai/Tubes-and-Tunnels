@@ -236,7 +236,7 @@ namespace Tracks
 		{
 			parameters.OnAfterDeserialize ();
 
-			GetPathModifierContainer ().LoadPathModifiers (parameters);
+			GetPathModifierContainer ().LoadConfiguration ();
 
 			if (null != path) {
 				RegisterPathChangedListener ();
@@ -320,7 +320,8 @@ namespace Tracks
 		protected void UpdatePathPoints ()
 		{
 			if (null == pathPoints) {
-				PathData pathData = path.GetDefaultDataSet ();
+				IPathData pathData = path.FindDataSetByName ("MeshGenerator");
+
 				if (null != path) {
 					pathPoints = pathData.GetAllPoints ();
 					pathPointFlags = pathData.GetOutputFlags ();
@@ -328,7 +329,7 @@ namespace Tracks
 					pathPoints = new PathPoint[0];
 					pathPointFlags = PathPoint.NONE;
 				}
-				PathModifierContext context = new PathModifierContext (path.GetPathInfo (), GetPathModifierContainer (), pathPointFlags);
+				PathModifierContext context = new PathModifierContext (pathData.GetPathInfo (), GetPathModifierContainer (), pathPointFlags);
 				pathPoints = PathModifierUtil.RunPathModifiers (context, pathPoints, ref pathPointFlags, true);
 			}
 		}
@@ -353,28 +354,28 @@ namespace Tracks
 			return pathPointFlags;
 		}
 
-		public void OnPathModifiersChanged ()
-		{
-			GetPathModifierContainer ().SavePathModifiers (parameters);
-			ConfigurationChanged ();
-		}
+//		public void OnPathModifiersChanged ()
+//		{
+//			GetPathModifierContainer ().SaveConfiguration ();
+//			ConfigurationChanged ();
+//		}
 
 		protected virtual DefaultPathModifierContainer CreatePathModifierContainer ()
 		{
-			PathData pathData = path.GetDefaultDataSet ();
+			IPathData pathData = path.GetDefaultDataSet ();
 			DefaultPathModifierContainer pmc = new DefaultPathModifierContainer (
-                Path.GetPathInfo,
-                OnPathModifiersChanged,
-                ConfigurationChanged,
+                pathData.GetPathInfo,
+                /*OnPathModifiersChanged,*/
+                /*ConfigurationChanged,*/
                 (out int ppFlags) => {
 				ppFlags = pathData.GetOutputFlags ();
 				return pathData.GetAllPoints ();
 			},
-            PathPointsChanged,
+            /*PathPointsChanged,*/
                 null,
-                this, null);
+                this, null, parameters);
                 
-            
+			// TODO should "parameters" above be a child ParamaterStore with prefix "pathModifiers."?
 
             
 			return pmc;

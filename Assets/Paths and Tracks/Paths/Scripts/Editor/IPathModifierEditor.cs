@@ -13,30 +13,28 @@ using Paths;
 namespace Paths.Editor
 {
 
-
-
 	/// <summary>
 	/// Marks the target type as an IPathModifierEditor implementation for
 	/// the specified target (IPathModifer) type.
 	/// </summary>
 	public class PathModifierEditorContext : CustomToolEditorContext
 	{
-		private PathData pathData;
+		private IPathData pathData;
 		private PathModifierContext pathModifierContext;
 
 
 
-		public PathModifierEditorContext (PathData data, PathModifierContext pmContext, IPathModifier customTool, Path target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc, TypedCustomToolEditorPrefs prefs)
+		public PathModifierEditorContext (IPathData data, PathModifierContext pmContext, IPathModifier customTool, Path target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc, TypedCustomToolEditorPrefs prefs)
             : base(customTool, target, e, targetModifiedFunc, prefs)
 		{
 			this.pathData = data;
 			this.pathModifierContext = pmContext;
 			if (null == pmContext && null != customTool) {
 				pmContext =
-					new PathModifierContext (target.GetPathInfo (), data.GetPathModifierContainer (), data.GetOutputFlagsBeforeModifiers ());
+					new PathModifierContext (data.GetPathInfo (), data.GetPathModifierContainer (), data.GetOutputFlagsBeforeModifiers ());
 			}
 		}
-		public PathModifierEditorContext (PathData data, Path target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc, TypedCustomToolEditorPrefs prefs)
+		public PathModifierEditorContext (IPathData data, Path target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc, TypedCustomToolEditorPrefs prefs)
 			: this(data, null, null, target, e, targetModifiedFunc, prefs)
 		{
 		}
@@ -52,7 +50,7 @@ namespace Paths.Editor
 				return (IPathModifier)CustomTool;
 			}
 		}
-		public PathData PathData {
+		public IPathData PathData {
 			get {
 				return pathData;
 			}

@@ -15,7 +15,8 @@ namespace Paths
         
 		private List<IPathModifier> pathModifiers = new List<IPathModifier> ();
 		private IReferenceContainer referenceContainer;
-        
+		private ParameterStore paramterStore;
+
 		public SimplePathModifierContainer ()
 		{
             
@@ -72,7 +73,22 @@ namespace Paths
 		{
 			return UnsupportedSnapshotManager.Instance;
 		}
+		public ParameterStore GetParameterStore ()
+		{
+			return null;
+		}
+		public void ConfigurationChanged ()
+		{
+			throw new NotImplementedException ();
+		}
 	}
+
+	public class PathModifierContainerEvent : EventArgs
+	{
+
+	}
+
+	public delegate void PathModifiersChangedHandler (object sender,PathModifierContainerEvent e);
 
 	public class DefaultPathModifierContainer : IPathModifierContainer
 	{
@@ -80,67 +96,70 @@ namespace Paths
 
 		public delegate IPathInfo GetPathInfoDelegate ();
 
-		public delegate void PathModifiersChangedDelegate ();
+		public event PathModifiersChangedHandler PathModifiersChanged;
 
-		public delegate void PathPointsChangedDelegate ();
 
 		public delegate PathPoint[] DoGetPathPointsDelegate (out int ppFlags);
-
-		public delegate void SetPathPointsDirtyDelegate ();
 
 		public delegate void SetPathPointsDelegate (PathPoint[] points);
 
 		// TODO maybe we should replace these delegates with an interface? (not SetPathPointsDelegate?)
 		private GetPathInfoDelegate GetPathInfo;
-		private PathModifiersChangedDelegate PathModifiersChanged;
-		private PathPointsChangedDelegate PathPointsChanged;
 		private DoGetPathPointsDelegate DoGetPathPoints;
-		private SetPathPointsDirtyDelegate SetPathPointsDirty;
 		private SetPathPointsDelegate SetPathPoints;
 
 		private IReferenceContainer referenceContainer;
 		private IPathSnapshotManager snapshotManager;
-
-		//private Action<PathPoint[]> DoGetPathPoints;
+		private ParameterStore parameterStore;
 
 		public DefaultPathModifierContainer (GetPathInfoDelegate getPathInfoFunc,
-                                             PathModifiersChangedDelegate pathModifiersChangedFunc, 
-                                            PathPointsChangedDelegate pathPointsChangedFunc,
                                             DoGetPathPointsDelegate doGetPathPointsFunc,
-                                            SetPathPointsDirtyDelegate setPathPointsDirtyFunc,
                                             SetPathPointsDelegate setPathPointsFunc,
                                             IReferenceContainer referenceContainer,
-		                                     IPathSnapshotManager snapshotManager)
+		                                     IPathSnapshotManager snapshotManager,
+		                                     ParameterStore parameterStore)
 		{
 			this.GetPathInfo = getPathInfoFunc;
-			this.PathModifiersChanged = pathModifiersChangedFunc;
-			this.PathPointsChanged = pathPointsChangedFunc;
 			this.DoGetPathPoints = doGetPathPointsFunc;
-			this.SetPathPointsDirty = setPathPointsDirtyFunc;
 			this.SetPathPoints = setPathPointsFunc;
 			this.referenceContainer = referenceContainer;
 			this.snapshotManager = snapshotManager;
 			if (null == this.snapshotManager) {
 				this.snapshotManager = UnsupportedSnapshotManager.Instance;
 			}
+			this.parameterStore = parameterStore;
 		}
 
-		public void LoadPathModifiers (ParameterStore parameterStore)
+		private void LoadPathModifiers (ParameterStore parameterStore)
 		{
 			pathModifierInstances = PathModifierUtil.LoadPathModifiers (parameterStore);
 			foreach (IPathModifier pm in pathModifierInstances) {
 				pm.Attach (this);
 			}
-//            PathModifierContext pmc = new PathModifierContext(this, 0);
 			RegisterListenerOnIncludedPaths ();
 		}
+		public void LoadConfiguration ()
+		{
+			LoadPathModifiers (GetParameterStore ());
+		}
 
-		public void SavePathModifiers (ParameterStore parameterStore)
+		private void SavePathModifiers (ParameterStore parameterStore)
 		{
 			PathModifierUtil.SavePathModifiers (parameterStore, pathModifierInstances);
-//            PathModifierContext pmc = new PathModifierContext(this, 0);
 			RegisterListenerOnIncludedPaths ();
 
+		}
+		public void SaveConfiguration ()
+		{
+			SavePathModifiers (GetParameterStore ());
+		}
+
+
+		public void ConfigurationChanged ()
+		{
+			SaveConfiguration ();
+			PathModifierContainerEvent e = new PathModifierContainerEvent ();
+			PathModifiersChanged (this, e);
 		}
 
 		public PathPoint[] RunPathModifiers (PathModifierContext context, PathPoint[] pp, ref int flags)
@@ -170,7 +189,7 @@ namespace Paths
 		void IncludedPathChanged (object sender, EventArgs e)
 		{
 			Debug.Log ("Included Path Changed: sender=" + sender);
-			this.PathPointsChanged ();
+			this.ConfigurationChanged ();
 		}
 
 		void RegisterListenerOnIncludedPath (Path p)
@@ -195,21 +214,21 @@ namespace Paths
 		{
 			pathModifierInstances.Add (pm);
 			pm.Attach (this);
-			PathModifiersChanged ();
+			ConfigurationChanged ();
 		}
         
 		public void InsertPathModifer (int index, IPathModifier pm)
 		{
 			pathModifierInstances.Insert (index, pm);
 			pm.Attach (this);
-			PathModifiersChanged ();
+			ConfigurationChanged ();
 		}
         
 		public void RemovePathModifer (int index)
 		{
 			pathModifierInstances [index].Detach ();
 			pathModifierInstances.RemoveAt (index);
-			PathModifiersChanged ();
+			ConfigurationChanged ();
 		}
         
 		public int IndexOf (IPathModifier pm)
@@ -233,24 +252,20 @@ namespace Paths
             
 			int flags;
 			PathPoint[] pp = DoGetPathPoints (out flags);
-			//this.rawPathPointFlags = flags;
 
 			// Create wrapper context that includes only the PathModifier to apply
 			IPathInfo pathInfo = GetPathInfo ();
 
 			PathModifierContext subContext = new PathModifierContext (pathInfo, pmc, flags);
 			pp = PathModifierUtil.RunPathModifiers (subContext, pp, ref flags, true);
-			//this.pathPointFlags = flags;
-			//this.pathPoints = new List<PathPoint>(pp);
-			SetPathPointsDirty ();
-            
+
 			// Convert to Control Points
 			SetPathPoints (pp);
             
 			for (int i = index; i >= 0; i--) {
 				pathModifierInstances.RemoveAt (i);
 			}
-			PathModifiersChanged ();
+			ConfigurationChanged ();
             
 		}
 
@@ -262,10 +277,16 @@ namespace Paths
 		{
 			return snapshotManager;
 		}
+		// TODO rename this method to SetPathSnapshotManager
 		public void SetPathBranchManager (IPathSnapshotManager branchManager)
 		{
 			this.snapshotManager = branchManager;
 		}
+		public ParameterStore GetParameterStore ()
+		{
+			return parameterStore;
+		}
+
 	}
     
 }

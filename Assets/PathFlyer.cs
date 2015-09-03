@@ -24,7 +24,7 @@ public class PathFlyer : MonoBehaviour
 	// Use this for initialization
 	void Start ()
 	{
-		PathData pathData = path.GetDefaultDataSet ();
+		IPathData pathData = path.GetDefaultDataSet ();
 		pathPoints = pathData.GetAllPoints ();
 		currentDistance = 0.0f;
 		totalDistance = pathData.GetTotalDistance ();
@@ -129,8 +129,8 @@ public class PathFlyer : MonoBehaviour
 
 		public PathPoint[] GetPathPoints ()
 		{
-			if (null == _pathPoints || !path.IsUpToDate (currentStatusToken)) {
-				PathData pathData = path.GetDefaultDataSet ();
+			IPathData pathData = path.GetDefaultDataSet ();
+			if (null == _pathPoints || pathData.GetStatusToken () != currentStatusToken) {
 				_pathPoints = pathData.GetAllPoints ();
 				// TODO generate required components!
 				int flags = pathData.GetOutputFlags ();
@@ -269,9 +269,10 @@ public class PathFlyer : MonoBehaviour
 
 		public int LookupPreviuosPointIndex (float t)
 		{
-			if (null == previousIndexLookup || !path.IsUpToDate (currentStatusToken)) {
+			IPathData pathData = path.GetDefaultDataSet ();
+			if (null == previousIndexLookup || pathData.GetStatusToken () != currentStatusToken) {
 				DoBuilLookUpTable ();
-				currentStatusToken = path.GetStatusToken ();
+				currentStatusToken = pathData.GetStatusToken ();
 			}
 
 			t = Mathf.Repeat (t, 1.0f);

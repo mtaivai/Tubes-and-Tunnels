@@ -179,7 +179,8 @@ namespace Tracks
 
 			//Debug.Log ("dirs: " + directions.Length + "; pts: " + points.Length);
 			int sliceCount = points.Length;
-			if (track.Path.IsLoop () && !repeatFirstInLoop) {
+			bool isLoop = false; // TODO IMPLEMENT THIS FOR REAL?
+			if (isLoop && !repeatFirstInLoop) {
 				sliceCount -= 1;
 			}
         
@@ -225,7 +226,7 @@ namespace Tracks
 			if (usingGeneratedDirections) {
 				Debug.LogWarning ("Using calculated directions while generating Track; expect some inaccurancy!");
 			}
-			if (track.Path.IsLoop () && repeatFirstInLoop) {
+			if (isLoop && repeatFirstInLoop) {
 				slices [sliceCount - 1] = slices [0];
 			}
 			long endTime = System.DateTime.Now.Ticks / System.TimeSpan.TicksPerMillisecond;

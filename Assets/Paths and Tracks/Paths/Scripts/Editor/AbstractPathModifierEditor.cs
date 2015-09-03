@@ -16,11 +16,14 @@ using Paths;
 
 namespace Paths.Editor
 {
-
-	/// <summary>
-	/// Marks the target type as an IPathModifierEditor implementation for
-	/// the specified target (IPathModifer) type.
-	/// </summary>
+	[CustomToolEditor(typeof(IPathModifier))]
+	public class FallbackPathModifierEditor : AbstractPathModifierEditor
+	{
+		protected override void OnDrawConfigurationGUI ()
+		{
+			DrawDefaultConfigurationGUI ();
+		}
+	}
 
 	public abstract class AbstractPathModifierEditor : IPathModifierEditor
 	{
@@ -142,7 +145,7 @@ namespace Paths.Editor
 		{
 			
 			IPathModifier pm = context.PathModifier;
-			PathData pathData = context.PathData;
+			IPathData pathData = context.PathData;
 			
 			Horizontal (() =>
 			{
@@ -160,7 +163,8 @@ namespace Paths.Editor
 				IPathModifierContainer pmc = pathData.GetPathModifierContainer ();
 				int pmIndex = pmc.IndexOf (pm);
 				int pmCount = pmc.GetPathModifiers ().Length;
-				
+
+
 				EditorGUI.BeginDisabledGroup (pmIndex < 0 || !pm.IsEnabled () || !pmc.IsSupportsApplyPathModifier () || (pm is NewPathModifier));
 				if (GUILayout.Button ("Apply")) {
 					if (EditorUtility.DisplayDialog ("Apply", "Do you want to Apply this modifier AND all the modifiers in the chain before it?", "Yes", "No")) {

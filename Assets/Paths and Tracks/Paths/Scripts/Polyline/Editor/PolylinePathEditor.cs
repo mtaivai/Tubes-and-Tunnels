@@ -41,11 +41,10 @@ namespace Paths.Polyline.Editor
 	}
 
 	[CustomEditor(typeof(PolylinePath))]
-	public class PolylinePathEditor : PathEditor
+	public class PolylinePathEditor : AbstractPathEditor<PolylinePath, PolylinePath.PolylinePathData>
 	{
 
 		private GUIStyle labelStyle;
-
 
 //      private DictionaryEditorItemPrefs pathModifierPrefs = new DictionaryEditorItemPrefs();
 
@@ -62,7 +61,14 @@ namespace Paths.Polyline.Editor
 			labelStyle.normal.background = labelBgTexture;
 			labelStyle.normal.textColor = Color.white;
 		}
+
+		PolylinePath.PolylinePathData GetPathData ()
+		{
+			return (PolylinePath.PolylinePathData)pathData;
+		}
     
+
+
 		protected override void DrawGeneralInspectorGUI ()
 		{
 			DrawDefaultGeneralInspectorGUI ();
@@ -70,7 +76,7 @@ namespace Paths.Polyline.Editor
 			PolylinePath path = target as PolylinePath;
 
 			EditorGUI.BeginChangeCheck ();
-			path.SetLoop (EditorGUILayout.Toggle ("Loop", path.IsLoop ()));
+			pathData.SetLoop (EditorGUILayout.Toggle ("Loop", pathData.IsLoop ()));
 			if (EditorGUI.EndChangeCheck ()) {
 				Undo.RecordObject (path, "Toggle Path Loop Mode");
 				EditorUtility.SetDirty (path);
@@ -80,20 +86,27 @@ namespace Paths.Polyline.Editor
 		protected override void DrawPathPointsInspector (ref bool expanded)
 		{
         
+			EditorGUILayout.HelpBox ("Control Points are shared by all data sets having Input Source set to 'Self'.", MessageType.Info);
+
 			PolylinePath path = (PolylinePath)target;
 
-
-			if (GUILayout.Button ("Add Control Point")) {
-				InsertControlPoint (0);
-			}
-
-			int cpCount = path.GetControlPointCount ();
+			int cpCount = pathData.GetControlPointCount ();
 			expanded = EditorGUILayout.Foldout (expanded, "Control Points (" + cpCount + ")");
 			if (expanded) {
 
+				EditorGUILayout.BeginHorizontal ();
+				EditorGUILayout.LabelField (" ", "Insert new point to the beginning -->");
+				if (GUILayout.Button (new GUIContent ("+", "Add new point to the beginning"), GUILayout.Width (32))) {
+					InsertControlPoint (0);
+					cpCount = pathData.GetControlPointCount ();
+				}
+				EditorGUILayout.EndHorizontal ();
+
+
+
 				for (int i = 0; i < cpCount; i++) {
 
-					Vector3 pt = path.GetControlPointAtIndex (i);
+					Vector3 pt = pathData.GetControlPointAtIndex (i);
 					EditorGUI.BeginChangeCheck ();
 					EditorGUILayout.BeginHorizontal ();
 					GUI.SetNextControlName ("ControlPoint_" + i);
@@ -101,13 +114,13 @@ namespace Paths.Polyline.Editor
 					if (EditorGUI.EndChangeCheck ()) {
 						SetControlPoint (i, pt);
 					}
-					if (GUILayout.Button (new GUIContent ("-", "Delete Control Point"), GUILayout.Width (32))) {
+					if (GUILayout.Button (new GUIContent ("-", "Delete this point"), GUILayout.Width (32))) {
 						DeleteControlPoint (i);
-						cpCount = path.GetControlPointCount ();
+						cpCount = pathData.GetControlPointCount ();
 					}
-					if (GUILayout.Button (new GUIContent ("+", "Insert Control Point"), GUILayout.Width (32))) {
+					if (GUILayout.Button (new GUIContent ("+", "Insert new point after this point"), GUILayout.Width (32))) {
 						InsertControlPoint (i + 1);
-						cpCount = path.GetControlPointCount ();
+						cpCount = pathData.GetControlPointCount ();
 					}
 					EditorGUILayout.EndHorizontal ();
                     
@@ -115,24 +128,25 @@ namespace Paths.Polyline.Editor
 				if (SelectedControlPointIndex >= 0) {
 					//GUI.FocusControl("ControlPoint_" + selectedControlPointIndex);
 				}
-				string focusedControl = GUI.GetNameOfFocusedControl ();
-				if (focusedControl.IndexOf ("ControlPoint_") >= 0) {
-					int selPoint;
-					if (int.TryParse (focusedControl.Substring ("ControlPoint_".Length), out selPoint)) {
-						if (selPoint != this.SelectedControlPointIndex) {
-							this.SelectedControlPointIndex = selPoint;
-							EditorUtility.SetDirty (path);
-						}
-					}
+//				string focusedControl = GUI.GetNameOfFocusedControl ();
+//				if (focusedControl.IndexOf ("ControlPoint_") >= 0) {
+//					int selPoint;
+//					if (int.TryParse (focusedControl.Substring ("ControlPoint_".Length), out selPoint)) {
+//						if (selPoint != this.SelectedControlPointIndex) {
+//							this.SelectedControlPointIndex = selPoint;
+//							EditorUtility.SetDirty (path);
+//						}
+//					}
+//
+//				}
 
-				}
 
-			}
+			} 
 
-            
-			if (GUILayout.Button ("Add Control Point")) {
-				InsertControlPoint (cpCount);
-			}
+
+
+
+
 
 			DrawDefaultPathPointsInspector ();
 		}
@@ -141,7 +155,7 @@ namespace Paths.Polyline.Editor
 		{
 			PolylinePath path = (PolylinePath)target;
 			Undo.RecordObject (path, "Modify Control Point");
-			path.SetControlPointAtIndex (index, pt);
+			pathData.SetControlPointAtIndex (index, pt);
 			EditorUtility.SetDirty (path);
 		}
 
@@ -149,7 +163,7 @@ namespace Paths.Polyline.Editor
 		{
 			PolylinePath path = (PolylinePath)target;
 			Undo.RecordObject (path, "Delete Control Point");
-			path.RemoveControlPointAtIndex (index);
+			pathData.RemoveControlPointAtIndex (index);
 			EditorUtility.SetDirty (path);
 		}
 
@@ -157,7 +171,7 @@ namespace Paths.Polyline.Editor
 		{
 			PolylinePath path = (PolylinePath)target;
 
-			int cpCount = path.GetControlPointCount ();
+			int cpCount = pathData.GetControlPointCount ();
 			if (index > cpCount || index < 0) {
 				throw new ArgumentOutOfRangeException ("index");
 			}
@@ -180,9 +194,9 @@ namespace Paths.Polyline.Editor
 			} else if (index == 0) {
 				// Insert as first point
 				// Extrapolate backwards from the previous first point
-				prevPt = path.GetControlPointAtIndex (0);
+				prevPt = pathData.GetControlPointAtIndex (0);
 				if (cpCount > 1) {
-					dir = (prevPt - path.GetControlPointAtIndex (1));
+					dir = (prevPt - pathData.GetControlPointAtIndex (1));
 					distFromPrev = dir.magnitude;
 					dir.Normalize ();
 				} else {
@@ -192,9 +206,9 @@ namespace Paths.Polyline.Editor
 			} else if (index == cpCount) {
 				// Insert as last point
 				// Extrapolate forward from the previous last point
-				prevPt = path.GetControlPointAtIndex (cpCount - 1);
+				prevPt = pathData.GetControlPointAtIndex (cpCount - 1);
 				if (cpCount > 1) {
-					dir = (prevPt - path.GetControlPointAtIndex (cpCount - 2));
+					dir = (prevPt - pathData.GetControlPointAtIndex (cpCount - 2));
 					distFromPrev = dir.magnitude;
 					dir.Normalize ();
 				} else {
@@ -203,8 +217,8 @@ namespace Paths.Polyline.Editor
 				}
 			} else {
 				// Insert between existing points
-				prevPt = path.GetControlPointAtIndex (index - 1);
-				Vector3 nextPt = path.GetControlPointAtIndex (index);
+				prevPt = pathData.GetControlPointAtIndex (index - 1);
+				Vector3 nextPt = pathData.GetControlPointAtIndex (index);
 				dir = (nextPt - prevPt);
 				// Insert in middle:
 				distFromPrev = dir.magnitude / 2.0f;
@@ -221,7 +235,7 @@ namespace Paths.Polyline.Editor
 
 			Vector3 newPt = prevPt + dir * distFromPrev;
 
-			path.InsertControlPoint (index, newPt);
+			pathData.InsertControlPoint (index, newPt);
 			EditorUtility.SetDirty (path);
 		}
 

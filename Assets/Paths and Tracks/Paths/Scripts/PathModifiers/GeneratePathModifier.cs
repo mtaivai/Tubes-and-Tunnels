@@ -75,7 +75,7 @@ namespace Paths
 		{
 			int ppFlags = GetOutputFlags (context);
 
-			bool loopPath = context.PathInfo.IsLoopPath ();
+			bool loopPath = context.PathInfo.IsLoop ();
 
 			Vector3[] positions;
 
