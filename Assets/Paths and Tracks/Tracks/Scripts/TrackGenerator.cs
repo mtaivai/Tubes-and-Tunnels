@@ -169,7 +169,7 @@ namespace Tracks
 			// TODO usePAthResolution is not used any longer!
 			int ppFlags;
 			if (usePathResolution) {
-				points = track.GetPathPoints (out ppFlags);
+				points = track.PrimaryDataSource.GetProcessedPoints (out ppFlags);
 			} else {
 				// TODO path should provide "lowres" and "highres" paths!
 				Debug.LogError ("Custom resolution is no longer supported");
@@ -235,7 +235,7 @@ namespace Tracks
 			Debug.Log ("Creating " + slices.Length + " slices took " + deltaTime + " ms");
         
 			return slices;
-        
+
 		}
 
 		public Mesh CreateMesh (Track track)

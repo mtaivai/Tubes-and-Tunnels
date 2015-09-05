@@ -22,9 +22,27 @@ namespace Paths
 			return n;
 		}
 
-		public static PathPoint[] RunPathModifiers (PathModifierContext context, PathPoint[] pathPoints, ref int flags, bool fixResultFlags)
+		public static PathPoint[] RunPathModifiers (PathModifierContext context, PathPoint[] _pathPoints, bool protectInputPoints, ref int flags, bool fixResultFlags)
 		{
 			IPathModifier[] modifiers = context.PathModifierContainer.GetPathModifiers ();
+
+			long startTicks = System.DateTime.Now.Ticks;
+
+			PathPoint[] processedPoints;
+
+			if (protectInputPoints) {
+				processedPoints = new PathPoint[_pathPoints.Length];
+				// We cant't just Array.Copy(...) the array because PathPoints are mutable and
+				// any changes would still reflect the input array. We need to clone each point
+				// as well...
+//				Array.Copy (_pathPoints, processedPoints, processedPoints.Length);
+				int c = _pathPoints.Length;
+				for (int i = 0; i < c; i++) {
+					processedPoints [i] = new PathPoint (_pathPoints [i]);
+				}
+			} else {
+				processedPoints = _pathPoints;
+			}
 
 			foreach (IPathModifier mod in modifiers) {
 				if (!mod.IsEnabled ()) {
@@ -32,21 +50,26 @@ namespace Paths
 				}
 				PathModifierContext pmc = new PathModifierContext (context.PathInfo, context.PathModifierContainer, flags, context.Parameters);
 
-				pathPoints = mod.GetModifiedPoints (pathPoints, pmc);
+				// Timing:
 
-				if (fixResultFlags) {
+				long thisStartTicks = System.DateTime.Now.Ticks;
+
+				// Do run the path modifier
+				processedPoints = mod.GetModifiedPoints (processedPoints, pmc);
+			
+				if (fixResultFlags && false) {
 					bool gotNulls = false;
 					int outputFlags = mod.GetOutputFlags (pmc);
-					for (int i = 0; i < pathPoints.Length; i++) {
-						PathPoint pp = pathPoints [i];
+					for (int i = 0; i < processedPoints.Length; i++) {
+						PathPoint pp = processedPoints [i];
 						if (null == pp) {
 							gotNulls = true;
-							pathPoints [i] = new PathPoint ();
+							processedPoints [i] = new PathPoint ();
 							//pathPoints [i].Flags = outputFlags;
 						} else {
 							if (pp.Flags != outputFlags) {
 //								pathPoints [i].Flags = outputFlags;
-								outputFlags &= pathPoints [i].Flags;
+								outputFlags &= processedPoints [i].Flags;
 							}
 						}
 					}
@@ -58,8 +81,17 @@ namespace Paths
 				// input & (process | passthrough) | generate
 				flags = (flags & (mod.GetPassthroughFlags (pmc) | mod.GetProcessFlags (pmc))) | mod.GetGenerateFlags (pmc);
                 
+				long thisEndTicks = System.DateTime.Now.Ticks;
+				float thisDeltaTimeMs = (float)(thisEndTicks - thisStartTicks) / (float)System.TimeSpan.TicksPerMillisecond;
+				
+				Debug.Log ("Running PathModifier " + PathModifierUtil.GetDisplayName (mod) + " took " + thisDeltaTimeMs + " ms");
 			}
-			return pathPoints;
+
+			long endTicks = System.DateTime.Now.Ticks;
+			float deltaTimeMs = (float)(endTicks - startTicks) / (float)System.TimeSpan.TicksPerMillisecond;
+			Debug.Log ("Running " + modifiers.Length + " PathModifiers took " + deltaTimeMs + " ms");
+
+			return processedPoints;
 		}
 
 		public static void GetPathModifierCapsFromAttributes (Type pmType, out int inputFlags, out int processFlags, out int passtroughFlags, out int generateFlags)

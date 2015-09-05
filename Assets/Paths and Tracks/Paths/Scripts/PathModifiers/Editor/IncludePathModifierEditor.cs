@@ -215,50 +215,21 @@ namespace Paths.Editor
 			IReferenceContainer refContainer = context.PathModifierContainer.GetReferenceContainer ();
 
 			Path includedPath = pm.GetIncludedPath (refContainer);
-			EditorGUI.BeginChangeCheck ();
-			Path newPath = (Path)EditorGUILayout.ObjectField ("Included Path", includedPath, typeof(Path), true, GUILayout.ExpandWidth (true));
-			if (EditorGUI.EndChangeCheck ()) {
-				// TODO Undo.RecordObject
-
-				// TODO reimplement following with data sets:
-//				if (newPath == context.Path) {
-//					EditorUtility.DisplayDialog ("Recursive Include", "Path can't be included recursively to itself!", "Got it!");
-//				} else if (IsPathIncludedIn (context.Path, newPath)) {
-//					EditorUtility.DisplayDialog (
-//                        "Recursive Include", 
-//                        "Path '" + newPath.name + "' already includes '" + context.Path.name + "'", 
-//                        "Got it!");
-//				} else {
-				pm.SetIncludedPath (context.PathModifierContainer.GetReferenceContainer (), newPath);
-//				}
 
 
-				//EditorUtility.SetDirty(context.Target);
+			PathWithDataId dataId = new PathWithDataId (includedPath, pm.includedPathDataSetId, pm.includedPathFromSnapshot, pm.includedPathSnapshotName);
+			if (PathEditorUtil.DrawPathDataSelection (ref dataId, true, new int[] {context.PathData.GetId ()})) {
+				// TODO RECORD UNDO
+				pm.SetIncludedPath (context.PathModifierContainer.GetReferenceContainer (), dataId.Path);
+
+				pm.includedPathDataSetId = dataId.DataSetId;
+				pm.includedPathFromSnapshot = dataId.UseSnapshot;
+				pm.includedPathSnapshotName = dataId.SnapshotName;
+
 				context.TargetModified ();
-				//              trackInspector.TrackGeneratorModified();
+				EditorUtility.SetDirty (context.Path);
 			}
 
-			int dsId = pm.includedPathDataSetId;
-			bool fromSnapshot = pm.includedPathFromSnapshot;
-			string snapshotName = pm.includedPathSnapshotName;
-			if (null != newPath) {
-				//EditorGUI.indentLevel++;
-
-				if (PathModifierEditorUtil.DrawDataSetSelection (newPath, ref dsId, ref fromSnapshot, ref snapshotName, context)) {
-					// TODO UNDO
-
-					pm.includedPathDataSetId = dsId;
-					pm.includedPathFromSnapshot = fromSnapshot;
-					pm.includedPathSnapshotName = snapshotName;
-
-					// TODO RECORD UNDO
-					context.TargetModified ();
-					EditorUtility.SetDirty (context.Path);
-
-
-				}
-				//EditorGUI.indentLevel--;
-			}
 
 
 			// TODO this is not up-to-date when we first draw the inspector!

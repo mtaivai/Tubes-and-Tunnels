@@ -24,6 +24,13 @@ namespace Paths.Editor
 			DrawDefaultConfigurationGUI ();
 		}
 	}
+	// TODO refactor the editor system:
+	//  FooEditorBinding : UnityEditor.Editor
+	//   + fooEditor : FooEditor
+	//
+	//  - The FooEditorBinding class implemetns UnityEditor.Editor
+	//  - FooEditor implements IPathModifiedEditor
+	//  - This makes the code base cleaner!
 
 	public abstract class AbstractPathModifierEditor : IPathModifierEditor
 	{
@@ -159,7 +166,7 @@ namespace Paths.Editor
 				context.TargetModified ();
 			}
 			if (true)
-				Horizontal (() =>
+				EditorLayout.Horizontal.WithOptions (GUILayout.ExpandWidth (false)).Draw (() =>
 				{
 					IPathModifierContainer pmc = pathData.GetPathModifierContainer ();
 					int pmIndex = pmc.IndexOf (pm);
@@ -224,7 +231,7 @@ namespace Paths.Editor
 						}
 						context.TargetModified ();
 					}
-				}, GUILayout.ExpandWidth (false));
+				});
 
 			EditorGUILayout.Separator ();
 			
@@ -264,7 +271,7 @@ namespace Paths.Editor
 						if (configVisible) {
 							PathModifierInputFilterEditorContext ctx = 
 								new PathModifierInputFilterEditorContext (f, context);
-							Indent (() => editor.DrawInspectorGUI (ctx));
+							EditorLayout.Indent (() => editor.DrawInspectorGUI (ctx));
 						}
 					}
 				}
@@ -357,7 +364,7 @@ namespace Paths.Editor
 			}
 			
 			if (process) {
-				Horizontal (() => {
+				EditorLayout.Horizontal.Draw (() => {
 					EditorGUILayout.PrefixLabel ("Process");
 					if (pm.IsEnabled () || !drawDisabledAsPassthrough) {
 						GUILayout.Button (PathModifierEditorUtil.GetProcessImage (PathPoint.POSITION, pm, pmContext), boxStyle, boxOptions);
@@ -395,39 +402,7 @@ namespace Paths.Editor
 			}
 		}
 
-		public static void Indent (Action a)
-		{
-			try {
-				EditorGUI.indentLevel++;
-				a ();
-			} finally {
-				EditorGUI.indentLevel--;
-			}
-		}
-		public static void Vertical (Action a, params GUILayoutOption[] options)
-		{
-			EditorGUILayout.BeginVertical (options);
-			a ();
-			EditorGUILayout.EndVertical ();
-		}
-		public static void Vertical (Action a, GUIStyle style, params GUILayoutOption[] options)
-		{
-			EditorGUILayout.BeginVertical (style, options);
-			a ();
-			EditorGUILayout.EndVertical ();
-		}
-		public static void Horizontal (Action a, params GUILayoutOption[] options)
-		{
-			EditorGUILayout.BeginHorizontal (options);
-			a ();
-			EditorGUILayout.EndHorizontal ();
-		}
-		public static void Horizontal (Action a, GUIStyle style, params GUILayoutOption[] options)
-		{
-			EditorGUILayout.BeginHorizontal (style, options);
-			a ();
-			EditorGUILayout.EndHorizontal ();
-		}
+
 	}
 
 }

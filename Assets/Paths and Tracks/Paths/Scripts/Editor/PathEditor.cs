@@ -132,6 +132,7 @@ namespace Paths.Editor
 			EditorGUILayout.BeginHorizontal ();
 			if (path.GetDataSetCount () > 1) {
 				DrawDataSetSelection ();
+//				DrawSceneViewDataSetSelection ();
 			}
 
 			//EditorGUI.BeginDisabledGroup(path.PointsDirty == false);
@@ -141,6 +142,26 @@ namespace Paths.Editor
 			}
 			//EditorGUI.EndDisabledGroup();
 			EditorGUILayout.EndHorizontal ();
+
+			string sceneViewDsName = "";
+			GUIStyle sceneViewDsNameStyle;
+			string sceneViewDsNameTooltip = "Data set edited in the Scene View.";
+
+			if (path.IsEditorSceneViewDataSetLocked ()) {
+				sceneViewDsName = path.GetEditorSceneViewDataSet ().GetName ();
+				sceneViewDsNameStyle = EditorStyles.boldLabel;
+				sceneViewDsNameTooltip += " The Scene View Editor data set is currently locked to this data set; it can be changed in DataSets tab (the small 'E' button in the list).";
+			} else {
+				sceneViewDsName = pathData.GetName ();
+				sceneViewDsNameStyle = EditorStyles.label;
+			}
+
+			EditorGUILayout.LabelField (new GUIContent ("Scene View Data", sceneViewDsNameTooltip), 
+			                            new GUIContent (sceneViewDsName, sceneViewDsNameTooltip), sceneViewDsNameStyle);
+
+			if (path.IsEditorSceneViewDataSetLocked ()) {
+
+			}
 
 			int pointCount = pathData.GetPointCount ();
 
@@ -226,6 +247,8 @@ namespace Paths.Editor
 		
 			UpdateDataSetSelection ();
 		}
+
+
 
 		protected virtual void DrawGeneralInspectorGUI ()
 		{
@@ -374,7 +397,7 @@ namespace Paths.Editor
 
 				EditorGUI.BeginChangeCheck ();
 				bool drawGizmos = ds.IsDrawGizmos ();
-				drawGizmos = GUILayout.Toggle (drawGizmos, new GUIContent ("Gz", "Draw Gizmos on Scene View"), EditorStyles.miniButtonRight, GUILayout.ExpandWidth (false));
+				drawGizmos = GUILayout.Toggle (drawGizmos, new GUIContent ("Gz", "Draw Gizmos on Scene View"), EditorStyles.miniButtonMid, GUILayout.ExpandWidth (false));
 				if (EditorGUI.EndChangeCheck ()) {
 //					Undo.RecordObject (target, "Set default data set to '" + ds.GetName () + "'");
 //					path.SetDefaultDataSetId (ds.GetId ());
@@ -382,6 +405,20 @@ namespace Paths.Editor
 					EditorUtility.SetDirty (target);
 //					isDefault = path.IsDefaultDataSet (ds);
 				}
+
+				EditorGUI.BeginChangeCheck ();
+				bool lockForEditor = path.IsEditorSceneViewDataSetLocked () && path.GetEditorSceneViewDataSet ().GetId () == ds.GetId ();
+				lockForEditor = GUILayout.Toggle (lockForEditor, new GUIContent ("E", "Lock this data set for editor Scene View"), EditorStyles.miniButtonRight, GUILayout.ExpandWidth (false));
+				if (EditorGUI.EndChangeCheck ()) {
+					//					Undo.RecordObject (target, "Set default data set to '" + ds.GetName () + "'");
+					//					path.SetDefaultDataSetId (ds.GetId ());
+					path.SetEditorSceneViewDataSetId (ds.GetId ());
+					path.SetEditorSceneViewDataSetLocked (lockForEditor);
+					ds.SetDrawGizmos (drawGizmos);
+					EditorUtility.SetDirty (target);
+					//					isDefault = path.IsDefaultDataSet (ds);
+				}
+
 
 				Color color = ds.GetColor ();
 				EditorGUI.BeginChangeCheck ();
@@ -587,6 +624,11 @@ namespace Paths.Editor
 		protected void OnSceneGUI ()
 		{
 			InitGUI ();
+
+			if (path.IsEditorSceneViewDataSetLocked ()) {
+				pathData = (TPathData)path.GetEditorSceneViewDataSet ();
+			} 
+
 			DrawDefaultSceneGUI ();
 
 		}

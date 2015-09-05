@@ -18,8 +18,21 @@ namespace Paths.Editor
 	public class PathModifierEditorUtil
 	{
 
-		public static bool DrawDataSetSelection (Path path, ref int selectedId, ref bool fromSnapshot, ref string snapshotName, PathModifierEditorContext context)
+
+		public static bool XXX_DrawDataSetSelection (Path path, ref int selectedId, ref bool fromSnapshot, ref string snapshotName, PathModifierEditorContext context)
 		{
+			bool changed;
+			PathWithDataId dataId = new PathWithDataId (path, selectedId, fromSnapshot, snapshotName);
+			changed = PathEditorUtil.DrawPathDataSelection (ref dataId, false, new int[] {context.PathData.GetId ()});
+			if (changed) {
+				selectedId = dataId.DataSetId;
+				fromSnapshot = dataId.UseSnapshot;
+				snapshotName = dataId.SnapshotName;
+			}
+
+			return changed;
+
+			/// TODO REMOVE THE OLD IMPLEMENTATINO BELOW THIS LINE
 //			UnityEngine.Object target = path;
 
 			bool pathChanged = false;
@@ -31,7 +44,7 @@ namespace Paths.Editor
 //			IPathData pathData = path.FindDataSetById (selectedId);
 
 			int excludedId = context.PathData.GetId ();
-			PathEditorUtil.FindAvailableDataSets (path, excludedId, out dataSetNames, out dataSetIds, " (default)");
+			PathEditorUtil.FindAvailableDataSets (path, new int[] {excludedId}, out dataSetNames, out dataSetIds, " (default)");
 			
 			// Selection for the Default data set:
 			string defaultDsName;

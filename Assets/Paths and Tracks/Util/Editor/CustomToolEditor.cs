@@ -5,6 +5,8 @@ using System.Collections.Generic;
 
 namespace Util.Editor
 {
+
+
 	[AttributeUsage(AttributeTargets.Class)]
 	public class CustomToolEditor : System.Attribute
 	{

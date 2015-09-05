@@ -19,25 +19,25 @@ namespace Paths.Polyline.Editor
 			new GameObject ("Polyline Path", typeof(PolylinePath));
 		}
 
-		[MenuItem("Paths/Create/Create Polyline Path with Track")]
-		private static void CreatePolylinePathWithTrackOption ()
-		{
-			GameObject go = new GameObject ("Polyline Path", typeof(PolylinePath), typeof(Tracks.Track), typeof(MeshFilter), typeof(MeshRenderer));
-			Tracks.Track track = go.GetComponent<Tracks.Track> ();
-			track.Path = go.GetComponent<PolylinePath> ();
-			track.TrackGeneratorType = typeof(Tracks.Tube.TubeGenerator).FullName;
-			track.GenerateTrackMesh ();
-
-		}
-
-		[MenuItem("CONTEXT/PolylinePath/Create Track")]
-		private static void CreateTrackOption (MenuCommand menuCommand)
-		{
-			Path path = (Path)menuCommand.context;
-			GameObject go = path.gameObject;
-			go.AddComponent<Tracks.Track> ();
-
-		}
+//		[MenuItem("Paths/Create/Create Polyline Path with Track")]
+//		private static void CreatePolylinePathWithTrackOption ()
+//		{
+//			GameObject go = new GameObject ("Polyline Path", typeof(PolylinePath), typeof(Tracks.Track), typeof(MeshFilter), typeof(MeshRenderer));
+//			Tracks.Track track = go.GetComponent<Tracks.Track> ();
+//			track.Path = go.GetComponent<PolylinePath> ();
+//			track.TrackGeneratorType = typeof(Tracks.Tube.TubeGenerator).FullName;
+//			track.GenerateTrackMesh ();
+//
+//		}
+//
+//		[MenuItem("CONTEXT/PolylinePath/Create Track")]
+//		private static void CreateTrackOption (MenuCommand menuCommand)
+//		{
+//			Path path = (Path)menuCommand.context;
+//			GameObject go = path.gameObject;
+//			go.AddComponent<Tracks.Track> ();
+//
+//		}
 	}
 
 	[CustomEditor(typeof(PolylinePath))]

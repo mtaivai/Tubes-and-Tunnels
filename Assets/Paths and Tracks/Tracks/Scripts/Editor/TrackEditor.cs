@@ -8,15 +8,18 @@ using Util.Editor;
 using Paths;
 using Paths.Editor;
 
-namespace Tracks
+namespace Tracks.Editor
 {
+
+	// TODO move this class outside this class!
+	// This is for PathModifierEditor drawing only, wraps the TrackDataSource's unprocessed data
 	[CustomEditor(typeof(Track))]
-	public class TrackEditor : Editor
+	public class TrackEditor : UnityEditor.Editor
 	{
 
 		//private int slicesPerSegment = 10;
 
-		SerializedProperty pathProp;
+//		SerializedProperty pathProp;
 		//SerializedProperty trackGeneratorProp;
 
 		private Type[] trackGeneratorTypes;
@@ -44,7 +47,8 @@ namespace Tracks
 		void OnEnable ()
 		{
 			this.track = target as Track;
-			pathProp = serializedObject.FindProperty ("path");
+
+//			pathProp = serializedObject.FindProperty ("path");
             
 			// Load editor settings
 			this.editorPrefs = 
@@ -60,19 +64,16 @@ namespace Tracks
 		public void TrackGeneratorModified ()
 		{
 			Track track = target as Track;
+			// TODO refactor the SetMeshDirty(). ... ConfigurationChanged --- PathModifiersChanged etc system
 			EditorUtility.SetDirty (track);
 			//SliceConfigurationChanged();
 			SetMeshDirty ();
-			track.ConfigurationChanged ();
+
+//			track.ConfigurationChanged (true, false);
 			SceneView.RepaintAll ();
 		}
 
-		public void PathModifiersChanged ()
-		{
-			Track track = target as Track;
-			EditorUtility.SetDirty (track);
-//			track.OnPathModifiersChanged ();
-		}
+
 
 		void SetMeshDirty ()
 		{
@@ -162,114 +163,19 @@ namespace Tracks
 //      public const int TB_SHEET_SETTINGS = 0;
 
 
-		private class TrackPathData : IPathData
+
+		private void PathModifiersChanged ()
 		{
-			private Track track;
+			Track track = target as Track;
+			// TODO invalidate the processed data
+			//			track.ConfigurationChanged (false, true);
 
-			public TrackPathData (Track track)
-			{
-				this.track = track;
-			}
-			public IPathInfo GetPathInfo ()
-			{
-				throw new NotImplementedException ();
-			}
-			public int GetId ()
-			{
-				return 0;
-			}
+			track.GetPathModifierContainer ().ConfigurationChanged ();
 
-			public string GetName ()
-			{
-				return "Default";
-			}
-			public Color GetColor ()
-			{
-				return PathGizmoPrefs.FinalPathLineColor;
-			}
-			public void SetColor (Color value)
-			{
-				throw new NotImplementedException ();
-			}
-			public bool IsDrawGizmos ()
-			{
-				return true;
-			}
-
-			public void SetDrawGizmos (bool value)
-			{
-				throw new NotImplementedException ();
-			}
-//			public PathDataInputSource GetInputSource ()
-//			{
-//				return PathDataInputSourceSelf.Instance;
-//			}
-			public IPathSnapshotManager GetPathSnapshotManager ()
-			{
-				return UnsupportedSnapshotManager.Instance;
-			}
-			public IPathModifierContainer GetPathModifierContainer ()
-			{
-				return track.GetPathModifierContainer ();
-			}
-
-			public PathPoint[] GetAllPoints ()
-			{
-				throw new NotImplementedException ();
-			}
-
-			public int GetPointCount ()
-			{
-				throw new NotImplementedException ();
-			}
-
-			public PathPoint GetPointAtIndex (int index)
-			{
-				throw new NotImplementedException ();
-			}
-
-			public int GetOutputFlags ()
-			{
-				throw new NotImplementedException ();
-			}
-
-			public int GetOutputFlagsBeforeModifiers ()
-			{
-				throw new NotImplementedException ();
-			}
-
-			public float GetTotalDistance ()
-			{
-				throw new NotImplementedException ();
-			}
-
-
-		
-			public int GetControlPointCount ()
-			{
-				throw new NotImplementedException ();
-			}
-
-			public Vector3 GetControlPointAtIndex (int index)
-			{
-				throw new NotImplementedException ();
-			}
-
-			public void SetControlPointAtIndex (int index, Vector3 pt)
-			{
-				throw new NotImplementedException ();
-			}
-
-			public bool IsUpToDate ()
-			{
-				throw new NotImplementedException ();
-			}
-
-			public long GetStatusToken ()
-			{
-				throw new NotImplementedException ();
-			}
+			EditorUtility.SetDirty (track);
+			//			track.OnPathModifiersChanged ();
 		}
+
 
 		public override void OnInspectorGUI ()
 		{
@@ -286,18 +192,25 @@ namespace Tracks
 
 			} else if (selectedSheet == SHEET_PATH) {
 
-				if (null != track.Path) {
-					EditorGUILayout.HelpBox ("Track's Path Modifiers can be used to modify the path before it's feed to the Track Generator. Modifiers will not modify the original Path.", MessageType.Info);
+				EditorGUILayout.HelpBox ("Track's Path Modifiers can be used to modify the path before it's feed to the Track Generator. Modifiers will not modify the original Path.", MessageType.Info);
 
-					IPathData pathData = new TrackPathData (track);
-					PathModifierEditorContext context = new PathModifierEditorContext (
-                        pathData, track.Path, this, PathModifiersChanged, editorPrefs);
+				//IPathData pathData = new TrackPathData (track);
 
-					// 
+				PathWithDataId pathWithId = track.PrimaryDataSource.PathData;
+				//IPathData pathData = pathWithId.PathData;
+				Path path = pathWithId.Path;
+
+				TrackPathDataWrapper pathDataWrapper = new TrackPathDataWrapper (track);
+
+				PathModifierEditorContext context = new PathModifierEditorContext (
+					pathDataWrapper, path, this, PathModifiersChanged, editorPrefs);
+
+
+				// 
 //                  this.target, null, track.Path, this, TrackGeneratorModified, editorPrefs
 
-					PathModifierEditorUtil.DrawPathModifiersInspector (context, track);
-				}
+				PathModifierEditorUtil.DrawPathModifiersInspector (context, track);
+
 			} else if (selectedSheet == SHEET_MESH) {
 				DrawMeshInspectorSheet ();
 
@@ -365,12 +278,20 @@ namespace Tracks
 		public void DrawDefaultGeneralInspectorSheet ()
 		{
 
-			EditorGUI.BeginChangeCheck ();
-			EditorGUILayout.PropertyField (pathProp, new GUIContent ("Path"));
-			if (EditorGUI.EndChangeCheck ()) {
-				track.ConfigurationChanged ();
+			PathWithDataId dataId = track.PrimaryDataSource.PathData;
+			if (PathEditorUtil.DrawPathDataSelection (ref dataId)) {
+				track.PrimaryDataSource.PathData = dataId;
 				EditorUtility.SetDirty (track);
 			}
+
+//			EditorGUI.BeginChangeCheck ();
+//			EditorGUILayout.PropertyField (pathProp, new GUIContent ("Path"));
+//			if (EditorGUI.EndChangeCheck ()) {
+//				track.ConfigurationChanged ();
+//				EditorUtility.SetDirty (track);
+//			}
+
+
 			EditorGUI.BeginChangeCheck ();
 			int tgIndex = FindCurrentTrackGeneratorIndex ();
 			tgIndex = EditorGUILayout.Popup ("Track Generator", tgIndex, trackGeneratorDisplayNames);
@@ -592,39 +513,8 @@ namespace Tracks
 			Debug.Log ("Saved Mesh to " + AssetDatabase.GetAssetPath (mesh));
 		}
 
-		private void DrawPath ()
+		private void DrawTrackSlices ()
 		{
-
-			Track track = target as Track;
-			if (null == track) {
-				return;
-			}
-			Path path = track.Path;
-//            Transform transform = track.transform;
-
-			if (null == path) {
-				return;
-			}
-			//int pathSteps = path.GetResolution() * path.GetSegmentCount();
-
-			//Debug.Log("PathSteps: " + path.Points.Length);
-
-			// Connect control points:
-			// TODO we should show points after all the modifiers (subdivide etc)
-			/*PathPoint[] points = path.GetAllPoints ();
-            for (int i = 1; i < points.Length; i++) {
-                Vector3 startPoint = transform.TransformPoint (points [i - 1].Position);
-                Vector3 endPoint = transform.TransformPoint (points [i].Position);
-            
-                // Connection between path steps:
-            
-                Handles.color = Color.red;
-            
-                Handles.DrawLine (startPoint, endPoint);
-
-                startPoint = endPoint;
-            }*/
-
 			// Draw generated slices
 			ITrackGenerator tg = track.TrackGeneratorInstance;
 			if (null != tg) {

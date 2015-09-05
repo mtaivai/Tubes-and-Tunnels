@@ -14,21 +14,38 @@ using Util;
 
 namespace Paths
 {
+
 	public class PathChangedEvent : EventArgs
 	{
-		private Path path;
-		private IPathData changedData;
-		public PathChangedEvent (Path path, IPathData changedData)
+		public enum EventReason
 		{
-			this.path = path;
+			DataChanged,
+			DefaultDataSetChanged,
+		}
+		private EventReason reason;
+	
+		private PathWithDataId changedData;
+
+		public PathChangedEvent (EventReason reason, PathWithDataId changedData)
+		{
+			this.reason = reason;
 			this.changedData = changedData;
 		}
-		public Path Path {
-			get { return path; }
+		public PathChangedEvent (EventReason reason, Path path, IPathData pathData) : this(reason, new PathWithDataId (path, pathData != null ? pathData.GetId() : 0))
+		{
 		}
-		public IPathData ChangedData {
+		public EventReason Reason {
+			get { return reason; }
+		}
+	
+		public PathWithDataId ChangedData {
 			get { return changedData; }
 		}
+		public override string ToString ()
+		{
+			return string.Format ("[PathChangedEvent: reason={0}, changedData={1}]", reason, changedData);
+		}
+		
 	}
 
 	public delegate void PathChangedEventHandler (PathChangedEvent e);
@@ -263,6 +280,13 @@ namespace Paths
 		private int
 			nextDataSetColorIndex = 0;
 
+		[SerializeField]
+		private int
+			editorSceneViewDataSetId = 0;
+		[SerializeField]
+		private bool
+			editorSceneViewDataSetLocked = false;
+
 		private IPathInfo pathInfo;
 
 		public Path ()
@@ -278,7 +302,9 @@ namespace Paths
 			
 			nextDataSetColorIndex = 0;
 			// NEVER reset the nextDataSetId!
-			
+
+			editorSceneViewDataSetId = 0; // default
+
 			frozenStatus = PathStatus.Dynamic;
 		}
 
@@ -290,6 +316,19 @@ namespace Paths
 		void OnDisable ()
 		{
 
+		}
+
+		private void DoFireChangedEvent (PathChangedEvent ev)
+		{
+			// TODO we need to get parameters!
+			if (null != Changed) {
+				Debug.Log ("Firing PathChangedEvent to " + Changed.GetInvocationList ().Length + " receivers: " + ev);
+				try {
+					Changed (ev);
+				} catch (Exception e) {
+					Debug.LogError ("Catched an exception from Changed event listener(s): " + e);
+				}
+			}
 		}
 
 		public static Path FindParentPathObject (Transform obj)
@@ -336,7 +375,8 @@ namespace Paths
 				} else {
 					throw new ArgumentException ("No dataset exists with id " + id, "id");
 				}
-				FireChangedEvent ();
+				PathChangedEvent e = new PathChangedEvent (PathChangedEvent.EventReason.DefaultDataSetChanged, this, GetDefaultDataSet ());
+				DoFireChangedEvent (e);
 			}
 		}
 		// TODO move Set... methods to PathData itself? 
@@ -406,6 +446,31 @@ namespace Paths
 				}
 			}
 			return null;
+		}
+
+
+		public IPathData GetEditorSceneViewDataSet ()
+		{
+			IPathData data;
+			data = FindDataSetById (editorSceneViewDataSetId);
+			if (null == data) {
+				data = GetDefaultDataSet ();
+				this.editorSceneViewDataSetId = data.GetId ();
+			}
+			return data;
+		}
+		public void SetEditorSceneViewDataSetId (int value)
+		{
+			this.editorSceneViewDataSetLocked = true;
+			this.editorSceneViewDataSetId = value;
+		}
+		public bool IsEditorSceneViewDataSetLocked ()
+		{
+			return this.editorSceneViewDataSetLocked;
+		}
+		public void SetEditorSceneViewDataSetLocked (bool value)
+		{
+			this.editorSceneViewDataSetLocked = value;
 		}
 
 		protected abstract IPathData CreatePathData (int id);
@@ -583,15 +648,16 @@ namespace Paths
 		{
 			// One of our data sets was modified (this is called by the modified data set)
 
-			Debug.Log ("Path " + name + " received PathChangedEvent from " + ev.Path.name + "; ChangedData='" + ev.ChangedData.GetName () + "'");
+			Path changedPath = ev.ChangedData.Path;
+			IPathData changedData = ev.ChangedData.PathData;
+
+			Debug.Log ("Path " + name + " received PathChangedEvent from " + changedPath.name + "; ChangedData='" + changedData.GetName () + "'");
 
 			// Route the event to datasets with input from the changed dataset
-			IPathData changedData = ev.ChangedData;
-			Path sourcePath = ev.Path;
 
 
 			// First check our data sets:
-			List<IPathData> targetDataSets = GetDependedPathDataSets (sourcePath, changedData);
+			List<IPathData> targetDataSets = GetDependedPathDataSets (changedPath, changedData);
 			// Notify our dependent target data sets about the modified data set:
 			foreach (IPathData targetData in targetDataSets) {
 				Debug.Log ("Marking data '" + targetData.GetName () + "' dirty");
@@ -610,7 +676,9 @@ namespace Paths
 				}
 			}
 
-			//FireChangedEvent ();
+			// Finally fire events to other interested receivers:
+			DoFireChangedEvent (ev);
+
 		}
 
 		private List<IPathData> GetDependedPathDataSets (Path sourcePath, IPathData sourceData)
@@ -650,19 +718,7 @@ namespace Paths
 			return deps;
 		}
 
-		private void FireChangedEvent ()
-		{
-			// TODO we need to get parameters!
-			if (null != Changed) {
-				Debug.Log ("FireChangedEvent: " + Changed.GetInvocationList ().Length);
-				try {
-					PathChangedEvent e = new PathChangedEvent (this, null);
-					Changed (e);
-				} catch (Exception e) {
-					Debug.LogError ("Catched an exception from Changed event listener(s): " + e);
-				}
-			}
-		}
+
 
 
 //		protected virtual DefaultPathModifierContainer CreatePathModifierContainer ()

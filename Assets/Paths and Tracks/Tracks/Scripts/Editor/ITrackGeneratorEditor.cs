@@ -7,7 +7,7 @@ using UnityEditor;
 using Util;
 using Paths;
 
-namespace Tracks
+namespace Tracks.Editor
 {
 
 

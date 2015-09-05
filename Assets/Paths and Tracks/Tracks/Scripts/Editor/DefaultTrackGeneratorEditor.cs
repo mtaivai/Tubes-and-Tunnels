@@ -10,7 +10,7 @@ using Util.Editor;
 using Paths;
 using Paths.Editor;
 
-namespace Tracks
+namespace Tracks.Editor
 {
 	[TrackGeneratorCustomEditor(typeof(TrackGenerator))]
 	public class DefaultTrackGeneratorEditor : AbstractTrackGeneratorEditor<TrackGenerator>

@@ -7,72 +7,89 @@ using Paths;
 
 namespace Tracks
 {
-	public class Track : MonoBehaviour, ISerializationCallbackReceiver, IReferenceContainer
+
+
+
+
+
+	public class Track : MonoBehaviour, ISerializationCallbackReceiver
 	{
+		// TODO add multiple data sources:
+//		[SerializeField]
+//		private List<TrackDataSource>
+//			dataSources = new List<TrackDataSource> ();
 
+
+		// Primary path to follow
 		[SerializeField]
-		private Path
-			path;
+		private TrackDataSource
+			primaryDataSource;
 
-		[SerializeField]
-		private Path
-			lowResPath;
-
+		// Path for generating the mesh or meshes
+		// Path for generating mesh collider(s)
+//		
+//		[SerializeField]
+//		private PathWithDataId
+//			meshPathData = new PathWithDataId ();
+//		
+//		[SerializeField]
+//		private PathWithDataId
+//			meshCollidersPathData = new PathWithDataId ();
+		
 		[SerializeField]
 		private string
 			trackGeneratorType;
+		
 		[SerializeField]
 		internal ParameterStore
 			parameters;
-
-		// don't serialize!
-		private DefaultPathModifierContainer pathModifierContainer = null;
-
-		//[SerializeField]
-		public Mesh generatedMesh;
-
-		// Just for editor support!
-		// nonserialized
-		private TrackSlice[] generatedSlices;
-
-		// nonserialized
-		private ITrackGenerator _trackGeneratorInstance;
-		private PathPoint[] pathPoints = null;
-		private int pathPointFlags = 0;
-
-
+		
+		[SerializeField]
+		private SimpleReferenceContainer
+			referenceContainer = new SimpleReferenceContainer ();
+		
 		// TODO should this be serialized?
 		[SerializeField]
 		private bool
 			autoUpdateWithPath = false;
-
+		
 		[SerializeField]
 		private bool
 			autoUpdateMesh = false;
+		
+		// don't serialize!
+		private DefaultPathModifierContainer pathModifierContainer = null;
+		
+		//[SerializeField]
+		public Mesh generatedMesh;
 
-		[SerializeField]
-		private List<UnityEngine.Object>
-			referents = new List<UnityEngine.Object> ();
+
+		// nonserialized
+		private TrackSlice[] generatedSlices;
+		
+		// nonserialized
+		private ITrackGenerator _trackGeneratorInstance;
+
 
 		public Track ()
 		{
-        
+			primaryDataSource = new TrackDataSource (this);
 		}
-		//~Track() {
-		//UnregisterPathChangedListener();
-		//}
 
-    
+
+		
+		
+		
 		public bool AutomaticUpdateWithPath {
 			get { return autoUpdateWithPath; }
 			set { this.autoUpdateWithPath = value; }
 		}
-
+		
 		public bool AutomaticMeshUpdate {
 			get { return autoUpdateMesh; }
 			set { this.autoUpdateMesh = value; }
 		}
-
+		
 		public ITrackGenerator TrackGeneratorInstance {
 			get {
 				if (null == _trackGeneratorInstance) {
@@ -88,19 +105,15 @@ namespace Tracks
 				return _trackGeneratorInstance;
 			}
 		}
-
-		public Path Path {
+		
+		
+		public TrackDataSource PrimaryDataSource {
 			get {
-				return path;
-			}
-			set {
-				if (this.path != value) {
-					this.path = value;
-					this.ConfigurationChanged ();
-				}
+				return primaryDataSource;
 			}
 		}
-
+		
+		
 		public string TrackGeneratorType {
 			get {
 				return trackGeneratorType;
@@ -113,7 +126,7 @@ namespace Tracks
 				}
 			}
 		}
-
+		
 		// Returns a copy of the internal array
 		public TrackSlice[] TrackSlices {
 			get {
@@ -126,138 +139,164 @@ namespace Tracks
 			}
 		}
 
+		private void MarkSlicesDirty ()
+		{
+			this.generatedSlices = null;
+		}
+		
 		public ParameterStore ParameterStore {
 			get {
 				return parameters;
 			}
 		}
 
-		// TODO how to clean up references???
-		public int GetReferentCount ()
+		public void OnBeforeSerialize ()
 		{
-			return referents.Count;
+			parameters.OnBeforeSerialize ();
 		}
-        
-		public UnityEngine.Object GetReferent (int index)
+		
+		public void OnAfterDeserialize ()
 		{
-			return referents [index];
+			parameters.OnAfterDeserialize ();
+			
+			GetPathModifierContainer ().LoadConfiguration ();
+			
+			//			if (null != primaryDataSource) {
+			//				primaryDataSource.OnEnable ();
+			//			}
+			
+			this.TrackGeneratorChanged ();
+
+			// Register event listener on data sources:
+			primaryDataSource.DataChanged -= OnDataSourceDataChanged;
+			primaryDataSource.DataChanged += OnDataSourceDataChanged;
+
 		}
 
-		public void SetReferent (int index, UnityEngine.Object obj)
+
+		void Awake ()
 		{
-			referents [index] = obj;
 		}
 
-		public int AddReferent (UnityEngine.Object obj)
+		void OnEnable ()
 		{
-			referents.Add (obj);
-			return referents.Count - 1;
+			primaryDataSource.OnEnable (this);
+		}
+		void OnDisable ()
+		{
+			primaryDataSource.OnDisable (this);
 		}
 
-		public void RemoveReferent (int index)
+		// Called from our DefaultPathModifierContainer when PathModifiers have changed (added/removed/edited)
+		private void PathModifiersChanged (PathModifierContainerEvent e)
 		{
-			referents.RemoveAt (index);
+			Debug.Log ("PathModifiersChanged: " + e);
+			primaryDataSource.InvalidateProcessedData ();
+
 		}
 
+		private void OnDataSourceDataChanged (TrackDataChangedEventArgs e)
+		{
+			Debug.Log ("OnDataSourceDataChanged: " + e);
+			if (e.Stage == TrackDataStage.Unprocessed) {
+				// Source data has changed
+				if (autoUpdateWithPath) {
+					// Invalidate our processed data to trigger its reprocessing
+					e.DataSource.InvalidateProcessedData ();
+				}
+			} else if (e.Stage == TrackDataStage.Processed) {
+				MarkSlicesDirty ();
+				if (autoUpdateMesh) {
+					GenerateTrackMesh ();
+				}
+			}
+
+		}
+
+//		private void OnDataSourceProcessedDataChanged ()
+//		{
+//			Debug.Log ("OnDataSourceProcessedDataChanged");
+//			// Invalidate cache
+//			primaryDataSource.InvalidateProcessedData ();
+//
+//			// Set slices dirty
+//			MarkSlicesDirty ();
+//
+//			// Generate mesh
+//			this.GenerateTrackMesh ();
+//		}
+
+
+		// Called when the attached TrackGenerator is changed
 		private void TrackGeneratorChanged ()
 		{
+			// Force to create a new instance:
 			this._trackGeneratorInstance = null;
 		}
-    
-		private void RegisterPathChangedListener ()
+
+
+		private IPathInfo DoGetPathInfo ()
 		{
-//          Debug.Log ("Registering PathChangedEventHandler on '" + path + "': " + this.gameObject.name);
-			PathChangedEventHandler d = PathChanged;
-			path.Changed -= d;
-			path.Changed += d;
+			IPathData d = primaryDataSource.PathData.PathData;
+			return (null != d) ? d.GetPathInfo () : null;
 		}
 
-		private void UnregisterPathChangedListener ()
-		{
-//          Debug.Log ("Unregistering PathChangedEventHandler on '" + path + "': " + this.gameObject.name);
-			path.Changed -= PathChanged;
-		}
-
-		internal void PathChanged (PathChangedEvent e)
-		{
-			//NewPath path = (NewPath)sender;
-			Debug.Log ("PathChanged: " + e);
-            
-			ConfigurationChanged ();
-            
-            
-		}
-        
-		public void ConfigurationChanged ()
+		protected virtual DefaultPathModifierContainer CreatePathModifierContainer ()
 		{
 
-			if (autoUpdateWithPath) {
-				PathPointsChanged ();
-				this.generatedSlices = null;
+			DefaultPathModifierContainer pmc = new DefaultPathModifierContainer (
+				DoGetPathInfo,
+				primaryDataSource.GetUnprocessedPoints,
+				null,
+				() => this.referenceContainer, 
+				() => null, 
+				() => parameters);
+			
+			pmc.PathModifiersChanged += this.PathModifiersChanged;
+			// TODO should "parameters" above be a child ParamaterStore with prefix "pathModifiers."?
+			
+			
+			return pmc;
+		}
+
+		public DefaultPathModifierContainer GetPathModifierContainer ()
+		{
+			if (null == pathModifierContainer) {
+				pathModifierContainer = CreatePathModifierContainer ();
 			}
-
-			if (autoUpdateMesh) {
-				GenerateTrackMesh ();
-			}
-
-
+			return pathModifierContainer;
 		}
-
-		public void PathPointsChanged ()
-		{
-			this.pathPoints = null;
-
-		}
-
+		
 		public void SaveTrackGeneratorParameters ()
 		{
 			if (null != this.TrackGeneratorInstance) {
 				ParameterStore store = GetTrackGeneratorParameterStore ();
 				TrackGeneratorInstance.SaveParameters (store);
 			}
-//          trackGenerator.SaveParameters (track.GetTrackGeneratorParameterStore ());
+			//          trackGenerator.SaveParameters (track.GetTrackGeneratorParameterStore ());
 		}
-
+		
 		internal ParameterStore GetTrackGeneratorParameterStore ()
 		{
 			return new ParameterStore (this.parameters, _trackGeneratorInstance.GetType ().FullName);
 		}
+		
 
-		public void OnBeforeSerialize ()
-		{
-			/*if (null != path) {
-            UnregisterPathChangedListener();
-        }*/
+		
 
-			parameters.OnBeforeSerialize ();
-		}
-
-		public void OnAfterDeserialize ()
-		{
-			parameters.OnAfterDeserialize ();
-
-			GetPathModifierContainer ().LoadConfiguration ();
-
-			if (null != path) {
-				RegisterPathChangedListener ();
-			}
-
-			this.TrackGeneratorChanged ();
-
-		}
-
+		
 		// Use this for initialization
 		void Start ()
 		{
-    
+			
 		}
-    
+		
 		// Update is called once per frame
 		void Update ()
 		{
-    
+			
 		}
-
+		
 		void OnDrawGizmos ()
 		{
 			// Draw mesh?
@@ -266,125 +305,120 @@ namespace Tracks
 				//Gizmos.DrawWireMesh(generatedMesh);
 			}
 		}
-
+		
 		/// <summary>
 		/// Generates a Mesh with the current TrackGeneratorInstance and assigns it to 
 		/// "generatedMesh" property.
 		/// </summary>
 		public void GenerateTrackMesh ()
 		{
-        
-//          Path path = Path;
+			
+			//          Path path = Path;
 			ITrackGenerator tg = TrackGeneratorInstance;
 			if (null == tg) {
 				Debug.LogError ("TrackGeneratorInstance is null");
 				return;
 			}
-        
+			
 			if (generatedMesh == null) {
 				Debug.Log ("Creating new Mesh instance");
 				generatedMesh = new Mesh ();
-            
+				
 			} else {
 				Debug.Log ("Updating existing Mesh instance");
 				generatedMesh.Clear ();
 			}
-
+			
 			// Create initial Mesh name:
 			if (StringUtil.IsEmpty (generatedMesh.name)) {
 				generatedMesh.name = gameObject.name + "Mesh";
 			}
-        
+			
 			tg.CreateMesh (this, generatedMesh);
-        
+			
 			// Upate MeshFilter
 			MeshFilter mf = GetComponent<MeshFilter> ();
 			if (null != mf) {
-            
+				
 				mf.mesh = generatedMesh;
 			}
 		}
-
+		
 		public void GenerateTrackColliders ()
 		{
-
-//			MeshCollider mc = track.GetComponent<MeshCollider> ();
-//			if (null == mc) {
-//				mc = track.gameObject.AddComponent<MeshCollider> ();
-//			}
-//
-//			xxx ();
-//			mc.sharedMesh = m;
+			
+			//			MeshCollider mc = track.GetComponent<MeshCollider> ();
+			//			if (null == mc) {
+			//				mc = track.gameObject.AddComponent<MeshCollider> ();
+			//			}
+			//
+			//			xxx ();
+			//			mc.sharedMesh = m;
 		}
-
-		protected void UpdatePathPoints ()
-		{
-			if (null == pathPoints && null != path) {
-				IPathData pathData = path.FindDataSetByName ("StdRes");
-
-				if (null != path) {
-					pathPoints = pathData.GetAllPoints ();
-					pathPointFlags = pathData.GetOutputFlags ();
-				} else {
-					pathPoints = new PathPoint[0];
-					pathPointFlags = PathPoint.NONE;
-				}
-				PathModifierContext context = new PathModifierContext (pathData.GetPathInfo (), GetPathModifierContainer (), pathPointFlags);
-				pathPoints = PathModifierUtil.RunPathModifiers (context, pathPoints, ref pathPointFlags, true);
-			}
-		}
-
-		public PathPoint[] GetPathPoints (out int ppFlags)
-		{
-			UpdatePathPoints ();
-			ppFlags = pathPointFlags;
-			return pathPoints;
-		}
-
-		public PathPoint[] GetPathPoints ()
-		{
-			UpdatePathPoints ();
-			return pathPoints;
-		}
-
-		public int GetPathOutputFlags ()
-		{
-			// Just to make sure that caches are up-to-date:
-			UpdatePathPoints ();
-			return pathPointFlags;
-		}
-
-//		public void OnPathModifiersChanged ()
+		
+//		protected void UpdatePathPoints ()
 //		{
-//			GetPathModifierContainer ().SaveConfiguration ();
-//			ConfigurationChanged ();
+//			
+//			if (null == cachedPathPoints && pathData.HasValidData) {
+//				IPathData data = pathData.PathData;
+//				
+//				this.cachedPathPoints = data.GetAllPoints ();
+//				this.cachedPathPointFlags = data.GetOutputFlags ();
+//				this.cachedPathPointsAfterModifiers = null;
+//				this.cachedPathPointFlagsAfterModifiers = 0;
+//			}
+//			
+//			if (null == cachedPathPointsAfterModifiers && null != cachedPathPoints) {
+//				IPathData data = pathData.PathData;
+//				
+//				PathModifierContext context = new PathModifierContext (
+//					data.GetPathInfo (), 
+//					GetPathModifierContainer (), 
+//					cachedPathPointFlags);
+//				
+//				int flags = this.cachedPathPointFlags;
+//				this.cachedPathPointsAfterModifiers = PathModifierUtil.RunPathModifiers (
+//					context, this.cachedPathPoints, ref flags, true);
+//				this.cachedPathPointFlagsAfterModifiers = flags;
+//			}
 //		}
+		
+//		public PathPoint[] GetPathPoints (out int ppFlags)
+//		{
+//			UpdatePathPoints ();
+//			ppFlags = cachedPathPointFlagsAfterModifiers;
+//			return cachedPathPointsAfterModifiers != null ? cachedPathPointsAfterModifiers : new PathPoint[0];
+//		}
+		
+//		public PathPoint[] GetPathPoints ()
+//		{
+//			int flags;
+//			return GetPathPoints (out flags);
+//		}
+//		
+//		public int GetPathOutputFlags ()
+//		{
+//			// Just to make sure that caches are up-to-date:
+//			UpdatePathPoints ();
+//			return cachedPathPointFlags;
+//		}
+		
+		//		public void OnPathModifiersChanged ()
+		//		{
+		//			GetPathModifierContainer ().SaveConfiguration ();
+		//			ConfigurationChanged ();
+		//		}
+		
+		//		private IPathData GetCurrentPathData ()
+		//		{
+		//			Path path = pathDataId.Path;
+		//			return (null != path) ? path.GetDefaultDataSet () : null;
+		//		}
+		
 
-		protected virtual DefaultPathModifierContainer CreatePathModifierContainer ()
-		{
-			IPathData pathData = path.GetDefaultDataSet ();
-			DefaultPathModifierContainer pmc = new DefaultPathModifierContainer (
-                pathData.GetPathInfo,
-                (out int ppFlags) => {
-				ppFlags = pathData.GetOutputFlags ();
-				return pathData.GetAllPoints (); },
-                null,
-                () => (IReferenceContainer)this, () => null, () => parameters);
-                
-			// TODO should "parameters" above be a child ParamaterStore with prefix "pathModifiers."?
-
-            
-			return pmc;
-		}
-        
-		public DefaultPathModifierContainer GetPathModifierContainer ()
-		{
-			if (null == pathModifierContainer) {
-				pathModifierContainer = CreatePathModifierContainer ();
-			}
-			return pathModifierContainer;
-		}
-
+		
 
 	}
+
+
 }

@@ -109,18 +109,7 @@ namespace Paths
 
 	}
 
-	public interface IReferenceContainer
-	{
-		int GetReferentCount ();
 
-		UnityEngine.Object GetReferent (int index);
-
-		void SetReferent (int index, UnityEngine.Object obj);
-
-		int AddReferent (UnityEngine.Object obj);
-
-		void RemoveReferent (int index);
-	}
 
 	[Serializable]
 	public class PathDataSnapshot
@@ -181,37 +170,7 @@ namespace Paths
 		}
 	}
 
-	public interface IPathSnapshotManager
-	{
-		bool SupportsSnapshots ();
-		bool ContainsSnapshot (string name);
-		void StoreSnapshot (string name, PathPoint[] points, int flags);
-		PathDataSnapshot GetSnapshot (string name);
 
-	}
-	public sealed class UnsupportedSnapshotManager : IPathSnapshotManager
-	{
-		public static readonly UnsupportedSnapshotManager Instance = new UnsupportedSnapshotManager ();
-		private UnsupportedSnapshotManager ()
-		{
-		}
-		public bool SupportsSnapshots ()
-		{
-			return false;
-		}
-		public bool ContainsSnapshot (string name)
-		{
-			return false;
-		}
-		public void StoreSnapshot (string name, PathPoint[] points, int flags)
-		{
-			throw new NotSupportedException ("StoreSnapshot is not supported");
-		}
-		public PathDataSnapshot GetSnapshot (string name)
-		{
-			throw new NotSupportedException ("GetSnapshot is not supported");
-		}
-	}
 
 	public interface IPathModifierContainer
 	{

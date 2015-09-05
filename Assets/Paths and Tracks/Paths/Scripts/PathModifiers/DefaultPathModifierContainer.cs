@@ -88,33 +88,33 @@ namespace Paths
 
 	}
 
-	public delegate void PathModifiersChangedHandler (object sender,PathModifierContainerEvent e);
+	public delegate void PathModifiersChangedHandler (PathModifierContainerEvent e);
 
 	public class DefaultPathModifierContainer : IPathModifierContainer
 	{
 		private List<IPathModifier> pathModifierInstances = new List<IPathModifier> ();
 
-		public delegate IPathInfo GetPathInfoDelegate ();
+		//public delegate IPathInfo GetPathInfoDelegate ();
 
 		public event PathModifiersChangedHandler PathModifiersChanged;
 
 
 		public delegate PathPoint[] DoGetPathPointsDelegate (out int ppFlags);
 
-		public delegate void SetPathPointsDelegate (PathPoint[] points);
+		//public delegate void SetPathPointsDelegate (PathPoint[] points);
 
 		// TODO maybe we should replace these delegates with an interface? (not SetPathPointsDelegate?)
-		private GetPathInfoDelegate GetPathInfo;
+		private Func<IPathInfo> GetPathInfo;
 		private DoGetPathPointsDelegate DoGetPathPoints;
-		private SetPathPointsDelegate SetPathPoints;
+		private Action<PathPoint[]> SetPathPoints;
 
 		private Func<IReferenceContainer> getReferenceContainer;
 		private Func<IPathSnapshotManager> getSnapshotManager;
 		private Func<ParameterStore> getParameterStore;
 
-		public DefaultPathModifierContainer (GetPathInfoDelegate getPathInfoFunc,
+		public DefaultPathModifierContainer (Func<IPathInfo> getPathInfoFunc,
                                             DoGetPathPointsDelegate doGetPathPointsFunc,
-                                            SetPathPointsDelegate setPathPointsFunc,
+                                            Action<PathPoint[]> setPathPointsFunc,
 		                                     Func<IReferenceContainer> getReferenceContainerFunc,
 		                                     Func<IPathSnapshotManager> getSnapshotManagerFunc,
 		                                     Func<ParameterStore> getParameterStoreFunc)
@@ -157,7 +157,9 @@ namespace Paths
 		{
 			SaveConfiguration ();
 			PathModifierContainerEvent e = new PathModifierContainerEvent ();
-			PathModifiersChanged (this, e);
+			if (null != PathModifiersChanged) {
+				PathModifiersChanged (e);
+			}
 		}
 
 		public PathPoint[] RunPathModifiers (PathModifierContext context, PathPoint[] pp, ref int flags)
@@ -167,7 +169,7 @@ namespace Paths
 
 		public PathPoint[] RunPathModifiers (PathModifierContext context, PathPoint[] pp, ref int flags, bool fixResultFlags)
 		{
-			return PathModifierUtil.RunPathModifiers (context, pp, ref flags, fixResultFlags);
+			return PathModifierUtil.RunPathModifiers (context, pp, false, ref flags, fixResultFlags);
 		}
 
 		public IPathModifier[] GetPathModifiers ()
@@ -191,8 +193,9 @@ namespace Paths
         
 		public void RemovePathModifer (int index)
 		{
+			IPathModifier pmToRemove = pathModifierInstances [index];
 			pathModifierInstances.RemoveAt (index);
-			pathModifierInstances [index].Detach ();
+			pmToRemove.Detach ();
 			ConfigurationChanged ();
 		}
         
@@ -222,7 +225,7 @@ namespace Paths
 			IPathInfo pathInfo = GetPathInfo ();
 
 			PathModifierContext subContext = new PathModifierContext (pathInfo, pmc, flags);
-			pp = PathModifierUtil.RunPathModifiers (subContext, pp, ref flags, true);
+			pp = PathModifierUtil.RunPathModifiers (subContext, pp, false, ref flags, true);
 
 			// Convert to Control Points
 			SetPathPoints (pp);

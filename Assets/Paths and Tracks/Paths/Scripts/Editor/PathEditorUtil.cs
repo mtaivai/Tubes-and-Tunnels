@@ -20,44 +20,46 @@ namespace Paths.Editor
 	{
 		public static void FindAvailableDataSets (Path path, out List<string> dataSetNames, out List<int> dataSetIds, string addSuffixToDefaultName = "")
 		{
-			FindAvailableDataSets (path, null, out dataSetNames, out dataSetIds, addSuffixToDefaultName);
+			FindAvailableDataSets (path, new int[0], out dataSetNames, out dataSetIds, addSuffixToDefaultName);
 		}
 
 		public static void FindAvailableDataSets (Path path, IPathData excludedDataSet, out List<string> dataSetNames, out List<int> dataSetIds, string addSuffixToDefaultName = "")
 		{
-			FindAvailableDataSets (path, excludedDataSet != null ? excludedDataSet.GetId () : 0, out dataSetNames, out dataSetIds, addSuffixToDefaultName);
+			FindAvailableDataSets (path, excludedDataSet != null ? new int[] {excludedDataSet.GetId () } : new int[0], out dataSetNames, out dataSetIds, addSuffixToDefaultName);
 		}
 
-		public static void FindAvailableDataSets (Path path, int excludedId, out List<string> dataSetNames, out List<int> dataSetIds, string addSuffixToDefaultName = "")
+		public static void FindAvailableDataSets (Path path, int[] excludedIds, out List<string> dataSetNames, out List<int> dataSetIds, string addSuffixToDefaultName = "")
 		{
-			int defaultId = path.GetDefaultDataSetId ();
 
 			dataSetNames = new List<string> ();
 			dataSetIds = new List<int> ();
-			
-			//			int selectedDsIndex = -1;
-			//			int selectedDsId = source.GetDataSetId ();
-			//			
-			int dsCount = path.GetDataSetCount ();
-			for (int i = 0; i < dsCount; i++) {
-				IPathData data = path.GetDataSetAtIndex (i);
-				int id = data.GetId ();
-				
-				if (id == excludedId) {
-					// Skip itself
-					continue;
+
+			if (null != path) {
+				int defaultId = path.GetDefaultDataSetId ();
+
+
+				int dsCount = path.GetDataSetCount ();
+				for (int i = 0; i < dsCount; i++) {
+					IPathData data = path.GetDataSetAtIndex (i);
+					int id = data.GetId ();
+
+					bool excluded = false;
+					foreach (int excludedId in excludedIds) {
+						if (id == excludedId) {
+							excluded = true;
+							break;
+						}
+					}
+					if (!excluded) {
+						string name = data.GetName ();
+						if (id == defaultId && !StringUtil.IsEmpty (addSuffixToDefaultName)) {
+							name += addSuffixToDefaultName;
+						}
+						dataSetNames.Add (name);
+						dataSetIds.Add (id);
+					}
 				}
-				string name = data.GetName ();
-				if (id == defaultId && !StringUtil.IsEmpty (addSuffixToDefaultName)) {
-					name += addSuffixToDefaultName;
-				}
-				dataSetNames.Add (name);
-				dataSetIds.Add (id);
-				//				if (id == selectedDsId) {
-				//					selectedDsIndex = dataSetIds.Count - 1;
-				//				}
 			}
-			//			return selectedDsIndex;
 		}
 
 		public static IPathData GetSelectedDataSet (Path path, ParameterStore editorParams, bool fallbackToDefault)
@@ -83,7 +85,106 @@ namespace Paths.Editor
 			editorParams.SetInt ("currentDataSetId", dataSetId);
 		}
 
+		public static bool DrawPathDataSelection (ref PathWithDataId dataId, params int[] excludedDataSetIds)
+		{
+			return DrawPathDataSelection (ref dataId, true, excludedDataSetIds);
+		}
 
+		public static bool DrawPathDataSelection (ref PathWithDataId dataId, bool showPathSelection, params int[] excludedDataSetIds)
+		{
+			bool changed = false;
+			
+			// Data set
+			List<string> dataSetNames;
+			List<int> dataSetIds;
+
+			Path path = dataId.Path;
+
+			if (showPathSelection) {
+				EditorGUI.BeginChangeCheck ();
+				Path newPath = (Path)EditorGUILayout.ObjectField ("Path", path, typeof(Path), true, GUILayout.ExpandWidth (true));
+				if (EditorGUI.EndChangeCheck ()) {
+					dataId = dataId.WithPath (newPath);
+					changed = true;
+				}
+			}
+
+			PathWithDataId newDataId = dataId;
+			EditorLayout.None.Hidden (null == path).WithIndent ((showPathSelection ? 1 : 0)).Draw (() => {
+
+
+				PathEditorUtil.FindAvailableDataSets (path, excludedDataSetIds, out dataSetNames, out dataSetIds, " (default)");
+
+				List<int> excludedIdList = new List<int> (excludedDataSetIds);
+				// Selection for the Default data set:
+
+				int defaultDsId = path.GetDefaultDataSetId ();
+				if (!excludedIdList.Contains (defaultDsId)) {
+					IPathData defaultDs = path.FindDataSetById (defaultDsId);
+					string defaultDsName = defaultDs.GetName ();
+					
+					dataSetNames.Insert (0, "<Default: " + defaultDsName + ">");
+					dataSetIds.Insert (0, 0);
+				}
+
+				int selectedId = newDataId.DataSetId;
+
+				if (selectedId != 0 && !dataSetIds.Contains (selectedId) && !excludedIdList.Contains (selectedId)) {
+					dataSetNames.Insert (1, "** Deleted Data Set **");
+					dataSetIds.Insert (1, selectedId);
+				}
+
+				List<string> dataSetDisplayNames = new List<string> ();
+				dataSetDisplayNames.AddRange (dataSetNames);
+
+
+				// Find selected index
+				int selectedDsIndex = dataSetIds.IndexOf (selectedId);
+
+				EditorGUI.BeginChangeCheck ();
+				selectedDsIndex = EditorGUILayout.Popup ("Data set", selectedDsIndex, dataSetDisplayNames.ToArray (), GUILayout.ExpandWidth (true));
+				if (EditorGUI.EndChangeCheck ()) {
+					selectedId = dataSetIds [selectedDsIndex];
+					newDataId = newDataId.WithDataSetId (selectedId);
+					changed = true;
+					
+				}
+
+
+				// SNAPSHOT selection:
+
+				bool fromSnapshot = newDataId.UseSnapshot;
+				string snapshotName = newDataId.SnapshotName;
+
+				EditorGUILayout.BeginHorizontal ();
+							
+				EditorGUI.BeginChangeCheck ();
+				fromSnapshot = EditorGUILayout.Toggle ("From Snapshot", fromSnapshot, GUILayout.ExpandWidth (false));
+				if (EditorGUI.EndChangeCheck ()) {
+					newDataId = newDataId.WithUseSnapshot (fromSnapshot);
+					changed = true;
+				}
+							
+				// TODO currently we have no easy way to find available snapshots - they are created 
+				// when path modifiers of the source dataset are ran
+				EditorGUI.BeginDisabledGroup (!fromSnapshot);
+				EditorGUI.BeginChangeCheck ();
+				snapshotName = GUILayout.TextField (snapshotName);
+				if (EditorGUI.EndChangeCheck ()) {
+					newDataId = newDataId.WithSnapshotName (snapshotName);			
+					changed = true;
+				}
+				EditorGUI.EndDisabledGroup ();
+				
+				EditorGUILayout.EndHorizontal ();
+			});
+
+			if (changed) {
+				dataId = newDataId;
+			}
+
+			return changed;
+		}
 
 
 
