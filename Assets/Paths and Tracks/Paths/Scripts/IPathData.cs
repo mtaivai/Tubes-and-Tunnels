@@ -103,7 +103,7 @@ namespace Paths
 		}
 	}
 
-	// TODO rename to AbstractPathData
+	// TODO move AbstractPathData to its own file
 	[Serializable]
 	public abstract class AbstractPathData : IPathData, IAttachableToPath, ISerializationCallbackReceiver, IPathSnapshotManager
 	{
@@ -178,7 +178,6 @@ namespace Paths
 
 		private IPathInfo pathInfo;
 
-		protected bool addLastPointToLoop = true;
 
 		protected AbstractPathData (int id, string name)
 		{
@@ -198,6 +197,12 @@ namespace Paths
 
 			}
 		}
+
+		protected bool ShouldAddLastPointToLoop ()
+		{
+			return true;
+		}
+
 		// TODO move abstract methods HERE
 
 
@@ -263,6 +268,9 @@ namespace Paths
 		{
 		}
 
+
+#region Events
+//		============= EVENTS ==================================================
 		protected void FireChangedEvent ()
 		{
 			if (null != pathChangedEventHandler) {
@@ -277,6 +285,50 @@ namespace Paths
 			}
 		}
 
+		private bool _inPathPointsChanged;
+		// TODO how to make reusable pattern of the recursion call guard?
+		// TODO rename this to "MarkDataDirty" or similar
+		public void PathPointsChanged ()
+		{
+			if (!_inPathPointsChanged) {
+				_inPathPointsChanged = true;
+				try {
+//					MarkDataDirty (false);
+					this.pathPointsDirty = true;
+					OnPathPointsChanged ();
+					// FIRE THE EVENT HERE!
+					FireChangedEvent ();
+				} finally {
+					_inPathPointsChanged = false;
+				}
+			} else {
+				// TODO should we raise an exception?
+				Debug.LogError ("Recursive call to PathPointsChanged detected; ignoring to prevent infinite loop");
+			}
+		}
+		
+		// Custom behaviour, called after the current data is set dirty and before any events are fired
+		protected virtual void OnPathPointsChanged ()
+		{
+			
+		}
+//		
+//		public void MarkDataDirty (bool forceUpdateNow = false)
+//		{
+//			this.pathPointsDirty = true;
+//			if (forceUpdateNow) {
+//				UpdatePathPoints (true);
+//			}
+//		}
+
+		// Receives PathModifierContainerEvent from our PathModifierContainer instance
+		private void PathModifiersChanged (PathModifierContainerEvent e)
+		{
+			this.PathPointsChanged ();
+		}
+
+#endregion Events
+
 		public bool IsUpToDate ()
 		{
 			return pathPointsDirty == false;
@@ -286,6 +338,10 @@ namespace Paths
 			return this.updateToken;
 		}
 
+
+#region Serialization
+//		============= SERIALIZATION ==================================================
+#endregion Serialization
 		public void OnBeforeSerialize ()
 		{
 			parameterStore.OnBeforeSerialize ();
@@ -440,39 +496,7 @@ namespace Paths
 		}
 
 
-		private bool _inPathPointsChanged;
 
-		// TODO how to make reusable pattern of the recursion call guard?
-		public void PathPointsChanged ()
-		{
-			if (!_inPathPointsChanged) {
-				_inPathPointsChanged = true;
-				try {
-					pathPointsDirty = true;
-					OnPathPointsChanged ();
-					// FIRE THE EVENT HERE!
-					FireChangedEvent ();
-				} finally {
-					_inPathPointsChanged = false;
-				}
-			} else {
-				// TODO should we raise an exception?
-				Debug.LogError ("Recursive call to PathPointsChanged detected; ignoring to prevent infinite loop");
-			}
-		}
-
-
-		public virtual void OnPathPointsChanged ()
-		{
-			
-		}
-		
-		public void ForceUpdatePathPoints ()
-		{
-			this.pathPointsDirty = true;
-			// TODO notify the Path about dirty status!
-			UpdatePathPoints (true);
-		}
 
 		/// <summary>
 		/// Called to get / produce path points. This will be called if the internal cache
@@ -556,8 +580,9 @@ namespace Paths
 			//pp = PathModifierUtil.RunPathModifiers (pmContext, pp, false, ref flags, true);
 			pp = pmc.xxxRunPathModifiers (pmContext, pp, ref flags);
 			if (pmContext.HasErrors) {
-				// TODO store errors!
-				Debug.LogError ("ERROROROROROROROROR");
+				string allErrors = "";
+				pmContext.Errors.ForEach ((err) => allErrors += (allErrors.Length > 0 ? "; " + err : err));
+				Debug.LogErrorFormat ("Errors occurred while running PathModifiers: {0}", allErrors);
 			}
 			
 			this.pathPointFlags = flags;
@@ -568,7 +593,7 @@ namespace Paths
 			// - DoGetPathPoints() should not return the last point (i.e. the duplicated first point)
 			// - PathModifiers are fed without the last duplicated point and it's added after automatically
 			//   after the last pathmodifier
-			if (IsLoop () && addLastPointToLoop && this.pathPoints.Count > 1) {
+			if (IsLoop () && this.pathPoints.Count > 1 && ShouldAddLastPointToLoop ()) {
 				// Duplicate of the first point, except for distance components
 				PathPoint lastPoint = new PathPoint (this.pathPoints [0]);
 				bool setDistanceFromPrevious = PathPoint.IsFlag (flags, PathPoint.DISTANCE_FROM_PREVIOUS);
@@ -650,11 +675,10 @@ namespace Paths
 			return pmc;
 		}
 
-		private void PathModifiersChanged (PathModifierContainerEvent e)
-		{
-			this.PathPointsChanged ();
-		}
-		
+
+
+
+		// TODO Refactor IPathSnapshotManager support to a composite class
 		public bool SupportsSnapshots ()
 		{
 			return true;

@@ -34,8 +34,7 @@ namespace Paths.Polyline
 		{
 			if (value != this.loop) {
 				this.loop = value;
-				// TODO how does this event system work???
-				//					PathPointsChanged ();
+				this.PathPointsChanged ();
 			}
 		}
 		

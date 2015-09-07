@@ -551,7 +551,7 @@ namespace Paths
 			if (/*data.GetPath () != this ||*/ !(data is AbstractPathData)) {
 				throw new ArgumentException ("Can't update foreign PathData: " + data);
 			}
-			((AbstractPathData)data).ForceUpdatePathPoints ();
+			((AbstractPathData)data).PathPointsChanged ();
 		}
 
 		public IReferenceContainer GetReferenceContainer ()
