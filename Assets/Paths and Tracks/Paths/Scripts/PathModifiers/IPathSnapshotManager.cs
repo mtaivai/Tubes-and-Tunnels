@@ -20,6 +20,8 @@ namespace Paths
 		PathDataSnapshot GetSnapshot (string name);
 		int GetSnapshotPointFlags (string name);
 		PathPoint[] GetSnapshotPoints (string name);
+
+		string[] GetAvailableSnapshotNames ();
 	}
 	public sealed class UnsupportedSnapshotManager : IPathSnapshotManager
 	{
@@ -52,5 +54,10 @@ namespace Paths
 		{
 			throw new NotSupportedException ("Snapshots are not supported");
 		}
+		public string[] GetAvailableSnapshotNames ()
+		{
+			return new string[0];
+		}
+
 	}
 }

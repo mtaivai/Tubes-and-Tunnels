@@ -11,7 +11,7 @@ namespace Tracks
 
 
 
-
+	[ExecuteInEditMode]
 	public class Track : MonoBehaviour, ISerializationCallbackReceiver
 	{
 		// TODO add multiple data sources:
@@ -73,13 +73,9 @@ namespace Tracks
 
 		public Track ()
 		{
-			primaryDataSource = new TrackDataSource (this);
 		}
 
-
-		
-		
-		
+#region Properties
 		public bool AutomaticUpdateWithPath {
 			get { return autoUpdateWithPath; }
 			set { this.autoUpdateWithPath = value; }
@@ -109,6 +105,9 @@ namespace Tracks
 		
 		public TrackDataSource PrimaryDataSource {
 			get {
+				if (null == primaryDataSource) {
+					primaryDataSource = CreateDataSource ();
+				}
 				return primaryDataSource;
 			}
 		}
@@ -139,25 +138,73 @@ namespace Tracks
 			}
 		}
 
-		private void MarkSlicesDirty ()
-		{
-			this.generatedSlices = null;
-		}
+
 		
 		public ParameterStore ParameterStore {
 			get {
+				if (null == parameters) {
+					parameters = new ParameterStore ();
+				}
 				return parameters;
 			}
 		}
+#endregion
 
+#region Lifecycle Events
+		// Lifecycle events
+		void Awake ()
+		{
+		}
+		
+		public void OnEnable ()
+		{
+			// Notify our data source(s); they will register listeners bound to path(s)
+			primaryDataSource.OnEnable (this);
+		}
+		public void OnDisable ()
+		{
+			// Notify our data source(s); they will unregister any listeners bound to path(s)
+			primaryDataSource.OnDisable (this);
+		}
+		public void OnDestory ()
+		{
+			// OnDisable() is already called, so no need to do anything in here
+//			primaryDataSource.OnDisable (this);
+		}
+
+		// Use this for initialization
+		void Start ()
+		{
+			
+		}
+		
+		// Update is called once per frame
+		void Update ()
+		{
+			
+		}
+		
+		void OnDrawGizmos ()
+		{
+			// Draw mesh?
+			if (null != generatedMesh) {
+				Gizmos.color = Color.green;
+				//Gizmos.DrawWireMesh(generatedMesh);
+			}
+		}
+
+#endregion Lifecycle Events
+
+
+#region Serialization
 		public void OnBeforeSerialize ()
 		{
-			parameters.OnBeforeSerialize ();
+			ParameterStore.OnBeforeSerialize ();
 		}
 		
 		public void OnAfterDeserialize ()
 		{
-			parameters.OnAfterDeserialize ();
+			ParameterStore.OnAfterDeserialize ();
 			
 			GetPathModifierContainer ().LoadConfiguration ();
 			
@@ -166,38 +213,37 @@ namespace Tracks
 			//			}
 			
 			this.TrackGeneratorChanged ();
-
+			
 			// Register event listener on data sources:
 			primaryDataSource.DataChanged -= OnDataSourceDataChanged;
 			primaryDataSource.DataChanged += OnDataSourceDataChanged;
-
+			
 		}
 
-
-		void Awake ()
+		public void SaveTrackGeneratorParameters ()
 		{
+			if (null != this.TrackGeneratorInstance) {
+				ParameterStore store = GetTrackGeneratorParameterStore ();
+				TrackGeneratorInstance.SaveParameters (store);
+			}
+			//          trackGenerator.SaveParameters (track.GetTrackGeneratorParameterStore ());
 		}
+#endregion Serialization
 
-		void OnEnable ()
-		{
-			primaryDataSource.OnEnable (this);
-		}
-		void OnDisable ()
-		{
-			primaryDataSource.OnDisable (this);
-		}
 
+#region Event Handlers
 		// Called from our DefaultPathModifierContainer when PathModifiers have changed (added/removed/edited)
 		private void PathModifiersChanged (PathModifierContainerEvent e)
 		{
-			Debug.Log ("PathModifiersChanged: " + e);
+			Debug.LogFormat ("PathModifiersChanged: {0}", e);
 			primaryDataSource.InvalidateProcessedData ();
 
 		}
 
 		private void OnDataSourceDataChanged (TrackDataChangedEventArgs e)
 		{
-			Debug.Log ("OnDataSourceDataChanged: " + e);
+			// TODO what if we're destroyed?
+			Debug.LogFormat ("OnDataSourceDataChanged: {0}", e);
 			if (e.Stage == TrackDataStage.Unprocessed) {
 				// Source data has changed
 				if (autoUpdateWithPath) {
@@ -234,10 +280,20 @@ namespace Tracks
 			this._trackGeneratorInstance = null;
 		}
 
+#endregion Event Handlers
 
+		private void MarkSlicesDirty ()
+		{
+			this.generatedSlices = null;
+		}
+
+		protected TrackDataSource CreateDataSource ()
+		{
+			return new TrackDataSource (this);
+		}
 		private IPathInfo DoGetPathInfo ()
 		{
-			IPathData d = primaryDataSource.PathData.PathData;
+			IPathData d = primaryDataSource.PathSelector.PathData;
 			return (null != d) ? d.GetPathInfo () : null;
 		}
 
@@ -267,14 +323,7 @@ namespace Tracks
 			return pathModifierContainer;
 		}
 		
-		public void SaveTrackGeneratorParameters ()
-		{
-			if (null != this.TrackGeneratorInstance) {
-				ParameterStore store = GetTrackGeneratorParameterStore ();
-				TrackGeneratorInstance.SaveParameters (store);
-			}
-			//          trackGenerator.SaveParameters (track.GetTrackGeneratorParameterStore ());
-		}
+
 		
 		internal ParameterStore GetTrackGeneratorParameterStore ()
 		{
@@ -284,27 +333,6 @@ namespace Tracks
 
 		
 
-		
-		// Use this for initialization
-		void Start ()
-		{
-			
-		}
-		
-		// Update is called once per frame
-		void Update ()
-		{
-			
-		}
-		
-		void OnDrawGizmos ()
-		{
-			// Draw mesh?
-			if (null != generatedMesh) {
-				Gizmos.color = Color.green;
-				//Gizmos.DrawWireMesh(generatedMesh);
-			}
-		}
 		
 		/// <summary>
 		/// Generates a Mesh with the current TrackGeneratorInstance and assigns it to 

@@ -207,6 +207,10 @@ namespace Paths.Editor
 	[CustomToolEditor(typeof(IncludePathModifier))]
 	public class IncludePathModifierEditor : AbstractPathModifierEditor
 	{
+		public class PathSelectorContainer
+		{
+			public PathSelector pathSelector;
+		}
 		protected override void OnDrawConfigurationGUI ()
 		{
 			//DrawDefaultInspectorGUI ();
@@ -216,9 +220,21 @@ namespace Paths.Editor
 
 			Path includedPath = pm.GetIncludedPath (refContainer);
 
+			int[] excludedDataSetIds;
+			if (includedPath == context.Path) {
+				excludedDataSetIds = new int[] {context.PathData.GetId ()};
+			} else {
+				excludedDataSetIds = new int[0];
+			}
 
-			PathWithDataId dataId = new PathWithDataId (includedPath, pm.includedPathDataSetId, pm.includedPathFromSnapshot, pm.includedPathSnapshotName);
-			if (PathEditorUtil.DrawPathDataSelection (ref dataId, true, new int[] {context.PathData.GetId ()})) {
+			// TODO make a utility method of this:
+//			PathSelectorContainer psc = new PathSelectorContainer ();
+//			psc.pathSelector = new PathSelector (includedPath, pm.includedPathDataSetId, pm.includedPathFromSnapshot, pm.includedPathSnapshotName);
+//			SerializedProperty prop = new SerializedObject (psc).FindProperty ("pathSelector");
+//			EditorGUILayout.PropertyField (prop);
+
+			PathSelector dataId = new PathSelector (includedPath, pm.includedPathDataSetId, pm.includedPathFromSnapshot, pm.includedPathSnapshotName);
+			if (PathEditorUtil.DrawPathDataSelection ("Included Path", ref dataId, true, excludedDataSetIds)) {
 				// TODO RECORD UNDO
 				pm.SetIncludedPath (context.PathModifierContainer.GetReferenceContainer (), dataId.Path);
 
@@ -229,7 +245,7 @@ namespace Paths.Editor
 				context.TargetModified ();
 				EditorUtility.SetDirty (context.Path);
 			}
-
+//
 
 
 			// TODO this is not up-to-date when we first draw the inspector!

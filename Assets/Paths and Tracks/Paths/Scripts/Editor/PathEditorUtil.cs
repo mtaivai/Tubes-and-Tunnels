@@ -16,8 +16,65 @@ using Util;
 namespace Paths.Editor
 {
 
+	[CustomPropertyDrawer(typeof(PathSelector))]
+	public class PathWithDataIdPropertyDrawer : PropertyDrawer
+	{
+		private string snapshotNameFromList = null;
+		
+		public override float GetPropertyHeight (SerializedProperty property, GUIContent label)
+		{
+			float singleLineHeight = base.GetPropertyHeight (property, label);
+			return singleLineHeight * 3f;
+		}
+		
+		public override void OnGUI (Rect position, SerializedProperty property, GUIContent label)
+		{
+			// Using BeginProperty / EndProperty on the parent property means that
+			// prefab override logic works on the entire property.
+			EditorGUI.BeginProperty (position, label, property);
+			
+			float singleHeight = base.GetPropertyHeight (property, label);
+			
+			SerializedProperty pathProperty = property.FindPropertyRelative ("path");
+			SerializedProperty dataSetIdProperty = property.FindPropertyRelative ("dataSetId");
+			SerializedProperty useSnapshotProperty = property.FindPropertyRelative ("useSnapshot");
+			SerializedProperty snapshotNameProperty = property.FindPropertyRelative ("snapshotName");
+			
+			
+			PathEditorUtil.DoDrawPathSelector (position, singleHeight, label, pathProperty, dataSetIdProperty, useSnapshotProperty, snapshotNameProperty, 
+			                                   (snapshotName) => snapshotNameFromList = snapshotName);
+			
+			if (null != snapshotNameFromList) {
+				snapshotNameProperty.stringValue = snapshotNameFromList;
+				snapshotNameFromList = null;
+			}
+			
+			
+			EditorGUI.EndProperty ();
+			
+		}
+	}
+
 	public sealed class PathEditorUtil
 	{
+		public static string FindDefaultDatasetName (Path path, string prefix = "", string suffix = "", string defaultValue = "", bool addPrefixAndSuffixToDefaultValue = false)
+		{
+			string defaultDsName = null;
+			if (null != path) {
+				IPathData defaultDs = path.GetDefaultDataSet ();
+				if (null != defaultDs) {
+					defaultDsName = prefix + defaultDs.GetName () + suffix;
+				}
+			}
+			if (defaultDsName == null) {
+				if (addPrefixAndSuffixToDefaultValue) {
+					defaultDsName = prefix + defaultValue + suffix;
+				} else {
+					defaultDsName = defaultValue;
+				}
+			}
+			return defaultDsName;
+		}
 		public static void FindAvailableDataSets (Path path, out List<string> dataSetNames, out List<int> dataSetIds, string addSuffixToDefaultName = "")
 		{
 			FindAvailableDataSets (path, new int[0], out dataSetNames, out dataSetIds, addSuffixToDefaultName);
@@ -85,323 +142,221 @@ namespace Paths.Editor
 			editorParams.SetInt ("currentDataSetId", dataSetId);
 		}
 
-		public static bool DrawPathDataSelection (ref PathWithDataId dataId, params int[] excludedDataSetIds)
+		public static bool DrawPathDataSelection (ref PathSelector dataId, params int[] excludedDataSetIds)
 		{
 			return DrawPathDataSelection (ref dataId, true, excludedDataSetIds);
 		}
-
-		public static bool DrawPathDataSelection (ref PathWithDataId dataId, bool showPathSelection, params int[] excludedDataSetIds)
+		public static bool DrawPathDataSelection (GUIContent label, ref PathSelector dataId, params int[] excludedDataSetIds)
 		{
-			bool changed = false;
-			
-			// Data set
+			return DrawPathDataSelection (label, ref dataId, true, excludedDataSetIds);
+		}
+		public static bool DrawPathDataSelection (string label, ref PathSelector dataId, params int[] excludedDataSetIds)
+		{
+			return DrawPathDataSelection (new GUIContent (label), ref dataId, true, excludedDataSetIds);
+		}
+
+		public static bool DrawPathDataSelection (ref PathSelector dataId, bool showPathSelection, params int[] excludedDataSetIds)
+		{
+			return DrawPathDataSelection (GUIContent.none, ref dataId, showPathSelection, excludedDataSetIds);
+		}
+		public static bool DrawPathDataSelection (string label, ref PathSelector dataId, bool showPathSelection, params int[] excludedDataSetIds)
+		{
+			return DrawPathDataSelection (new GUIContent (label), ref dataId, showPathSelection, excludedDataSetIds);
+		}
+		public static bool DrawPathDataSelection (GUIContent label, ref PathSelector dataId, bool showPathSelection, params int[] excludedDataSetIds)
+		{
+			float singleLineHeight = 16f;
+
+			Rect position = EditorGUILayout.GetControlRect (true, singleLineHeight * 3.0f);
+
+			EditorGUI.BeginChangeCheck ();
+			dataId = DoDrawPathSelector (position, singleLineHeight, label, dataId, (snapshotName) => {});
+			return EditorGUI.EndChangeCheck ();
+
+		}
+
+//		static float GetSingleControlHeight ()
+//		{
+//			return 16f;
+//		}
+
+		class PropertyHolder<T>
+		{
+			public SerializedProperty property;
+			public T value;
+			public PropertyHolder (SerializedProperty property)
+			{
+				this.property = property;
+				this.value = default(T);
+			}
+			public PropertyHolder (T value)
+			{
+				this.property = null;
+				this.value = value;
+			}
+			public bool IsProperty ()
+			{
+				return null != property;
+			}
+		}
+
+		static PathSelector DoDrawPathSelector (Rect position, float singleFieldHeight, GUIContent label, 
+		                              PathSelector pathSelector,
+		                              Action<string> setSnapshotNameCallback)
+		{
+
+			PropertyHolder<Path> pathProperty = new PropertyHolder<Path> (pathSelector.Path);
+			PropertyHolder<int> dataSetIdProperty = new PropertyHolder<int> (pathSelector.DataSetId);
+			PropertyHolder<bool> useSnapshotProperty = new PropertyHolder<bool> (pathSelector.UseSnapshot);
+			PropertyHolder<string> snapshotNameProperty = new PropertyHolder<string> (pathSelector.SnapshotName);
+
+			DoDrawPathSelector (position, singleFieldHeight, label, pathProperty, dataSetIdProperty, useSnapshotProperty, snapshotNameProperty, setSnapshotNameCallback);
+
+			return new PathSelector (pathProperty.value, dataSetIdProperty.value, useSnapshotProperty.value, snapshotNameProperty.value);
+
+		}
+
+		public static void DoDrawPathSelector (Rect position, float singleFieldHeight, GUIContent label, 
+		                              SerializedProperty pathProperty, 
+		                              SerializedProperty dataSetIdProperty, 
+		                              SerializedProperty useSnapshotProperty, 
+		                              SerializedProperty snapshotNameProperty, 
+		                              Action<string> setSnapshotNameCallback)
+		{
+			DoDrawPathSelector (position, singleFieldHeight, label, 
+			          new PropertyHolder<Path> (pathProperty),
+			          new PropertyHolder<int> (dataSetIdProperty),
+			          new PropertyHolder<bool> (useSnapshotProperty),
+			          new PropertyHolder<string> (snapshotNameProperty),
+			          setSnapshotNameCallback);
+		}
+
+		static void DoDrawPathSelector (Rect position, float singleFieldHeight, GUIContent label, 
+		                              PropertyHolder<Path> pathProperty, 
+		                              PropertyHolder<int> dataSetIdProperty, 
+		                              PropertyHolder<bool> useSnapshotProperty, 
+		                              PropertyHolder<string> snapshotNameProperty, 
+		                              Action<string> setSnapshotNameCallback)
+		{
+
+			// Draw label
+			if (null != label && label != GUIContent.none) {
+				position = EditorGUI.PrefixLabel (position, GUIUtility.GetControlID (FocusType.Passive), label);
+			}
+				
+			// Don't make child fields be indented
+			var indent = EditorGUI.indentLevel;
+			EditorGUI.indentLevel = 0;
+
+			Rect pathRect = new Rect (position.x, position.y, position.width, singleFieldHeight);
+			Rect dataSetIdRect = new Rect (position.x, pathRect.y + pathRect.height, position.width, singleFieldHeight);
+			Rect snapshotRect = new Rect (position.x, dataSetIdRect.y + dataSetIdRect.height, position.width, singleFieldHeight);
+
+			if (pathProperty.IsProperty ()) {
+				EditorGUI.ObjectField (pathRect, pathProperty.property, GUIContent.none);
+			} else {
+				pathProperty.value = (Path)EditorGUI.ObjectField (pathRect, GUIContent.none, pathProperty.value, typeof(Path), true);
+			}
+				
+				
+			//		EditorGUI.PropertyField (dataSetIdRect, dataSetIdProperty, GUIContent.none);
+				
 			List<string> dataSetNames;
 			List<int> dataSetIds;
-
-			Path path = dataId.Path;
-
-			if (showPathSelection) {
-				EditorGUI.BeginChangeCheck ();
-				Path newPath = (Path)EditorGUILayout.ObjectField ("Path", path, typeof(Path), true, GUILayout.ExpandWidth (true));
-				if (EditorGUI.EndChangeCheck ()) {
-					dataId = dataId.WithPath (newPath);
-					changed = true;
+			Path path = pathProperty.IsProperty () ? pathProperty.property.objectReferenceValue as Path : pathProperty.value;
+			PathEditorUtil.FindAvailableDataSets (path, out dataSetNames, out dataSetIds, " (default)");
+				
+			string defaultDsName = PathEditorUtil.FindDefaultDatasetName (path, "<Default: ", ">", "", true);
+			dataSetNames.Insert (0, defaultDsName);
+			dataSetIds.Insert (0, 0);
+				
+			EditorGUI.BeginDisabledGroup (null == path);
+			int currentDsId = dataSetIdProperty.IsProperty () ? dataSetIdProperty.property.intValue : dataSetIdProperty.value;
+			int currentDsIndex = dataSetIds.IndexOf (currentDsId);
+			//dataSetIdRect = EditorGUI.PrefixLabel (dataSetIdRect, new GUIContent ("Dataset"));
+				
+			Rect dataSetIdLabelRect = new Rect (dataSetIdRect.x, dataSetIdRect.y, 60f, dataSetIdRect.height);
+			Rect dataSetPopupRect = new Rect (dataSetIdRect.x + 60f, dataSetIdRect.y, dataSetIdRect.width - 60f, dataSetIdRect.height);
+			EditorGUI.HandlePrefixLabel (dataSetIdRect, dataSetIdLabelRect, new GUIContent ("Dataset"));
+			int newDsIndex = EditorGUI.Popup (dataSetPopupRect, currentDsIndex, dataSetNames.ToArray ());
+			if (newDsIndex != currentDsIndex) {
+				currentDsIndex = newDsIndex;
+				currentDsId = dataSetIds [newDsIndex];
+				if (dataSetIdProperty.IsProperty ()) {
+					dataSetIdProperty.property.intValue = currentDsId;
+				} else {
+					dataSetIdProperty.value = currentDsId;
 				}
 			}
-
-			PathWithDataId newDataId = dataId;
-			EditorLayout.None.Hidden (null == path).WithIndent ((showPathSelection ? 1 : 0)).Draw (() => {
-
-
-				PathEditorUtil.FindAvailableDataSets (path, excludedDataSetIds, out dataSetNames, out dataSetIds, " (default)");
-
-				List<int> excludedIdList = new List<int> (excludedDataSetIds);
-				// Selection for the Default data set:
-
-				int defaultDsId = path.GetDefaultDataSetId ();
-				if (!excludedIdList.Contains (defaultDsId)) {
-					IPathData defaultDs = path.FindDataSetById (defaultDsId);
-					string defaultDsName = defaultDs.GetName ();
-					
-					dataSetNames.Insert (0, "<Default: " + defaultDsName + ">");
-					dataSetIds.Insert (0, 0);
+			EditorGUI.EndDisabledGroup ();
+				
+			float xOffset = 0f;
+			Rect snapshotLabelRect = new Rect (snapshotRect.x, snapshotRect.y, 60f, snapshotRect.height);
+			xOffset += snapshotLabelRect.width;
+				
+			Rect snapshotToggleRect = new Rect (snapshotRect.x + xOffset, snapshotRect.y, 20f, snapshotRect.height);
+			xOffset += snapshotToggleRect.width;
+				
+			Rect snapshotPopupRect = new Rect (snapshotRect.x + xOffset, snapshotRect.y, snapshotRect.width - xOffset, snapshotRect.height);
+			//			xOffset += snapshotPopupRect.width;
+				
+			Rect snapshotNameRect = new Rect (snapshotPopupRect.x, snapshotPopupRect.y, snapshotPopupRect.width - 20, snapshotPopupRect.height);
+			Rect snapshotBrowseButtonRect = new Rect (snapshotNameRect.x + snapshotNameRect.width, snapshotNameRect.y, 20, snapshotNameRect.height);
+				
+			IPathData pathData = null != path ? path.FindDataSetById (currentDsId) : null;
+			IPathSnapshotManager ssm = null != pathData ? pathData.GetPathSnapshotManager () : UnsupportedSnapshotManager.Instance;
+				
+			EditorGUI.BeginDisabledGroup (!ssm.SupportsSnapshots ());
+			{
+				EditorGUI.HandlePrefixLabel (snapshotRect, snapshotLabelRect, new GUIContent ("Snapshot"));
+				bool useSnapshot;
+				if (useSnapshotProperty.IsProperty ()) {
+					EditorGUI.PropertyField (snapshotToggleRect, useSnapshotProperty.property, GUIContent.none);
+					useSnapshot = useSnapshotProperty.property.boolValue;
+				} else {
+					useSnapshot = EditorGUI.Toggle (snapshotToggleRect, GUIContent.none, useSnapshotProperty.value);
+					useSnapshotProperty.value = useSnapshot;
 				}
+				EditorGUI.BeginDisabledGroup (!useSnapshot);
+				{
+					string currentSnapshotName = snapshotNameProperty.IsProperty () ? snapshotNameProperty.property.stringValue : snapshotNameProperty.value;
+					List<string> snapshotNames = new List<string> (ssm.GetAvailableSnapshotNames ());
+					int currentSnapshotIndex = snapshotNames.IndexOf (currentSnapshotName);
+						
+						
+					//GUI.SetNextControlName("snapshotNameProperty");
+					if (snapshotNameProperty.IsProperty ()) {
+						EditorGUI.PropertyField (snapshotNameRect, snapshotNameProperty.property, GUIContent.none);
+					} else {
+						currentSnapshotName = EditorGUI.TextField (snapshotNameRect, GUIContent.none, currentSnapshotName);
+					}						
+					EditorGUI.BeginDisabledGroup (snapshotNames.Count < 1);
+					if (GUI.Button (snapshotBrowseButtonRect, new GUIContent (""), EditorStyles.popup)) {
+						// object userData, string[] options, int selected
+						GUIContent[] snapshotNameContents = new GUIContent[snapshotNames.Count];
+						for (int i = 0; i < snapshotNames.Count; i++) {
+							snapshotNameContents [i] = new GUIContent (snapshotNames [i]);
+						}
+						// Remove focus from other controls (if the user was editing the snapshotName field, the focus
+						// would prevent selection update
+						GUI.FocusControl ("_BOGUS_");
+						EditorUtility.DisplayCustomMenu (snapshotPopupRect, snapshotNameContents, currentSnapshotIndex, 
+							                                 (userData, options, selected) => setSnapshotNameCallback (snapshotNames [selected]), snapshotNameProperty);
+					}
+					EditorGUI.EndDisabledGroup ();
 
-				int selectedId = newDataId.DataSetId;
-
-				if (selectedId != 0 && !dataSetIds.Contains (selectedId) && !excludedIdList.Contains (selectedId)) {
-					dataSetNames.Insert (1, "** Deleted Data Set **");
-					dataSetIds.Insert (1, selectedId);
-				}
-
-				List<string> dataSetDisplayNames = new List<string> ();
-				dataSetDisplayNames.AddRange (dataSetNames);
-
-
-				// Find selected index
-				int selectedDsIndex = dataSetIds.IndexOf (selectedId);
-
-				EditorGUI.BeginChangeCheck ();
-				selectedDsIndex = EditorGUILayout.Popup ("Data set", selectedDsIndex, dataSetDisplayNames.ToArray (), GUILayout.ExpandWidth (true));
-				if (EditorGUI.EndChangeCheck ()) {
-					selectedId = dataSetIds [selectedDsIndex];
-					newDataId = newDataId.WithDataSetId (selectedId);
-					changed = true;
-					
-				}
-
-
-				// SNAPSHOT selection:
-
-				bool fromSnapshot = newDataId.UseSnapshot;
-				string snapshotName = newDataId.SnapshotName;
-
-				EditorGUILayout.BeginHorizontal ();
-							
-				EditorGUI.BeginChangeCheck ();
-				fromSnapshot = EditorGUILayout.Toggle ("From Snapshot", fromSnapshot, GUILayout.ExpandWidth (false));
-				if (EditorGUI.EndChangeCheck ()) {
-					newDataId = newDataId.WithUseSnapshot (fromSnapshot);
-					changed = true;
-				}
-							
-				// TODO currently we have no easy way to find available snapshots - they are created 
-				// when path modifiers of the source dataset are ran
-				EditorGUI.BeginDisabledGroup (!fromSnapshot);
-				EditorGUI.BeginChangeCheck ();
-				snapshotName = GUILayout.TextField (snapshotName);
-				if (EditorGUI.EndChangeCheck ()) {
-					newDataId = newDataId.WithSnapshotName (snapshotName);			
-					changed = true;
 				}
 				EditorGUI.EndDisabledGroup ();
-				
-				EditorGUILayout.EndHorizontal ();
-			});
-
-			if (changed) {
-				dataId = newDataId;
+				//				
 			}
-
-			return changed;
+			EditorGUI.EndDisabledGroup ();
+				
+			// Set indent back to what it was
+			EditorGUI.indentLevel = indent;
 		}
 
 
 
-//		public static void DrawInputSourceSelection (Path path, IPathData pathData)
-//		{
-//
-//			UnityEngine.Object target = path;
-//
-//			bool pathChanged = false;
-//			
-//			List<string> inputSourceNames = new List<string> ();
-//			List<PathDataInputSource.SourceType> inputSourceTypes = new List<PathDataInputSource.SourceType> ();
-//			
-//			string pathTypeName = path.GetType ().Name;
-//			
-//			inputSourceNames.Add ("Self (" + pathTypeName + ")");
-//			inputSourceTypes.Add (PathDataInputSource.SourceType.Self);
-//			
-//			inputSourceNames.Add ("None");
-//			inputSourceTypes.Add (PathDataInputSource.SourceType.None);
-//			
-//			inputSourceNames.Add ("Data Set");
-//			inputSourceTypes.Add (PathDataInputSource.SourceType.DataSet);
-//			
-//			Dictionary<PathDataInputSource.SourceType, int> sourceTypeToSelectionIndex = 
-//				new Dictionary<PathDataInputSource.SourceType, int> ();
-//			for (int i = 0; i < inputSourceTypes.Count; i++) {
-//				sourceTypeToSelectionIndex [inputSourceTypes [i]] = i;
-//			}
-//			
-//			//			// Data sets:
-//			//			List<string> dataSetNames;
-//			//			List<int> dataSetIds;
-//			//			FindAvailableDataSets (out dataSetNames, out dataSetIds);
-//			//
-//			//			Dictionary<int, int> dsIdToSelectionIndex = new Dictionary<int, int> ();
-//			//			for (int i = 0; i < dataSetNames.Count; i++) {
-//			//				string dsName = dataSetNames [i];
-//			//				inputSourceNames.Add (dsName);
-//			//				dsIdToSelectionIndex.Add (dataSetIds [i], i + firstDataSetSelectionIndex);
-//			//			}
-//			
-//			PathDataInputSource inputSource = pathData.GetInputSource ();
-//			int sourceTypeIndex = sourceTypeToSelectionIndex [inputSource.GetSourceType ()];
-//			
-//			EditorGUI.BeginChangeCheck ();
-//			sourceTypeIndex = EditorGUILayout.Popup ("Input Source", sourceTypeIndex, inputSourceNames.ToArray ());
-//			if (EditorGUI.EndChangeCheck ()) {
-//				Undo.RecordObject (target, "Change Path Input Source");
-//				
-//				PathDataInputSource.SourceType sourceType = inputSourceTypes [sourceTypeIndex];
-//				path.SetDataSetInputSourceType (pathData, sourceType);
-//				
-//				pathChanged = true;
-//			}
-//			
-//			// Refresh the inputSource:
-//			inputSource = pathData.GetInputSource ();
-//			
-//			EditorGUI.indentLevel++;
-//			
-//			if (inputSource.GetSourceType () == PathDataInputSource.SourceType.DataSet) {
-//				PathDataInputSourceDataSet dataSetSource = (PathDataInputSourceDataSet)inputSource;
-//				
-//				Path currentParentPath = Path.FindParentPathObject (path.transform);
-//				string currentParentPathName = (null != currentParentPath) ? currentParentPath.name : "none";
-//				
-//				List<string> sourcePathTypeNames = new List<String> ();
-//				sourcePathTypeNames.Add ("<Self> (" + pathTypeName + ")");
-//				sourcePathTypeNames.Add ("<Parent> (" + currentParentPathName + ")");
-//				sourcePathTypeNames.Add ("Specific Path...");
-//				
-//				Path sourcePath;
-//				int sourcePathSelIndex;
-//				if (dataSetSource.IsSourcePathSelf ()) {
-//					sourcePathSelIndex = 0;
-//					sourcePath = path;
-//				} else if (dataSetSource.IsSourcePathParent ()) {
-//					sourcePathSelIndex = 1;
-//					sourcePath = Path.FindParentPathObject (path.transform);
-//				} else {
-//					sourcePathSelIndex = 2;
-//					sourcePath = dataSetSource.GetSourcePath ();
-//					sourcePathTypeNames [sourcePathSelIndex] = "Specific Path";
-//				}
-//				
-//				EditorGUI.BeginChangeCheck ();
-//				sourcePathSelIndex = EditorGUILayout.Popup ("Source Path Selection", sourcePathSelIndex, sourcePathTypeNames.ToArray ());
-//				if (EditorGUI.EndChangeCheck ()) {
-//					Undo.RecordObject (path, "Change Source Path Selection");
-//					
-//					if (sourcePathSelIndex == 0) {
-//						// Self
-//						dataSetSource = dataSetSource.WithSourcePathIsSelf (true);
-//					} else if (sourcePathSelIndex == 1) {
-//						// Parent
-//						dataSetSource = dataSetSource.WithSourcePathIsSelf (false).WithSourcePathIsParent (true);
-//					} else if (sourcePathSelIndex == 2) {
-//						// Specific path
-//						dataSetSource = dataSetSource.WithSourcePathIsSelf (false).WithSourcePathIsParent (false);
-//					}
-//					path.SetDataSetInputSource (pathData, dataSetSource);
-//					
-//					pathChanged = true;
-//				}
-//				
-//				if (!(dataSetSource.IsSourcePathSelf () || dataSetSource.IsSourcePathParent ())) {
-//					// Source path selection
-//					EditorGUI.indentLevel++;
-//					
-//					EditorGUI.BeginChangeCheck ();
-//					sourcePath = (Path)EditorGUILayout.ObjectField ("Source Path", dataSetSource.GetSourcePath (), typeof(Path), true);
-//					if (EditorGUI.EndChangeCheck ()) {
-//						Undo.RecordObject (path, "Change Source Path");
-//						dataSetSource = dataSetSource.WithSourcePath (sourcePath);
-//						path.SetDataSetInputSource (pathData, dataSetSource);
-//						pathChanged = true;
-//					}
-//					EditorGUI.indentLevel--;
-//					
-//				}
-//				
-//				// Data set
-//				List<string> dataSetNames;
-//				List<int> dataSetIds;
-//				
-//				FindAvailableDataSets (sourcePath, (sourcePath == path) ? pathData : null, out dataSetNames, out dataSetIds);
-//				
-//				// Selection for the Default data set:
-//				string currentDefaultDataSetName;
-//				if (null != sourcePath) {
-//					int defaultDsId = sourcePath.GetDefaultDataSetId ();
-//					IPathData defaultDs = sourcePath.FindDataSetById (defaultDsId);
-//					currentDefaultDataSetName = "(" + defaultDs.GetName () + ")";
-//				} else {
-//					currentDefaultDataSetName = "";
-//				}
-//				dataSetNames.Insert (0, "<Default> " + currentDefaultDataSetName);
-//				dataSetIds.Insert (0, -1);
-//
-//				int selectedDsId = dataSetSource.GetDataSetId ();
-//
-//				if (!dataSetIds.Contains (selectedDsId)) {
-//					dataSetNames.Insert (1, "** Deleted Data Set **");
-//					dataSetIds.Insert (1, selectedDsId);
-//				}
-//				
-//				List<string> dataSetDisplayNames = new List<string> ();
-//				//				if (/*this.path != sourcePath && */sourcePath != null) {
-//				//					string sourcePathName = sourcePath.name;
-//				//					foreach (string dsName in dataSetNames) {
-//				//						dataSetDisplayNames.Add (sourcePathName + ":" + dsName);
-//				//					}
-//				//				} else {
-//				dataSetDisplayNames.AddRange (dataSetNames);
-//				//				}
-//				
-//				// Find selected index
-//				int selectedDsIndex = dataSetIds.IndexOf (selectedDsId);
-//
-//				EditorGUI.BeginChangeCheck ();
-//				selectedDsIndex = EditorGUILayout.Popup ("Data Set", selectedDsIndex, dataSetDisplayNames.ToArray ());
-//				if (EditorGUI.EndChangeCheck ()) {
-//					Undo.RecordObject (path, "Change Source Path Data Set");
-//					
-//					selectedDsId = dataSetIds [selectedDsIndex];
-//					dataSetSource = dataSetSource.WithDataSetId (selectedDsId);
-//					path.SetDataSetInputSource (pathData, dataSetSource);
-//					pathChanged = true;
-//
-//				}
-//				// Source path is self?
-//				//
-//				//
-//				// SNAPSHOT selection:
-//				
-//				EditorGUILayout.BeginHorizontal ();
-//				
-//				bool fromSnapshot = dataSetSource.IsFromSnapshot ();
-//				
-//				EditorGUI.BeginChangeCheck ();
-//				fromSnapshot = EditorGUILayout.Toggle ("From Snapshot", fromSnapshot, GUILayout.ExpandWidth (false));
-//				if (EditorGUI.EndChangeCheck ()) {
-//					Undo.RecordObject (path, "Changed Source DataSet/Snapshot");
-//					
-//					dataSetSource = path.SetDataSetInputSource (pathData, dataSetSource.WithFromSnapshot (fromSnapshot));
-//					
-//					pathChanged = true;
-//				}
-//				
-//				string snapshotName = dataSetSource.GetSnapshotName ();
-//				// TODO currently we have no easy way to find available snapshots - they are created 
-//				// when path modifiers of the source dataset are ran
-//				EditorGUI.BeginDisabledGroup (!fromSnapshot);
-//				EditorGUI.BeginChangeCheck ();
-//				snapshotName = GUILayout.TextField (snapshotName);
-//				if (EditorGUI.EndChangeCheck ()) {
-//					Undo.RecordObject (path, "Change Source DataSet/Snapshot");
-//					dataSetSource = path.SetDataSetInputSource (pathData, dataSetSource.WithSnapshotName (snapshotName));
-//					
-//					pathChanged = true;
-//				}
-//				EditorGUI.EndDisabledGroup ();
-//				EditorGUILayout.EndHorizontal ();
-//				
-//				//
-//			}
-//			EditorGUI.indentLevel--;
-//			
-//			if (pathChanged) {
-//				EditorUtility.SetDirty (path);
-//				// TODO should we notify the path?
-//				//				path.PathPointsChanged ();
-//			}
-//		}
 	}
-
-	// TODO refactor this class; it's getting too complex
     
 }

@@ -19,17 +19,6 @@ namespace Tracks
 
 		string GetEditorPref (string key, string defaultValue);
 
-
-		/// <summary>
-		///  Show the custom inspector GUI for this TrackGenerator.
-		/// Return true if generator configuration was changed.
-		/// </summary>
-		/// <param name="trackInspector">Track inspector.</param>
-		//void DrawInspectorGUI (TrackInspector trackInspector);
-
-		//TrackSlice CreateSlice(Vector3 center, Quaternion sliceRotation);
-
-
 		TrackSlice[] CreateSlices (Track track);
 
 		TrackSlice[] CreateSlices (Track track, bool repeatFirstInLoop);
@@ -89,18 +78,6 @@ namespace Tracks
 			customResolution = store.GetInt ("customResolution", customResolution);
 			previousMeshAssetPath = store.GetString ("previousMeshAssetPath", previousMeshAssetPath);
 
-
-
-			// Path Modifiers:
-			// prefix.PathModifier[0];
-			//store.GetStringArray("pathModifiers");
-
-			//ParameterStore modifierStore = new ParameterStore(store, "");
-			//pathModiferInstance.LoadParameters(modifierStore);
-
-
-
-
 			ParameterStore eps = new ParameterStore (store, "editor");
 			string[] editorParams = eps.FindParametersStartingWith ("");
 			this.editorPrefs.Clear ();
@@ -152,8 +129,6 @@ namespace Tracks
 		}
     
 		protected abstract TrackSlice CreateSlice (Vector3 center, Quaternion sliceRotation);
-
-		//public abstract TrackSlice[] CreateSlices(Path path, bool repeatFirstInLoop);
 
 
 

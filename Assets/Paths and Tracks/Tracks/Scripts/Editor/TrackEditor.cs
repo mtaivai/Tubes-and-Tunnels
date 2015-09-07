@@ -196,9 +196,9 @@ namespace Tracks.Editor
 
 				//IPathData pathData = new TrackPathData (track);
 
-				PathWithDataId pathWithId = track.PrimaryDataSource.PathData;
+				PathSelector pathSelector = track.PrimaryDataSource.PathSelector;
 				//IPathData pathData = pathWithId.PathData;
-				Path path = pathWithId.Path;
+				Path path = pathSelector.Path;
 
 				TrackPathDataWrapper pathDataWrapper = new TrackPathDataWrapper (track);
 
@@ -278,11 +278,19 @@ namespace Tracks.Editor
 		public void DrawDefaultGeneralInspectorSheet ()
 		{
 
-			PathWithDataId dataId = track.PrimaryDataSource.PathData;
-			if (PathEditorUtil.DrawPathDataSelection (ref dataId)) {
-				track.PrimaryDataSource.PathData = dataId;
-				EditorUtility.SetDirty (track);
+			SerializedProperty pathDataProperty = serializedObject.FindProperty ("primaryDataSource.pathSelector");
+			EditorGUI.BeginChangeCheck ();
+			EditorGUILayout.PropertyField (pathDataProperty);
+			if (EditorGUI.EndChangeCheck ()) {
+				// Just make the data source to refersh its state:
+				track.PrimaryDataSource.UpdatePathSelectorState ();
 			}
+
+//			PathSelector dataId = track.PrimaryDataSource.PathSelector;
+//			if (PathEditorUtil.DrawPathDataSelection (ref dataId)) {
+//				track.PrimaryDataSource.PathSelector = dataId;
+//				EditorUtility.SetDirty (track);
+//			}
 
 //			EditorGUI.BeginChangeCheck ();
 //			EditorGUILayout.PropertyField (pathProp, new GUIContent ("Path"));

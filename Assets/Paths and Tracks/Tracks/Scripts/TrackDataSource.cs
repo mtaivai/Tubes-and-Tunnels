@@ -60,8 +60,11 @@ namespace Tracks
 		public event TrackDataChangedHandler DataChanged;
 
 		[SerializeField]
-		private PathWithDataId
-			pathData = new PathWithDataId ();
+		private PathSelector
+			pathSelector = new PathSelector ();
+
+		// Don't serialize: (see notes on setter of PathData property)
+		private PathSelector _previousKnownPathSelector = null;
 
 		[SerializeField]
 		TrackDataCache
@@ -83,13 +86,14 @@ namespace Tracks
 //		}
 		public TrackDataSource (Track track)
 		{
-			this.getPathModifierContainerFunc = track.GetPathModifierContainer;
 		}
 
 		public void OnEnable (Track track)
 		{
+			// HACK: first unregister listeners to make sure that we have only one listener!
 			this.DoUnregisterPathChangedListeners ();
 			this.DoRegisterPathChangedListeners ();
+			this.getPathModifierContainerFunc = track.GetPathModifierContainer;
 		}
 		public void OnDisable (Track track)
 		{
@@ -141,32 +145,48 @@ namespace Tracks
 
 		public override string ToString ()
 		{
-			return string.Format ("[TrackDataSource: pathData={0}]", pathData);
+//			UpdatePathSelectorState();
+			return string.Format ("[TrackDataSource: pathData={0}]", pathSelector);
 		}
 
-		public PathWithDataId PathData {
+		public PathSelector PathSelector {
 			get {
-				return pathData;
+				UpdatePathSelectorState ();
+				return pathSelector;
 			}
 			set {
-				PathWithDataId prevDataId = this.pathData;
+				PathSelector prevState = this.pathSelector;
 				bool succeeded = false;
 				try {
-					if (this.pathData != value) {
-						DoUnregisterPathChangedListeners ();
-
-						this.pathData = value;
-
-						DoRegisterPathChangedListeners ();
-
-						InvalidateUnprocessedData ();
+					if (this.pathSelector != value) {
+						this.pathSelector = new PathSelector (value);
+						UpdatePathSelectorState ();
 						succeeded = true;
 					}
 				} finally {
 					if (!succeeded) {
-						this.pathData = prevDataId;
+						this.pathSelector = prevState;
 					}
 				}
+			}
+		}
+
+		public void UpdatePathSelectorState ()
+		{
+			if (_previousKnownPathSelector != this.pathSelector) {
+				if (null != _previousKnownPathSelector) {
+					DoUnregisterPathChangedListeners (_previousKnownPathSelector);
+				}
+
+				// Store the known PathWithDataId so that we know if it has
+				// been manipulated since last set here. Although PathWithDataId objects
+				// are immutable, some editors may still directly manipulate their
+				// fields and we need to have a mechanism to detect such manipulations.
+				this._previousKnownPathSelector = new PathSelector (this.pathSelector);
+				
+				DoRegisterPathChangedListeners ();
+				
+				InvalidateUnprocessedData ();
 			}
 		}
 
@@ -176,17 +196,20 @@ namespace Tracks
 //		}
 		public PathPoint[] UnprocessedPoints {
 			get {
-				return unprocessedDataCache.GetPointsAndValidate (pathData.GetPathPoints);
+				UpdatePathSelectorState ();
+				return unprocessedDataCache.GetPointsAndValidate (pathSelector.GetPathPoints);
 			}
 		}
 		public int UnprocessedFlags {
 			get {
-				return unprocessedDataCache.GetFlagsAndValidate (pathData.GetPathPoints);
+				UpdatePathSelectorState ();
+				return unprocessedDataCache.GetFlagsAndValidate (pathSelector.GetPathPoints);
 			}
 		}
 		public PathPoint[] GetUnprocessedPoints (out int flags)
 		{
-			PathPoint[] points = unprocessedDataCache.GetPointsAndValidate (pathData.GetPathPoints);
+			UpdatePathSelectorState ();
+			PathPoint[] points = unprocessedDataCache.GetPointsAndValidate (pathSelector.GetPathPoints);
 			flags = unprocessedDataCache.Flags;
 			return (unprocessedDataCache.Valid) ? points : null;
 		}
@@ -211,7 +234,7 @@ namespace Tracks
 					flags = unprocessedFlags;
 
 				} else {
-					IPathData data = pathData.PathData;
+					IPathData data = pathSelector.PathData;
 					if (null == data) {
 						// TODO should we log an error?
 						processedPoints = null;
@@ -231,6 +254,7 @@ namespace Tracks
 
 		public PathPoint[] GetProcessedPoints (out int flags)
 		{
+			UpdatePathSelectorState ();
 			PathPoint[] points = processedDataCache.GetPointsAndValidate (ProcessPoints);
 			flags = processedDataCache.Flags;
 			return (processedDataCache.Valid) ? points : null;
@@ -253,6 +277,7 @@ namespace Tracks
 
 		public void InvalidateUnprocessedData (bool fireEvents = true)
 		{
+			UpdatePathSelectorState ();
 			bool wasValid = unprocessedDataCache.Valid;
 			unprocessedDataCache.Invalidate ();
 			if (fireEvents && wasValid) {
@@ -264,6 +289,7 @@ namespace Tracks
 
 		public void InvalidateProcessedData (bool fireEvents = true)
 		{
+			UpdatePathSelectorState ();
 			bool wasValid = processedDataCache.Valid;
 			processedDataCache.Invalidate ();
 			if (fireEvents && wasValid) {
@@ -282,7 +308,7 @@ namespace Tracks
 		{
 			//          Debug.Log ("Registering PathChangedEventHandler on '" + path + "': " + this.gameObject.name);
 			PathChangedEventHandler d = PathChanged;
-			Path path = pathData.Path;
+			Path path = pathSelector.Path;
 			if (null != path) {
 				path.Changed -= d;
 				path.Changed += d;
@@ -292,21 +318,28 @@ namespace Tracks
 		private void DoUnregisterPathChangedListeners ()
 		{
 			//          Debug.Log ("Unregistering PathChangedEventHandler on '" + path + "': " + this.gameObject.name);
-			Path path = pathData.Path;
-			if (null != path) {
-				path.Changed -= PathChanged;
+			DoUnregisterPathChangedListeners (pathSelector);
+		}
+		private void DoUnregisterPathChangedListeners (PathSelector pathSelector)
+		{
+			//          Debug.Log ("Unregistering PathChangedEventHandler on '" + path + "': " + this.gameObject.name);
+			if (null != pathSelector) {
+				Path path = pathSelector.Path;
+				if (null != path) {
+					path.Changed -= PathChanged;
+				}
 			}
 		}
 
 		// Receives PathChangedEvent from one of our configured Path instances
-		private void PathChanged (PathChangedEvent e)
+		private void PathChanged (object sender, PathChangedEvent e)
 		{
 			//NewPath path = (NewPath)sender;
-			Debug.Log (ToString () + ": received PathChangdEvent: " + e);
+			Debug.LogFormat ("{0} received PathChangedEvent from {1}: {2}", this, sender, e);
 			// Ignore snapshot specifications in comparision:
-			if (pathData.WithoutSnapshot () == e.ChangedData.WithoutSnapshot ()) {
+			if (pathSelector.WithoutSnapshot () == e.ChangedData.WithoutSnapshot ()) {
 				// Our data has changed
-				Debug.Log (ToString () + ": path data has changed: " + e.ChangedData);
+				Debug.LogFormat ("{0}: my path data has changed: {1}", this, e.ChangedData);
 
 				InvalidateUnprocessedData (true);
 //				InvalidateProcessedData(true);
@@ -317,115 +350,5 @@ namespace Tracks
 
 	}
 
-	[Serializable]
-	public class TrackDataCache
-	{
-		[SerializeField]
-		private PathPoint[]
-			points;
-		
-		[SerializeField]
-		private int
-			flags;
-		
-		
-		public TrackDataCache ()
-		{
-			
-		}
-		
-		public PathPoint[] Points {
-			get {
-				return this.points;
-			}
-			set {
-				this.points = value;
-			}
-		}
-		
-		public int Flags {
-			get {
-				return this.flags;
-			}
-			set {
-				this.flags = value;
-			}
-		}
-		
-		
-		public bool Valid {
-			get {
-				return null != points;
-			}
-			set {
-				if (value == false) {
-					Invalidate ();
-				}
-			}
-		}
-		
-		public void Invalidate ()
-		{
-			this.points = null;
-			this.flags = 0;
-		}
-		
-		public delegate PathPoint[] GetPointsAndFlagsDelegate (out int flags);
-		
-		public PathPoint[] GetPointsAndValidate (GetPointsAndFlagsDelegate getPointsAndFlagsFunc)
-		{
-			if (!Valid) {
-				points = getPointsAndFlagsFunc (out flags);
-				if (null != points) {
-					Valid = true;
-				}
-			}
-			return points;
-		}
-		public PathPoint[] GetPointsAndValidate (Func<PathPoint[]> getPointsFunc)
-		{
-			if (!Valid) {
-				// Our GetPointsAndValidate function also fetches flags:
-				points = getPointsFunc ();
-				Valid = (null != points);
-			}
-			return points;
-		}
-		public int GetFlagsAndValidate (GetPointsAndFlagsDelegate getPointsAndFlagsFunc)
-		{
-			if (!Valid) {
-				// Our GetPointsAndValidate function also fetches flags:
-				GetPointsAndValidate (getPointsAndFlagsFunc);
-			}
-			return flags;
-		}
-		public int GetFlagsAndValidate (Func<int> getFlagsFunc)
-		{
-			if (!Valid) {
-				// Our GetPointsAndValidate function also fetches flags:
-				flags = getFlagsFunc ();
-				Valid = true;
-			}
-			return flags;
-		}
-		//
-		//		public PathPoint[] GetPointsAndValidate(Func<PathPoint[]> fetchPointsFunc) {
-		//			if (!Valid) {
-		//				points = fetchPointsFunc();
-		//				if (null != points) {
-		//					Valid = true;
-		//				}
-		//			}
-		//			return points;
-		//		}
-		//		public PathPoint[] GetFlagsAndValidate(Func<int> fetchFlagsFunc) {
-		//			if (!Valid) {
-		//				flags = fetchFlagsFunc();
-		//				Valid = true;
-		//			}
-		//			return flags;
-		//		}
-		
-	}
 
 }

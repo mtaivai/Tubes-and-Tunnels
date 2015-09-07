@@ -1,12 +1,17 @@
 using UnityEngine;
+using UnityEditor;
 using System.Collections;
 using System.Collections.Generic;
 
 using Paths;
+
+
 public class PathFlyer : MonoBehaviour
 {
 
-	public Path path;
+//	public Path path;
+	public PathSelector pathSelection;
+
 	public float speed = 5.56f; // m/s = 20 km/h
 
 //	private PathPoint[] pathPoints;
@@ -19,7 +24,7 @@ public class PathFlyer : MonoBehaviour
 
 	public float cacheHitRatio = 0.0f;
 
-	List<Vector3> flyPath = new List<Vector3> ();
+	//List<Vector3> flyPath = new List<Vector3> ();
 
 	// Use this for initialization
 	void Start ()
@@ -28,15 +33,15 @@ public class PathFlyer : MonoBehaviour
 //		pathPoints = pathData.GetAllPoints ();
 		currentDistance = 0.0f;
 //		totalDistance = pathData.GetTotalDistance ();
-		ppLookup = new PathPositionLookup (path);
+		ppLookup = new PathPositionLookup (pathSelection.PathData);
 	}
 
 	void OnDrawGizmos ()
 	{
-		for (int i = 1; i < flyPath.Count; i++) {
-
-			Gizmos.DrawLine (flyPath [i - 1], flyPath [i]);
-		}
+//		for (int i = 1; i < flyPath.Count; i++) {
+//
+//			Gizmos.DrawLine (flyPath [i - 1], flyPath [i]);
+//		}
 	}
 	
 	void FixedUpdate ()
@@ -59,8 +64,9 @@ public class PathFlyer : MonoBehaviour
 		int hitCount = ppLookup.GetLookupCount () - ppLookup.GetCacheMissCount ();
 		this.cacheHitRatio = (float)hitCount / (float)ppLookup.GetLookupCount () * 100.0f;
 
+		Path path = pathSelection.Path;
 		transform.position = path.transform.TransformPoint (pp.Position);
-		flyPath.Add (transform.position);
+		//flyPath.Add (transform.position);
 
 		Quaternion rot = transform.rotation;
 		rot.SetLookRotation (pp.Direction);
@@ -93,7 +99,8 @@ public class PathFlyer : MonoBehaviour
 
 	public class PathPositionLookup
 	{
-		private Path path;
+//		private PathWithDataId pathSelection;
+		private IPathData pathData;
 		private long currentStatusToken;
 		private int[] previousIndexLookup = null;
 		private int stepsPerPoint = 10; // With 10 steps per point we get accuracy of over 95 %
@@ -104,9 +111,9 @@ public class PathFlyer : MonoBehaviour
 		private int cacheMissCount = 0;
 		private int lookupCount = 0;
 
-		public PathPositionLookup (Path path)
+		public PathPositionLookup (IPathData pathData)
 		{
-			this.path = path;
+			this.pathData = pathData;
 		}
 		public int GetLookupCount ()
 		{
@@ -129,7 +136,6 @@ public class PathFlyer : MonoBehaviour
 
 		public PathPoint[] GetPathPoints ()
 		{
-			IPathData pathData = path.GetDefaultDataSet ();
 			if (null == _pathPoints || pathData.GetStatusToken () != currentStatusToken) {
 				_pathPoints = pathData.GetAllPoints ();
 				// TODO generate required components!
@@ -269,7 +275,6 @@ public class PathFlyer : MonoBehaviour
 
 		public int LookupPreviuosPointIndex (float t)
 		{
-			IPathData pathData = path.GetDefaultDataSet ();
 			if (null == previousIndexLookup || pathData.GetStatusToken () != currentStatusToken) {
 				DoBuilLookUpTable ();
 				currentStatusToken = pathData.GetStatusToken ();

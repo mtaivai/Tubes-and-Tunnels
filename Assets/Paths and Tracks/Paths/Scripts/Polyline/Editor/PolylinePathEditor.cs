@@ -41,7 +41,7 @@ namespace Paths.Polyline.Editor
 	}
 
 	[CustomEditor(typeof(PolylinePath))]
-	public class PolylinePathEditor : AbstractPathEditor<PolylinePath, PolylinePath.PolylinePathData>
+	public class PolylinePathEditor : AbstractPathEditor<PolylinePath, PolylinePathData>
 	{
 
 		private GUIStyle labelStyle;
@@ -62,9 +62,9 @@ namespace Paths.Polyline.Editor
 			labelStyle.normal.textColor = Color.white;
 		}
 
-		PolylinePath.PolylinePathData GetPathData ()
+		PolylinePathData GetPathData ()
 		{
-			return (PolylinePath.PolylinePathData)pathData;
+			return (PolylinePathData)pathData;
 		}
     
 

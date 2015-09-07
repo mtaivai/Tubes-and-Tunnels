@@ -34,277 +34,6 @@ namespace Paths
 		bool IsLoop ();
 	}
 
-	[System.Serializable]
-	public class PathWithDataId
-	{
-
-		[SerializeField]
-		private Path
-			path;
-
-		[SerializeField]
-		private int
-			dataSetId; // 0 == default
-
-		[SerializeField]
-		private bool
-			useSnapshot;
-
-		[SerializeField]
-		private string
-			snapshotName;
-
-		public PathWithDataId (Path path, int dataSetId, bool useSnapshot, string snapshotName)
-		{
-			this.path = path;
-			this.dataSetId = dataSetId;
-			this.useSnapshot = useSnapshot;
-			this.snapshotName = snapshotName;
-		}
-		public PathWithDataId (Path path, int dataSetId, string snapshotName) : this(path, dataSetId, true, snapshotName)
-		{
-			
-		}
-
-		public PathWithDataId (Path path, int dataSetId) : this(path, dataSetId, false, "")
-		{
-			
-		}
-
-		public PathWithDataId (Path path) : this(path, 0)
-		{
-			
-		}
-		public PathWithDataId () : this(null)
-		{
-			
-		}
-
-
-		public Path Path { get { return this.path; } }
-		public int DataSetId { get { return this.dataSetId; } }
-
-		public int ActualDataSetId {
-			get {
-				if (null != path && dataSetId == 0) {
-					// Default id; dereference:
-					return path.GetDefaultDataSetId ();
-				} else {
-					return dataSetId;
-				}
-			}
-		}
-
-		public bool UseSnapshot { get { return this.useSnapshot; } }
-		public string SnapshotName { get { return this.snapshotName; } }
-
-		public IPathData PathData {
-			get {
-				return (null != path) ? path.FindDataSetById (dataSetId) : null;
-			}
-		}
-
-
-		public PathPoint[] PathPoints {
-			get {
-				PathPoint[] points = DoGetPathPoints ();
-				return (null != points) ? points : new PathPoint[0];
-			}
-		}
-
-		public int PathOutputFlags {
-			get {
-				return DoGetOutputFlags ();
-			}
-		}
-		public bool HasValidData {
-			get {
-				// TODO 
-				PathPoint[] points;
-				int flags;
-				return DoGetPathPoints (false, out points, false, out flags, true);
-			}
-		}
-
-		public PathPoint[] GetPathPoints (out int flags)
-		{
-			PathPoint[] points;
-			DoGetPathPoints (out points, out flags);
-			return points;
-		}
-
-		private void DoGetPathPoints (out PathPoint[] points, out int flags)
-		{
-			DoGetPathPoints (true, out points, true, out flags);
-		}
-
-		private PathPoint[] DoGetPathPoints ()
-		{
-			PathPoint[] points;
-			int flags;
-			DoGetPathPoints (true, out points, false, out flags);
-			return points;
-		}
-		private int DoGetOutputFlags ()
-		{
-			PathPoint[] points;
-			int flags;
-			DoGetPathPoints (false, out points, true, out flags);
-			return flags;
-		}
-		private bool DoGetPathPoints (bool getPoints, out PathPoint[] points, bool getFlags, out int flags, bool supressWarnings = false)
-		{
-			bool gotData = false;
-			IPathData data = PathData;
-			if (null != data) {
-				if (useSnapshot) {
-					IPathSnapshotManager ssm = data.GetPathSnapshotManager ();
-					if (null != ssm && ssm.SupportsSnapshots ()) {
-						if (ssm.ContainsSnapshot (snapshotName)) {
-							if (getPoints && getFlags) {
-								PathDataSnapshot ss = ssm.GetSnapshot (snapshotName);
-								points = ss.Points;
-								flags = ss.Flags;
-							} else if (getPoints) {
-								points = ssm.GetSnapshotPoints (snapshotName);
-								flags = 0;
-							} else if (getFlags) {
-								points = null;
-								flags = ssm.GetSnapshotPointFlags (snapshotName);
-							} else {
-								points = null;
-								flags = 0;
-							}
-							gotData = true;
-
-						} else {
-							// Snapshot not found
-							if (!supressWarnings) {
-								Debug.LogWarning ("Snapshot not found: " + ToString ());
-							}
-							points = null;
-							flags = 0;
-						}
-					} else {
-						// Data doesn't support snapshots
-						if (!supressWarnings) {
-							Debug.LogWarning ("PathData doesn't support snapshots: " + ToString ());
-						}
-						points = null;
-						flags = 0;
-					}
-				} else {
-					points = getPoints ? data.GetAllPoints () : null;
-					flags = getFlags ? data.GetOutputFlags () : 0;
-					gotData = true;
-				}
-			} else {
-				if (!supressWarnings) {
-					Debug.LogWarning ("Data not available: " + ToString ());
-				}
-				points = null;
-				flags = 0;
-			}
-			return gotData;
-		}
-
-
-		public override String ToString ()
-		{
-			return ToString (path, PathData, useSnapshot, snapshotName);
-		}
-		public static String ToString (Path path, IPathData pathData)
-		{
-			return ToString (path, pathData, false, "");
-		}
-
-		public static String ToString (Path path, IPathData pathData, bool useSnapshot, string snapshotName)
-		{
-			string s;
-			if (null == path) {
-				s = "(none)";
-			} else {
-				s = path.name;
-				if (null != pathData) {
-					s += ":" + pathData.GetName ();
-				} else {
-					s += ":(none)";
-				}
-				if (useSnapshot) {
-					s += "; snapshot='" + snapshotName + "'";
-				}
-			}
-			return s;
-		}
-		public PathWithDataId WithPath (Path value)
-		{
-			return new PathWithDataId (value, dataSetId, useSnapshot, snapshotName);
-		}
-		public PathWithDataId WithDataSetId (int value)
-		{
-			return new PathWithDataId (path, value, useSnapshot, snapshotName);
-		}
-		public PathWithDataId WithUseSnapshot (bool value)
-		{
-			return new PathWithDataId (path, dataSetId, value, snapshotName);
-		}
-		public PathWithDataId WithSnapshot ()
-		{
-			return WithUseSnapshot (true);
-		}
-		public PathWithDataId WithoutSnapshot ()
-		{
-			return WithUseSnapshot (false);
-		}
-		public PathWithDataId WithSnapshotName (string value)
-		{
-			return new PathWithDataId (path, dataSetId, useSnapshot, value);
-		}
-		public override bool Equals (System.Object obj)
-		{
-			PathWithDataId that = obj as PathWithDataId;
-			return this == that;
-		}
-
-
-		public override int GetHashCode ()
-		{
-			unchecked {
-				int hash = (path != null ? path.GetHashCode () : 0) ^ ActualDataSetId.GetHashCode () ^ useSnapshot.GetHashCode ();
-				if (useSnapshot) {
-					hash ^= (snapshotName != null ? snapshotName.GetHashCode () : 0);
-				}
-				return hash;
-			}
-		}
-		
-
-		public static bool operator == (PathWithDataId a, PathWithDataId b)
-		{
-			if (ReferenceEquals (a, b)) {
-				return true;
-			} else if (ReferenceEquals (a, null)) {
-				// if 'a' is null, 'b' can't be null (see previous test)
-				return false;
-			} else {
-				if (!ReferenceEquals (a.path, b.path)) {
-					return false;
-				} else if (a.ActualDataSetId != b.ActualDataSetId) {
-					return false;
-				} else if (a.useSnapshot != b.useSnapshot) {
-					return false;
-				} else if (a.useSnapshot && a.snapshotName != b.snapshotName) {
-					return false;
-				} else {
-					return true;
-				}
-			}
-		}
-		public static bool operator != (PathWithDataId a, PathWithDataId b)
-		{
-			return ! (a == b);
-		}
-	}
 
 	public interface IPathData
 	{
@@ -537,7 +266,7 @@ namespace Paths
 				try {
 					PathChangedEvent ev = new PathChangedEvent (PathChangedEvent.EventReason.DataChanged, path, this);
 					Debug.Log ("Firing PathChangedEvent: " + ev);
-					pathChangedEventHandler (ev);
+					pathChangedEventHandler (this, ev);
 				} catch (Exception e) {
 					Debug.LogError ("Catched an exception from event handler: " + e);
 				}
@@ -566,10 +295,10 @@ namespace Paths
 //			this._cachedInputSourceObj = null;
 			
 			//				 Materialize PathModifiers
-			IPathModifierContainer pmc = GetPathModifierContainer ();
-			if (pmc is DefaultPathModifierContainer) {
-				((DefaultPathModifierContainer)pmc).LoadConfiguration ();
-			}
+//			IPathModifierContainer pmc = GetPathModifierContainer ();
+//			if (pmc is DefaultPathModifierContainer) {
+//				((DefaultPathModifierContainer)pmc).LoadConfiguration ();
+//			}
 		}
 
 		public int GetId ()
@@ -866,7 +595,7 @@ namespace Paths
 		public IPathModifierContainer GetPathModifierContainer ()
 		{
 			if (null == this.pathModifierContainer) {
-				this.pathModifierContainer = CreatePathModifierContainer ();
+				this.pathModifierContainer = CreatePathModifierContainer (true);
 			}
 			return this.pathModifierContainer;
 		}
@@ -893,13 +622,20 @@ namespace Paths
 		}
 
 
-		protected DefaultPathModifierContainer CreatePathModifierContainer ()
+		protected DefaultPathModifierContainer CreatePathModifierContainer (bool loadConfiguration)
 		{
 			DefaultPathModifierContainer pmc = new DefaultPathModifierContainer (
 				GetPathInfo,
 				DoGetPathPointsArray,
 				ApplyPointsToControlPoints,
-				() => path, GetPathSnapshotManager, () => parameterStore);
+				path.GetReferenceContainer, 
+				GetPathSnapshotManager, 
+				() => parameterStore);
+
+			if (loadConfiguration) {
+				pmc.LoadConfiguration ();
+			}
+
 			// TODO should parameterStore above be a child store with prefic "pathModifiers."?
 			pmc.PathModifiersChanged += new PathModifiersChangedHandler (PathModifiersChanged);
 			return pmc;
@@ -988,6 +724,15 @@ namespace Paths
 				}
 			}
 			return null != snapshot;
+		}
+
+		public string[] GetAvailableSnapshotNames ()
+		{
+			// TODO what if pathmodifiers haven't ran?
+			// TODO we should have persistent snapshots (that are persisted even after pm's are applied)
+			List<string> names = new List<string> ();
+			snapshots.ForEach ((ss) => names.Add (ss.Name));
+			return names.ToArray ();
 		}
 	}
 

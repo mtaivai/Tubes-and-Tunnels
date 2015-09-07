@@ -26,7 +26,7 @@ namespace Tracks.Editor
 		public TrackPathDataWrapper (Track track)
 		{
 			this.track = track;
-			this.sourcePathData = track.PrimaryDataSource.PathData.PathData;
+			this.sourcePathData = track.PrimaryDataSource.PathSelector.PathData;
 			initialOutputFlags = this.sourcePathData.GetOutputFlags ();
 		}
 		public IPathInfo GetPathInfo ()
