@@ -15,7 +15,7 @@ namespace Paths
         
 		private List<IPathModifier> pathModifiers = new List<IPathModifier> ();
 		private IReferenceContainer referenceContainer;
-		private ParameterStore paramterStore;
+		private ParameterStore parameterStore;
 
 		public SimplePathModifierContainer ()
 		{
@@ -81,6 +81,29 @@ namespace Paths
 		{
 			throw new NotImplementedException ();
 		}
+		public PathPoint[] xxxRunPathModifiers (PathModifierContext context, PathPoint[] pp, ref int flags)
+		{
+			throw new NotImplementedException ();
+		}
+		public bool HasMessages (PathModifierMessageType messageType)
+		{
+			return false;
+		}
+//
+//		public string[] GetCurrentErrors ()
+//		{
+//			throw new NotImplementedException ();
+//		}
+//
+		public bool HasMessages (PathModifierMessageType messageType, IPathModifier pm)
+		{
+			return false;
+		}
+
+		public string[] GetCurrentMessages (PathModifierMessageType messageType, IPathModifier pm)
+		{
+			throw new NotImplementedException ();
+		}
 	}
 
 	public class PathModifierContainerEvent : EventArgs
@@ -111,6 +134,9 @@ namespace Paths
 		private Func<IReferenceContainer> getReferenceContainer;
 		private Func<IPathSnapshotManager> getSnapshotManager;
 		private Func<ParameterStore> getParameterStore;
+
+		private Dictionary<PathModifierMessageType, Dictionary<int, List<string> >> currentMessages = new Dictionary<PathModifierMessageType, Dictionary<int, List<string> >> ();
+
 
 		public DefaultPathModifierContainer (Func<IPathInfo> getPathInfoFunc,
                                             DoGetPathPointsDelegate doGetPathPointsFunc,
@@ -162,14 +188,24 @@ namespace Paths
 			}
 		}
 
-		public PathPoint[] RunPathModifiers (PathModifierContext context, PathPoint[] pp, ref int flags)
-		{
-			return RunPathModifiers (context, pp, ref flags, true);
-		}
+//		public PathPoint[] xxxRunPathModifiers (PathModifierContext context, PathPoint[] pp, ref int flags)
+//		{
+//			return xxxRunPathModifiers (context, pp, ref flags, true);
+//		}
 
-		public PathPoint[] RunPathModifiers (PathModifierContext context, PathPoint[] pp, ref int flags, bool fixResultFlags)
+		public PathPoint[] xxxRunPathModifiers (PathModifierContext context, PathPoint[] pp, ref int flags)
 		{
-			return PathModifierUtil.RunPathModifiers (context, pp, false, ref flags, fixResultFlags);
+			// TODO we don't need the Context!
+
+			PathPoint[] points;
+			try {
+				points = DoRunPathModifiers (pp, false, ref flags, true);
+			} catch (Exception e) {
+				Debug.LogError ("PathModifier processing was aborted due to exception: " + e);
+				AddMessage (PathModifierMessageType.Error, "PathModifier processing was aborted due to exception: " + e.Message);
+				throw e;
+			}
+			return points;
 		}
 
 		public IPathModifier[] GetPathModifiers ()
@@ -222,10 +258,11 @@ namespace Paths
 			PathPoint[] pp = DoGetPathPoints (out flags);
 
 			// Create wrapper context that includes only the PathModifier to apply
-			IPathInfo pathInfo = GetPathInfo ();
+//			IPathInfo pathInfo = GetPathInfo ();
 
-			PathModifierContext subContext = new PathModifierContext (pathInfo, pmc, flags);
-			pp = PathModifierUtil.RunPathModifiers (subContext, pp, false, ref flags, true);
+//			PathModifierContext subContext = new PathModifierContext (pathInfo, pmc, flags);
+			pp = DoRunPathModifiers (pp, false, ref flags, true);
+			// TODO WHAT ABOUT POSSIBLE ERRORS???
 
 			// Convert to Control Points
 			SetPathPoints (pp);
@@ -255,6 +292,207 @@ namespace Paths
 			return getParameterStore ();
 		}
 
+		// TODO this could be public?
+//		private static PathPoint[] RunPathModifiers (PathModifierContext context, PathPoint[] _pathPoints, bool protectInputPoints, ref int flags, bool fixResultFlags) {
+//
+//		}
+
+		private PathPoint[] DoRunPathModifiers (PathPoint[] _pathPoints, bool protectInputPoints, ref int flags, bool fixResultFlags)
+		{
+			long startTicks = System.DateTime.Now.Ticks;
+			
+			PathPoint[] processedPoints;
+			
+			if (protectInputPoints) {
+				processedPoints = new PathPoint[_pathPoints.Length];
+				// We cant't just Array.Copy(...) the array because PathPoints are mutable and
+				// any changes would still reflect the input array. We need to clone each point
+				// as well...
+				//				Array.Copy (_pathPoints, processedPoints, processedPoints.Length);
+				int c = _pathPoints.Length;
+				for (int i = 0; i < c; i++) {
+					processedPoints [i] = new PathPoint (_pathPoints [i]);
+				}
+			} else {
+				processedPoints = _pathPoints;
+			}
+
+			// TODO need to get parameters from the caller?
+			Dictionary<string, object> parameters = new Dictionary<string, object> ();
+
+			this.currentMessages.Clear ();
+
+			bool processingAborted = false;
+			IPathModifier[] modifiers = GetPathModifiers ();
+			for (int pmIndex = 0; pmIndex < modifiers.Length; pmIndex++) {
+				if (processingAborted) {
+					break;
+				}
+				IPathModifier mod = modifiers [pmIndex];
+				if (!mod.IsEnabled ()) {
+					continue;
+				}
+				IPathInfo pathInfo = GetPathInfo ();
+
+				PathModifierContext pmc = new PathModifierContext (pathInfo, this, flags, parameters);
+				
+				// Timing:
+				
+				long thisStartTicks = System.DateTime.Now.Ticks;
+				
+				// Do run the path modifier
+				try {
+					processedPoints = mod.GetModifiedPoints (processedPoints, pmc);
+					pmc.Errors.ForEach ((msg) => AddMessage (PathModifierMessageType.Error, msg));
+					pmc.Warnings.ForEach ((msg) => AddMessage (PathModifierMessageType.Warning, msg));
+					pmc.Info.ForEach ((msg) => AddMessage (PathModifierMessageType.Info, msg));
+
+
+					if (fixResultFlags) {
+						bool gotNulls = false;
+						int outputFlags = mod.GetOutputFlags (pmc);
+						for (int i = 0; i < processedPoints.Length; i++) {
+							PathPoint pp = processedPoints [i];
+							if (null == pp) {
+								gotNulls = true;
+								processedPoints [i] = new PathPoint ();
+								//pathPoints [i].Flags = outputFlags;
+							} else {
+								if (pp.Flags != outputFlags) {
+									//								pathPoints [i].Flags = outputFlags;
+									outputFlags &= processedPoints [i].Flags;
+								}
+							}
+						}
+						flags = outputFlags;
+						if (gotNulls) {
+							// TODO add to context warnings!
+							Debug.LogWarning ("PathModifier " + PathModifierUtil.GetDisplayName (mod) + " (" + mod.GetType ().FullName + ") returned null point(s)");
+						}
+						
+					}
+					// input & (process | passthrough) | generate
+					flags = (flags & (mod.GetPassthroughFlags (pmc) | mod.GetProcessFlags (pmc))) | mod.GetGenerateFlags (pmc);
+					
+					long thisEndTicks = System.DateTime.Now.Ticks;
+					float thisDeltaTimeMs = (float)(thisEndTicks - thisStartTicks) / (float)System.TimeSpan.TicksPerMillisecond;
+
+					string infoMsg = string.Format ("Running Pathmodifier '{0}' took {1:f1} ms", PathModifierUtil.GetDisplayName (mod), thisDeltaTimeMs);
+					AddMessage (PathModifierMessageType.Info, pmIndex, infoMsg);
+					Debug.Log (infoMsg);
+				} catch (CircularPathReferenceException e) {
+					processingAborted = true;
+
+					string errorMsg = string.Format ("Circular Path cross reference was detected while running PathModifier \"{0}\"", PathModifierUtil.GetDisplayName (mod));
+					AddMessage (PathModifierMessageType.Error, pmIndex, errorMsg);
+
+					string logMsg = string.Format ("{0}; exception catched: {1} ", errorMsg, e);
+					Debug.LogError (logMsg);
+					continue;
+
+				} catch (Exception e) {
+					processingAborted = true;
+					
+					string errorMsg = string.Format ("An error occurred while processing PathModifier \"{0}\": {1}", PathModifierUtil.GetDisplayName (mod), e.Message);
+					AddMessage (PathModifierMessageType.Error, pmIndex, errorMsg);
+					
+					string logMsg = string.Format ("{0}; exception catched: {1} ", errorMsg, e);
+					Debug.LogError (logMsg);
+				}
+				
+				
+			}
+			if (processingAborted) {
+				Debug.LogError ("Processing of PathModifiers was aborted due to previous errors");
+				processedPoints = new PathPoint[0];
+				flags = 0;
+			}
+			
+			long endTicks = System.DateTime.Now.Ticks;
+			float deltaTimeMs = (float)(endTicks - startTicks) / (float)System.TimeSpan.TicksPerMillisecond;
+			Debug.Log ("Running " + modifiers.Length + " PathModifiers took " + deltaTimeMs + " ms");
+			
+			return processedPoints;
+		}
+		private void AddMessage (PathModifierMessageType messageType, string message)
+		{
+			AddMessage (messageType, -1, message);
+		}
+
+		private void AddMessage (PathModifierMessageType messageType, int pmIndex, string message)
+		{
+
+			if (pmIndex < 0) {
+				// Add error to ALL
+				IPathModifier[] modifiers = GetPathModifiers ();
+				for (int i = 0; i < modifiers.Length; i++) {
+					AddMessage (messageType, i, message);
+				}
+			} else {
+				if (!currentMessages.ContainsKey (messageType)) {
+					currentMessages [messageType] = new Dictionary<int, List<string>> ();
+				}
+				Dictionary<int, List<string>> idToMessages = currentMessages [messageType];
+
+				if (!idToMessages.ContainsKey (pmIndex)) {
+					idToMessages.Add (pmIndex, new List<string> ());
+				}
+				List<string> messages = idToMessages [pmIndex];
+				if (!messages.Contains (message)) {
+					messages.Add (message);
+				}
+			}
+		}
+
+		public bool HasMessages (PathModifierMessageType messageType)
+		{
+			if (currentMessages.ContainsKey (messageType)) {
+				Dictionary<int, List<string>> messages = currentMessages [messageType];
+				foreach (List<string> messageList in messages.Values) {
+					if (messageList.Count > 0) {
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+
+//		public string[] GetCurrentErrors ()
+//		{
+//			// Collect all errors
+//
+//			throw new NotImplementedException ();
+//		}
+//
+		public bool HasMessages (PathModifierMessageType messageType, IPathModifier pm)
+		{
+			if (currentMessages.ContainsKey (messageType)) {
+				Dictionary<int, List<string>> messages = currentMessages [messageType];
+				int index = IndexOf (pm);
+				if (messages.ContainsKey (index)) {
+					return messages [index].Count > 0;
+				} else {
+					return false;
+				}
+			} else {
+				return false;
+			}
+		}
+
+		public string[] GetCurrentMessages (PathModifierMessageType messageType, IPathModifier pm)
+		{
+			if (currentMessages.ContainsKey (messageType)) {
+				Dictionary<int, List<string>> messages = currentMessages [messageType];
+				int index = IndexOf (pm);
+				if (messages.ContainsKey (index)) {
+					return messages [index].ToArray ();
+				} else {
+					return new string[0];
+				}
+			} else {
+				return new string[0];
+			}
+		}
 	}
     
 }

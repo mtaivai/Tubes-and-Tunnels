@@ -91,6 +91,18 @@ namespace Paths
 		void DetachFromPath (Path path);
 	}
 
+	public class CircularPathReferenceException : Exception
+	{
+		public CircularPathReferenceException () : base()
+		{
+
+		}
+		public CircularPathReferenceException (string message) : base(message)
+		{
+			
+		}
+	}
+
 	// TODO rename to AbstractPathData
 	[Serializable]
 	public abstract class AbstractPathData : IPathData, IAttachableToPath, ISerializationCallbackReceiver, IPathSnapshotManager
@@ -168,16 +180,8 @@ namespace Paths
 
 		protected bool addLastPointToLoop = true;
 
-//		public AbstractPathData (int id) : this(null, id, "")
-//		{
-//		}
-//		public AbstractPathData (Path path, int id) : this(path, id, "")
-//		{
-//		}
 		protected AbstractPathData (int id, string name)
 		{
-			//SetPath (path);
-			//this.pathInternals = pathInternals;
 			this.id = id;
 			this.name = name;
 
@@ -493,8 +497,9 @@ namespace Paths
 			if (doRefresh && (null == this.pathPoints || this.pathPointsDirty)) {
 				
 				if (_inUpdatePathPoints) {
-					// TODO log error and throw better exception!
-					throw new Exception ("Recursive call to UpdatePathPoints detected. Circular path references?");
+					string msg = string.Format ("Recursive call to UpdatePathPoints in {0} detected. Circular path references?", this);
+					Debug.LogError (msg, path);
+					throw new CircularPathReferenceException (msg);
 				}
 				
 				try {
@@ -546,10 +551,14 @@ namespace Paths
 			IPathInfo pathInfo = GetPathInfo ();
 			IPathModifierContainer pmc = GetPathModifierContainer ();
 			PathPoint[] pp = inputPoints.ToArray ();
-			
-			pp = PathModifierUtil.RunPathModifiers (new PathModifierContext (
-				pathInfo, pmc, flags), pp, false, ref flags, true);
-			
+			 
+			PathModifierContext pmContext = new PathModifierContext (pathInfo, pmc, flags);
+			//pp = PathModifierUtil.RunPathModifiers (pmContext, pp, false, ref flags, true);
+			pp = pmc.xxxRunPathModifiers (pmContext, pp, ref flags);
+			if (pmContext.HasErrors) {
+				// TODO store errors!
+				Debug.LogError ("ERROROROROROROROROR");
+			}
 			
 			this.pathPointFlags = flags;
 			this.pathPoints = new List<PathPoint> (pp);

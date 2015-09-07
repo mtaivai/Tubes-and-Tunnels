@@ -187,10 +187,16 @@ namespace Paths
 					IPathSnapshotManager sm = data.GetPathSnapshotManager ();
 					if (!sm.SupportsSnapshots ()) {
 						// TODO add error to context
-						Debug.LogWarning ("Requested include of snapshot '" + includedPathSnapshotName + "' but dataset " + data.GetName () + " does not support snapshots");
+						string msg = string.Format ("Requested include of snapshot '{0}' but dataset '{1}' does not support snapshots", includedPathSnapshotName, data.GetName ());
+						context.Errors.Add (msg);
+						Debug.LogError (msg);
+
 						includedPoints = new PathPoint[0];
 					} else if (!sm.ContainsSnapshot (includedPathSnapshotName)) {
-						Debug.LogWarning ("Requested snapshot '" + includedPathSnapshotName + "' not found in dataset " + data.GetName ());
+						string msg = string.Format ("Requested snapshot '{0}' not found in dataset '{1}'", includedPathSnapshotName, data.GetName ());
+						context.Errors.Add (msg);
+						Debug.LogError (msg);
+
 						includedPoints = new PathPoint[0];
 					} else {
 						PathDataSnapshot ss = sm.GetSnapshot (includedPathSnapshotName);

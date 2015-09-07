@@ -37,6 +37,9 @@ namespace Paths.Editor
 		protected PathModifierEditorContext context;
 		protected TypedCustomToolEditorPrefs editorPrefs;
 
+		private bool messagesVisible = false;
+		private bool newMessages = false;
+
 		protected AbstractPathModifierEditor ()
 		{
 		}
@@ -153,7 +156,72 @@ namespace Paths.Editor
 			
 			IPathModifier pm = context.PathModifier;
 			IPathData pathData = context.PathData;
-			
+
+			PathModifierContext pmContext = context.PathModifierContext;
+
+			List<string> errors = pmContext.Errors;
+			List<string> warnings = pmContext.Warnings;
+			List<string> info = pmContext.Info;
+
+
+			string messagesLabel = "Messages";
+			string messagesInfo = "";
+			if (errors.Count > 0) {
+				messagesInfo += string.Format ("{0} Errors", errors.Count);
+			}
+			if (warnings.Count > 0) {
+				if (messagesInfo.Length > 0) {
+					messagesInfo += ", ";
+				}
+				messagesInfo += string.Format ("{0} Warnings", warnings.Count);
+			}
+			if (info.Count > 0) {
+				if (messagesInfo.Length > 0) {
+					messagesInfo += ", ";
+				}
+				messagesInfo += string.Format ("{0} Info", info.Count);
+			}
+			if (messagesInfo.Length > 0) {
+				messagesLabel += " (" + messagesInfo + ")";
+			}
+
+			if (messagesInfo.Length > 0) {
+				if (newMessages) {
+					messagesVisible = true;
+					newMessages = false;
+				}
+
+				EditorGUI.indentLevel++;
+				messagesVisible = EditorGUILayout.Foldout (messagesVisible, messagesLabel);
+				if (messagesVisible) {
+					if (errors.Count > 0) {
+
+						string errorsString = "";
+						foreach (string errorMsg in errors) {
+							errorsString += "\n- " + errorMsg;
+						}
+						EditorGUILayout.HelpBox ("*** ERROR ***: Processing of PathModifier was aborted due to error(s): " + errorsString, MessageType.Error, true);
+					}
+					if (warnings.Count > 0) {
+						
+						string warningsString = "";
+						foreach (string warningMsg in warnings) {
+							warningsString += "\n- " + warningMsg;
+						}
+						EditorGUILayout.HelpBox ("Warning: " + warningsString, MessageType.Warning, true);
+					}
+					if (info.Count > 0) {
+						
+						string infoString = "";
+						foreach (string msg in info) {
+							infoString += "\n- " + msg;
+						}
+						EditorGUILayout.HelpBox (infoString, MessageType.Info, true);
+					}
+				}
+				EditorGUI.indentLevel--;
+			}
+
 
 			EditorGUI.BeginChangeCheck ();
 			string displayName = PathModifierUtil.GetDisplayName (pm);
@@ -306,6 +374,7 @@ namespace Paths.Editor
 			IPathModifier pm = context.PathModifier;
 
 			bool notesVisible = editorPrefs.GetBool ("NotesEditing", false);
+			EditorGUI.indentLevel++;
 			notesVisible = EditorGUILayout.Foldout (notesVisible, "Notes");
 			editorPrefs.SetBool ("NotesEditing", notesVisible);
 			if (notesVisible) {
@@ -323,6 +392,7 @@ namespace Paths.Editor
 					EditorUtility.SetDirty (context.Target);
 				}
 			}
+			EditorGUI.indentLevel--;
 		}
 		protected virtual void DoDrawMasks (bool input, bool process, bool output)
 		{

@@ -171,6 +171,12 @@ namespace Paths
 	}
 
 
+	public enum PathModifierMessageType
+	{
+		Info,
+		Warning,
+		Error
+	}
 
 	public interface IPathModifierContainer
 	{
@@ -198,6 +204,15 @@ namespace Paths
 
 		//void SaveConfiguration ();
 		void ConfigurationChanged ();
+
+		PathPoint[] xxxRunPathModifiers (PathModifierContext context, PathPoint[] pp, ref int flags);
+
+//		bool HasErrors ();
+//		string[] GetCurrentErrors ();
+//
+		bool HasMessages (PathModifierMessageType messageType);
+		bool HasMessages (PathModifierMessageType messageType, IPathModifier pm);
+		string[] GetCurrentMessages (PathModifierMessageType messageType, IPathModifier pm);
 	}
 
 	public abstract class PathModifierInputFilter

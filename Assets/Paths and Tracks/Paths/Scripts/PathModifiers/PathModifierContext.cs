@@ -19,6 +19,10 @@ namespace Paths
 		private IPathInfo pathInfo;
 
 		private Dictionary<string, object> parameters = new Dictionary<string, object> ();
+
+		private List<string> info = new List<string> ();
+		private List<string> errors = new List<string> ();
+		private List<string> warnings = new List<string> ();
 //		private ParameterStore parameters;
 
 		public PathModifierContext (IPathInfo pathInfo, IPathModifierContainer pathModifierContainer, int inputFlags, Dictionary<string, object> parameters)
@@ -54,6 +58,37 @@ namespace Paths
 		public Dictionary<string, object> Parameters {
 			get {
 				return parameters;
+			}
+		}
+
+		public List<string> Errors {
+			get {
+				return errors;
+			}
+		}
+		public bool HasErrors {
+			get {
+				return errors.Count > 0;
+			}
+		}
+		public List<string> Warnings {
+			get {
+				return warnings;
+			}
+		}
+		public bool HasWarnings {
+			get {
+				return warnings.Count > 0;
+			}
+		}
+		public List<string> Info {
+			get {
+				return info;
+			}
+		}
+		public bool HasInfo {
+			get {
+				return info.Count > 0;
 			}
 		}
 	}

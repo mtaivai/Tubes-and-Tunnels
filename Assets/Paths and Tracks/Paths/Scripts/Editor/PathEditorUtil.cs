@@ -142,35 +142,36 @@ namespace Paths.Editor
 			editorParams.SetInt ("currentDataSetId", dataSetId);
 		}
 
-		public static bool DrawPathDataSelection (ref PathSelector dataId, params int[] excludedDataSetIds)
+		public static bool DrawPathDataSelection (ref PathSelector dataId, Action<string> setSnapshotNameCallback, params int[] excludedDataSetIds)
 		{
-			return DrawPathDataSelection (ref dataId, true, excludedDataSetIds);
-		}
-		public static bool DrawPathDataSelection (GUIContent label, ref PathSelector dataId, params int[] excludedDataSetIds)
-		{
-			return DrawPathDataSelection (label, ref dataId, true, excludedDataSetIds);
-		}
-		public static bool DrawPathDataSelection (string label, ref PathSelector dataId, params int[] excludedDataSetIds)
-		{
-			return DrawPathDataSelection (new GUIContent (label), ref dataId, true, excludedDataSetIds);
+			return DrawPathDataSelection (ref dataId, true, setSnapshotNameCallback, excludedDataSetIds);
 		}
 
-		public static bool DrawPathDataSelection (ref PathSelector dataId, bool showPathSelection, params int[] excludedDataSetIds)
+		public static bool DrawPathDataSelection (GUIContent label, ref PathSelector dataId, Action<string> setSnapshotNameCallback, params int[] excludedDataSetIds)
 		{
-			return DrawPathDataSelection (GUIContent.none, ref dataId, showPathSelection, excludedDataSetIds);
+			return DrawPathDataSelection (label, ref dataId, true, setSnapshotNameCallback, excludedDataSetIds);
 		}
-		public static bool DrawPathDataSelection (string label, ref PathSelector dataId, bool showPathSelection, params int[] excludedDataSetIds)
+		public static bool DrawPathDataSelection (string label, ref PathSelector dataId, Action<string> setSnapshotNameCallback, params int[] excludedDataSetIds)
 		{
-			return DrawPathDataSelection (new GUIContent (label), ref dataId, showPathSelection, excludedDataSetIds);
+			return DrawPathDataSelection (new GUIContent (label), ref dataId, true, setSnapshotNameCallback, excludedDataSetIds);
 		}
-		public static bool DrawPathDataSelection (GUIContent label, ref PathSelector dataId, bool showPathSelection, params int[] excludedDataSetIds)
+		public static bool DrawPathDataSelection (ref PathSelector dataId, bool showPathSelection, Action<string> setSnapshotNameCallback, params int[] excludedDataSetIds)
+		{
+			return DrawPathDataSelection (GUIContent.none, ref dataId, showPathSelection, setSnapshotNameCallback, excludedDataSetIds);
+		}
+		public static bool DrawPathDataSelection (string label, ref PathSelector dataId, bool showPathSelection, Action<string> setSnapshotNameCallback, params int[] excludedDataSetIds)
+		{
+			return DrawPathDataSelection (new GUIContent (label), ref dataId, showPathSelection, setSnapshotNameCallback, excludedDataSetIds);
+		}
+		public static bool DrawPathDataSelection (GUIContent label, ref PathSelector dataId, bool showPathSelection, Action<string> setSnapshotNameCallback, params int[] excludedDataSetIds)
 		{
 			float singleLineHeight = 16f;
 
 			Rect position = EditorGUILayout.GetControlRect (true, singleLineHeight * 3.0f);
 
 			EditorGUI.BeginChangeCheck ();
-			dataId = DoDrawPathSelector (position, singleLineHeight, label, dataId, (snapshotName) => {});
+
+			dataId = DoDrawPathSelector (position, singleLineHeight, label, dataId, setSnapshotNameCallback);
 			return EditorGUI.EndChangeCheck ();
 
 		}
@@ -258,9 +259,6 @@ namespace Paths.Editor
 				pathProperty.value = (Path)EditorGUI.ObjectField (pathRect, GUIContent.none, pathProperty.value, typeof(Path), true);
 			}
 				
-				
-			//		EditorGUI.PropertyField (dataSetIdRect, dataSetIdProperty, GUIContent.none);
-				
 			List<string> dataSetNames;
 			List<int> dataSetIds;
 			Path path = pathProperty.IsProperty () ? pathProperty.property.objectReferenceValue as Path : pathProperty.value;
@@ -323,12 +321,12 @@ namespace Paths.Editor
 					List<string> snapshotNames = new List<string> (ssm.GetAvailableSnapshotNames ());
 					int currentSnapshotIndex = snapshotNames.IndexOf (currentSnapshotName);
 						
-						
 					//GUI.SetNextControlName("snapshotNameProperty");
 					if (snapshotNameProperty.IsProperty ()) {
 						EditorGUI.PropertyField (snapshotNameRect, snapshotNameProperty.property, GUIContent.none);
 					} else {
 						currentSnapshotName = EditorGUI.TextField (snapshotNameRect, GUIContent.none, currentSnapshotName);
+						snapshotNameProperty.value = currentSnapshotName;
 					}						
 					EditorGUI.BeginDisabledGroup (snapshotNames.Count < 1);
 					if (GUI.Button (snapshotBrowseButtonRect, new GUIContent (""), EditorStyles.popup)) {

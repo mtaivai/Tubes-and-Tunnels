@@ -244,7 +244,13 @@ namespace Tracks
 						PathModifierContext context = new PathModifierContext (pathInfo, pmc, unprocessedFlags);
 
 						flags = unprocessedFlags;
-						processedPoints = PathModifierUtil.RunPathModifiers (context, unprocessedPoints, true, ref flags, true);
+						// We need to create a deep clone of unprocessedPoints because PathPoints are mutable:
+						PathPoint[] copyOfUnprocessedPoints = new PathPoint[unprocessedPoints.Length];
+						for (int i = 0; i < copyOfUnprocessedPoints.Length; i++) {
+							copyOfUnprocessedPoints [i] = new PathPoint (unprocessedPoints [i]);
+						}
+						processedPoints = pmc.xxxRunPathModifiers (context, copyOfUnprocessedPoints, ref flags);
+//						processedPoints = PathModifierUtil.RunPathModifiers (context, unprocessedPoints, true, ref flags, true);
 					}
 				}
 			}

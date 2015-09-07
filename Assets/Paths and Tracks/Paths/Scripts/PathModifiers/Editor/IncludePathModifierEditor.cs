@@ -207,6 +207,8 @@ namespace Paths.Editor
 	[CustomToolEditor(typeof(IncludePathModifier))]
 	public class IncludePathModifierEditor : AbstractPathModifierEditor
 	{
+		private string snapshotNameFromList = null;
+
 		public class PathSelectorContainer
 		{
 			public PathSelector pathSelector;
@@ -234,7 +236,20 @@ namespace Paths.Editor
 //			EditorGUILayout.PropertyField (prop);
 
 			PathSelector dataId = new PathSelector (includedPath, pm.includedPathDataSetId, pm.includedPathFromSnapshot, pm.includedPathSnapshotName);
-			if (PathEditorUtil.DrawPathDataSelection ("Included Path", ref dataId, true, excludedDataSetIds)) {
+
+			if (snapshotNameFromList != null) {
+				dataId = dataId.WithSnapshotName (snapshotNameFromList);
+				pm.includedPathSnapshotName = dataId.SnapshotName;
+				snapshotNameFromList = null;
+				context.TargetModified ();
+				EditorUtility.SetDirty (context.Path);
+			}
+
+			Action<string> setSnapshotNameCallback = (snapshotName) => {
+				snapshotNameFromList = snapshotName;
+			};
+
+			if (PathEditorUtil.DrawPathDataSelection ("Included Path", ref dataId, true, setSnapshotNameCallback, excludedDataSetIds)) {
 				// TODO RECORD UNDO
 				pm.SetIncludedPath (context.PathModifierContainer.GetReferenceContainer (), dataId.Path);
 

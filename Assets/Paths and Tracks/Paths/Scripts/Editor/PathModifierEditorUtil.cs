@@ -32,6 +32,10 @@ namespace Paths.Editor
 			PathModifierEditorContext context = new PathModifierEditorContext (
 				pathData, path, editor, modifiedCallback, prefs);
             
+//			if (pmc.HasErrors()) {
+//				context.
+//			}
+
 			DrawPathModifiersInspector (context, dirtyObject);
 		}
 
@@ -43,6 +47,11 @@ namespace Paths.Editor
 			IPathModifier[] pathModifiers = container.GetPathModifiers ();
 
 			IPathData pathData = context.PathData;
+
+			bool haveErrors = container.HasMessages (PathModifierMessageType.Error);
+
+
+			//container.HasErrors();
 
 			// TODO is prefs already prefixed????
 			PrefixCustomToolEditorPrefs editorPrefs = new PrefixCustomToolEditorPrefs (
@@ -81,25 +90,57 @@ namespace Paths.Editor
 			}
 
 			bool pathModifiersVisible = EditorGUILayout.Foldout (
-				editorPrefs.GetBool (".Visible", true), "Path Modifiers (" + enabledPathModifierCount + "/" + totalPathModifierCount + ")");
+				editorPrefs.GetBool (".Visible", true), "Path Modifiers (" + enabledPathModifierCount + "/" + totalPathModifierCount + ")" + (haveErrors ? " *** ERRORS ***" : ""));
 			if (EditorGUI.EndChangeCheck ()) {
 				editorPrefs.SetBool (".Visible", pathModifiersVisible);
                 
 			}
+			EditorGUI.indentLevel++;
+			EditorGUI.BeginChangeCheck ();
+			bool messagesVisible = EditorGUILayout.Foldout (
+				editorPrefs.GetBool (".MessagesVisible", true), "Messages" + (haveErrors ? " *** ERRORS ***" : ""));
+			if (EditorGUI.EndChangeCheck ()) {
+				editorPrefs.SetBool (".MessagesVisible", messagesVisible);
+			}
+			if (messagesVisible) {
+				if (haveErrors) {
+					// Collect all errors
+					string errorsString = "Processing of PathModifier was aborted due to error(s): ";
+					foreach (IPathModifier pm in pathModifiers) {
+						foreach (string errorMsg in container.GetCurrentMessages(PathModifierMessageType.Error, pm)) {
+							errorsString += "\n- " + errorMsg;
+						}
+					}
+					EditorGUILayout.HelpBox (errorsString, MessageType.Error);
+				}
+			}
+			EditorGUI.indentLevel--;
 
 			Dictionary<string, object> pmParams = new Dictionary<string,object> ();
 			if (pathModifiersVisible) {
 				EditorGUI.indentLevel++;
 				int currentInputFlags = pathData.GetOutputFlagsBeforeModifiers ();
 
-
+				bool hasPreviousErrors = false;
 				for (int i = 0; i < pathModifiers.Length; i++) {
 					IPathModifier pm = pathModifiers [i];
+
+					bool thisHasErrors = container.HasMessages (PathModifierMessageType.Error, pm);
+					if (thisHasErrors) {
+						haveErrors = true;
+					}
+					bool thisHasWarnings = container.HasMessages (PathModifierMessageType.Warning, pm);
+					bool thisHasInfo = container.HasMessages (PathModifierMessageType.Info, pm);
 
 					IPathInfo pathInfo = pathData.GetPathInfo ();
 
 					PathModifierContext pmc = 
 						new PathModifierContext (pathInfo, container, currentInputFlags, pmParams);
+
+					pmc.Errors.AddRange (container.GetCurrentMessages (PathModifierMessageType.Error, pm));
+					pmc.Warnings.AddRange (container.GetCurrentMessages (PathModifierMessageType.Warning, pm));
+					pmc.Info.AddRange (container.GetCurrentMessages (PathModifierMessageType.Info, pm));
+
 
 					if (pm.IsEnabled ()) {
 						// TODO could we use pm.GetOutputFlags(pmc) in here?
@@ -111,7 +152,10 @@ namespace Paths.Editor
 					PathModifierEditorContext pmec = new PathModifierEditorContext (
 						context.PathData, pmc, pm, context.Path, context.EditorHost, context.TargetModified, pmEditorPrefs);
 
-					DoDrawPathModifierInspector (pmec);
+					DoDrawPathModifierInspector (pmec, hasPreviousErrors);
+					if (thisHasErrors) {
+						hasPreviousErrors = true;
+					}
 
 					// Add known context parameter names:
 					string[] knownContextParams = pm.GetProducedContextParameters ();
@@ -176,7 +220,7 @@ namespace Paths.Editor
 			EditorGUILayout.Separator ();
 		}
 
-		static void DoDrawPathModifierInspector (PathModifierEditorContext context)
+		static void DoDrawPathModifierInspector (PathModifierEditorContext context, bool skippedDueToErrors)
 		{
 			IPathModifier pm = context.PathModifier;
 			TypedCustomToolEditorPrefs prefs = context.EditorPrefs;
@@ -186,8 +230,15 @@ namespace Paths.Editor
 			}
 			string pmTitle = PathModifierUtil.GetDisplayName (pm);
 			if (!pm.IsEnabled ()) {
-				pmTitle += " (disabled)";
+				pmTitle += " [disabled]";
 			}
+
+			if (context.PathModifierContext.Errors.Count > 0) {
+				pmTitle += " [*** ERROR ***]";
+			} else if (skippedDueToErrors && pm.IsEnabled ()) {
+				pmTitle += " [*** skipped due to previous errors ***]";
+			}
+
 			bool itemVisible = EditorGUILayout.Foldout (prefs.GetBool ("Visible"), pmTitle);
 			prefs.SetBool ("Visible", itemVisible);
 			if (itemVisible) {
