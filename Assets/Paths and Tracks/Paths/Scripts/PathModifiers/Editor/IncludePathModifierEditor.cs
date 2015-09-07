@@ -285,6 +285,12 @@ namespace Paths.Editor
 				context.TargetModified ();
 			}
 
+			EditorGUI.BeginChangeCheck ();
+			pm.breakLoop = EditorGUILayout.Toggle ("Break Loop", pm.breakLoop);
+			if (EditorGUI.EndChangeCheck ()) {
+				// TODO record UNDO!
+				context.TargetModified ();
+			}
 
 
 			EditorGUI.BeginChangeCheck ();

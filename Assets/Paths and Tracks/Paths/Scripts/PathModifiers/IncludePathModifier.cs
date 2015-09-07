@@ -34,6 +34,7 @@ namespace Paths
 		public string includedPathSnapshotName;
 		public int includePosition; // "include at index"
 		public bool removeDuplicates; // "smart include"
+		public bool breakLoop; // if the included path is looped, break the loop, i.e. remove last point of the included path
 		public bool alignFirstPoint; // align first point of the included path with the point in "includePositino"
 		public Vector3 includedPathPosOffset;
 
@@ -81,6 +82,7 @@ namespace Paths
 			_includedPointCount = 0;
 			_includedIndexOffset = 0;
 			removeDuplicates = true;
+			breakLoop = true;
 			alignFirstPoint = false;
 			includedPathPosOffset = Vector3.zero;
 			_currentIncludedPathPosOffset = includedPathPosOffset;
@@ -98,6 +100,7 @@ namespace Paths
 
 			store.Property ("includePosition", ref includePosition);
 			store.Property ("removeDuplicates", ref removeDuplicates);
+			store.Property ("breakLoop", ref breakLoop);
 			store.Property ("alignFirstPoint", ref alignFirstPoint);
 			store.Property ("includedPathPosOffset", ref includedPathPosOffset);
 		}
@@ -180,20 +183,22 @@ namespace Paths
 			int ppFlags = GetOutputFlags (context);
 
 			PathPoint[] includedPoints;
-			IPathData data = GetIncludedPathData (context.PathModifierContainer.GetReferenceContainer ());
-			if (null != data) {
+			IPathData includedData = GetIncludedPathData (context.PathModifierContainer.GetReferenceContainer ());
+			if (null != includedData) {
 				// TODO what about other than default path data sets?
 				if (includedPathFromSnapshot) {
-					IPathSnapshotManager sm = data.GetPathSnapshotManager ();
+					IPathSnapshotManager sm = includedData.GetPathSnapshotManager ();
 					if (!sm.SupportsSnapshots ()) {
 						// TODO add error to context
-						string msg = string.Format ("Requested include of snapshot '{0}' but dataset '{1}' does not support snapshots", includedPathSnapshotName, data.GetName ());
+						string msg = string.Format ("Requested include of snapshot '{0}' but dataset '{1}' does not support snapshots", 
+						                            includedPathSnapshotName, includedData.GetName ());
 						context.Errors.Add (msg);
 						Debug.LogError (msg);
 
 						includedPoints = new PathPoint[0];
 					} else if (!sm.ContainsSnapshot (includedPathSnapshotName)) {
-						string msg = string.Format ("Requested snapshot '{0}' not found in dataset '{1}'", includedPathSnapshotName, data.GetName ());
+						string msg = string.Format ("Requested snapshot '{0}' not found in dataset '{1}'", 
+						                            includedPathSnapshotName, includedData.GetName ());
 						context.Errors.Add (msg);
 						Debug.LogError (msg);
 
@@ -204,8 +209,8 @@ namespace Paths
 						ppFlags = ss.Flags;
 					}
 				} else {
-					includedPoints = data.GetAllPoints ();
-					ppFlags &= data.GetOutputFlags ();
+					includedPoints = includedData.GetAllPoints ();
+					ppFlags &= includedData.GetOutputFlags ();
 				}
 			} else {
 				// TODO log warning
@@ -218,6 +223,11 @@ namespace Paths
 			}
 
 			int includedPointCount = includedPoints.Length;
+
+			// TODO Snapshot can't be a loop?
+			if (breakLoop && includedPointCount > 1 && includedData.GetPathInfo ().IsLoop ()) {
+				includedPointCount --;
+			}
 
 			//int originalPathIncludePointCount;
 			int includedPointsOffset = 0;
