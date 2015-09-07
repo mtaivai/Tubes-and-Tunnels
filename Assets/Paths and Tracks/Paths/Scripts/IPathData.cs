@@ -277,7 +277,7 @@ namespace Paths
 
 				try {
 					PathChangedEvent ev = new PathChangedEvent (PathChangedEvent.EventReason.DataChanged, path, this);
-					Debug.Log ("Firing PathChangedEvent: " + ev);
+//					Debug.Log ("Firing PathChangedEvent: " + ev);
 					pathChangedEventHandler (this, ev);
 				} catch (Exception e) {
 					Debug.LogError ("Catched an exception from event handler: " + e);

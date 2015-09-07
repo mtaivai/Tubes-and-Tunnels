@@ -188,12 +188,12 @@ namespace Paths
 
 		protected void OnEnable ()
 		{
-			Debug.Log ("OnEnable");
+//			Debug.Log ("OnEnable");
 		}
 
 		protected void OnDisable ()
 		{
-			Debug.Log ("OnDisable");
+//			Debug.Log ("OnDisable");
 		}
 
 		protected virtual void OnDrawGizmos ()
@@ -251,7 +251,7 @@ namespace Paths
 		{
 			// TODO we need to get parameters!
 			if (null != Changed) {
-				Debug.Log ("Firing PathChangedEvent to " + Changed.GetInvocationList ().Length + " receivers: " + ev);
+//				Debug.Log ("Firing PathChangedEvent to " + Changed.GetInvocationList ().Length + " receivers: " + ev);
 				try {
 					Changed (this, ev);
 				} catch (Exception e) {
@@ -266,7 +266,7 @@ namespace Paths
 			Path changedPath = ev.ChangedData.Path;
 			IPathData changedData = ev.ChangedData.PathData;
 			
-			Debug.Log ("Path " + name + " received PathChangedEvent from " + changedPath.name + "; ChangedData='" + changedData.GetName () + "'");
+//			Debug.Log ("Path " + name + " received PathChangedEvent from " + changedPath.name + "; ChangedData='" + changedData.GetName () + "'");
 			
 			// Route the event to datasets with input from the changed dataset
 			
@@ -275,7 +275,7 @@ namespace Paths
 			List<IPathData> targetDataSets = GetDependedPathDataSets (changedPath, changedData);
 			// Notify our dependent target data sets about the modified data set:
 			foreach (IPathData targetData in targetDataSets) {
-				Debug.Log ("Marking data '" + targetData.GetName () + "' dirty");
+//				Debug.Log ("Marking data '" + targetData.GetName () + "' dirty");
 				MarkPathDataDirty (targetData);
 			}
 
@@ -285,10 +285,8 @@ namespace Paths
 				foreach (UnityEngine.Object pathObj in pathObjects) {
 					Path p = (Path)pathObj;
 					if (p != this) {
-						Debug.Log ("Path " + name + " sends PathDataChanged notification to Path " + p.name);
+//						Debug.Log ("Path " + name + " sends PathDataChanged notification to Path " + p.name);
 						p.PathDataChanged (this, ev);
-						//					List<IPathData> targetDataSets = GetDependedTargetPathDataSets (p, this, changedData);
-						//					p.PathDataChanged (ev);
 					}
 				}
 			

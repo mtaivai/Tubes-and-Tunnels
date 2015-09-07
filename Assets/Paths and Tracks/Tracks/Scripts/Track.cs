@@ -235,7 +235,7 @@ namespace Tracks
 		// Called from our DefaultPathModifierContainer when PathModifiers have changed (added/removed/edited)
 		private void PathModifiersChanged (PathModifierContainerEvent e)
 		{
-			Debug.LogFormat ("PathModifiersChanged: {0}", e);
+//			Debug.LogFormat ("PathModifiersChanged: {0}", e);
 			primaryDataSource.InvalidateProcessedData ();
 
 		}
@@ -243,7 +243,7 @@ namespace Tracks
 		private void OnDataSourceDataChanged (TrackDataChangedEventArgs e)
 		{
 			// TODO what if we're destroyed?
-			Debug.LogFormat ("OnDataSourceDataChanged: {0}", e);
+//			Debug.LogFormat ("OnDataSourceDataChanged: {0}", e);
 			if (e.Stage == TrackDataStage.Unprocessed) {
 				// Source data has changed
 				if (autoUpdateWithPath) {

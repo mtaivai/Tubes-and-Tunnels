@@ -410,7 +410,7 @@ namespace Paths
 			
 			long endTicks = System.DateTime.Now.Ticks;
 			float deltaTimeMs = (float)(endTicks - startTicks) / (float)System.TimeSpan.TicksPerMillisecond;
-			Debug.Log ("Running " + modifiers.Length + " PathModifiers took " + deltaTimeMs + " ms");
+//			Debug.Log ("Running " + modifiers.Length + " PathModifiers took " + deltaTimeMs + " ms");
 			
 			return processedPoints;
 		}

@@ -340,12 +340,11 @@ namespace Tracks
 		// Receives PathChangedEvent from one of our configured Path instances
 		private void PathChanged (object sender, PathChangedEvent e)
 		{
-			//NewPath path = (NewPath)sender;
-			Debug.LogFormat ("{0} received PathChangedEvent from {1}: {2}", this, sender, e);
+//			Debug.LogFormat ("{0} received PathChangedEvent from {1}: {2}", this, sender, e);
 			// Ignore snapshot specifications in comparision:
 			if (pathSelector.WithoutSnapshot () == e.ChangedData.WithoutSnapshot ()) {
 				// Our data has changed
-				Debug.LogFormat ("{0}: my path data has changed: {1}", this, e.ChangedData);
+//				Debug.LogFormat ("{0}: my path data has changed: {1}", this, e.ChangedData);
 
 				InvalidateUnprocessedData (true);
 //				InvalidateProcessedData(true);
