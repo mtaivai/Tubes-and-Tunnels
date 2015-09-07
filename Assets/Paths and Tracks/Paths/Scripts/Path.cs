@@ -176,9 +176,9 @@ namespace Paths
 			Debug.Log ("Resetting path");
 
 			IPathData defaultData = AddDataSet ();
+			nextDataSetColorIndex = 0;
 			SetDataSetName (defaultData, "Default");
 			
-			nextDataSetColorIndex = 0;
 			// NEVER reset the nextDataSetId!
 
 			editorSceneViewDataSetId = 0; // default
