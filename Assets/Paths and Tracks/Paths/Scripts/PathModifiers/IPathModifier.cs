@@ -780,7 +780,11 @@ namespace Paths
 
 		protected void AddContextParameter (string name, object value)
 		{
-			context.Parameters.Add (name, value);
+			if (context.Parameters.ContainsKey (name)) {
+				context.Parameters [name] = value;
+			} else {
+				context.Parameters.Add (name, value);
+			}
 			if (!producedContextParameters.Contains (name)) {
 				producedContextParameters.Add (name);
 			}
