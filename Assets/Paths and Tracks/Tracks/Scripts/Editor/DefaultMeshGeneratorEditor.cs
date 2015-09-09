@@ -12,8 +12,8 @@ using Paths.Editor;
 
 namespace Tracks.Editor
 {
-	[TrackGeneratorCustomEditor(typeof(TrackGenerator))]
-	public class DefaultTrackGeneratorEditor : AbstractTrackGeneratorEditor<TrackGenerator>
+	[MeshGeneratorCustomEditor(typeof(AbstractMeshGenerator))]
+	public class DefaultMeshGeneratorEditor : AbstractMeshGeneratorEditor<AbstractMeshGenerator>
 	{
 		//bool pathModifiersVisible = false;
 

@@ -19,7 +19,7 @@ namespace Tracks.Editor
 	/// the specified target type.
 	/// </summary>
 	[AttributeUsage(AttributeTargets.All)]
-	public sealed class TrackGeneratorCustomEditor : System.Attribute
+	public sealed class MeshGeneratorCustomEditor : System.Attribute
 	{
 		private Type inspectedType;
 
@@ -29,21 +29,21 @@ namespace Tracks.Editor
 			}
 		}
 
-		public TrackGeneratorCustomEditor (Type inspectedType)
+		public MeshGeneratorCustomEditor (Type inspectedType)
 		{
 			this.inspectedType = inspectedType;
 		}
 	}
 
-	public class TrackGeneratorEditorContext
+	public class MeshGeneratorEditorContext
 	{
-		private ITrackGenerator trackGenerator;
+		private IMeshGenerator meshGenerator;
 		private Track track;
 		private TrackEditor trackEditor;
 
-		public ITrackGenerator TrackGenerator {
+		public IMeshGenerator TrackGenerator {
 			get {
-				return trackGenerator;
+				return meshGenerator;
 			}
 		}
 
@@ -59,22 +59,22 @@ namespace Tracks.Editor
 			}
 		}
 
-		public TrackGeneratorEditorContext (ITrackGenerator tg, Track t, TrackEditor e)
+		public MeshGeneratorEditorContext (IMeshGenerator tg, Track t, TrackEditor e)
 		{
-			this.trackGenerator = tg;
+			this.meshGenerator = tg;
 			this.track = t;
 			this.trackEditor = e;
 		}
     
 	}
 
-	public interface ITrackGeneratorEditor
+	public interface IMeshGeneratorEditor
 	{
-		void OnEnable (TrackGeneratorEditorContext context);
+		void OnEnable (MeshGeneratorEditorContext context);
 
-		void DrawInspectorGUI (TrackGeneratorEditorContext context);
+		void DrawInspectorGUI (MeshGeneratorEditorContext context);
 
-		void DrawSceneGUI (TrackGeneratorEditorContext context);
+		void DrawSceneGUI (MeshGeneratorEditorContext context);
 	}
 
 }

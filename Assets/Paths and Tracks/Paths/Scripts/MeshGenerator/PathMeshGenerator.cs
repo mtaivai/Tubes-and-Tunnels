@@ -6,23 +6,37 @@ using System.Collections.Generic;
 using Util;
 using Paths;
 
-namespace Tracks
+namespace Paths.MeshGenerator
 {
 
-
-
-	// TODO rename / refactor this to PathMeshGenerator!
 	[ExecuteInEditMode]
-	public class Track : MonoBehaviour, ISerializationCallbackReceiver
+	public class PathMeshGenerator : MonoBehaviour, ISerializationCallbackReceiver
 	{
+		private class PathDataSourceContainer : IPathDataSourceContainer
+		{
+			private PathMeshGenerator parent;
+			public PathDataSourceContainer (PathMeshGenerator parent)
+			{
+				this.parent = parent;
+			}
+			public IReferenceContainer GetReferenceContainer ()
+			{
+				return parent.GetReferenceContainer ();
+			}
+			public ParameterStore GetParameterStore (PathDataSource ds)
+			{
+				return parent.ParameterStore.ChildWithPrefix ("DataSource[" + ds.Id + "]");
+			}
+		}
 
 				
 		[SerializeField]
 		private string
 			meshGeneratorType;
 				
-		// nonserialized
-		private IMeshGenerator _meshGeneratorInstance;
+		[NonSerialized]
+		private IMeshGenerator
+			_meshGeneratorInstance;
 				
 		[SerializeField]
 		private Mesh
@@ -30,11 +44,11 @@ namespace Tracks
 				
 		// nonserialized; only for editor / gizmos drawing!
 		// TODO do we really need this?
-		private TrackSlice[] _generatedSlices;
+//		private PathMeshSlice[] _generatedSlices;
 
 
 		[SerializeField]
-		private TrackDataSource
+		private PathDataSource
 			dataSource;
 
 		[SerializeField]
@@ -57,7 +71,7 @@ namespace Tracks
 		// don't serialize!
 		//private DefaultPathModifierContainer pathModifierContainer = null;
 
-		public Track ()
+		public PathMeshGenerator ()
 		{
 		}
 
@@ -84,8 +98,7 @@ namespace Tracks
 			}
 		}
 
-
-		public TrackDataSource DataSource {
+		public PathDataSource DataSource {
 			get {
 				return dataSource;
 			}
@@ -117,15 +130,15 @@ namespace Tracks
 				this.generatedMesh = value;
 			}
 		}
-		public TrackSlice[] GeneratedSlices {
-			get {
-				return _generatedSlices;
-			}
-			set {
-				// TODO should we clone the array?
-				this._generatedSlices = value;
-			}
-		}
+//		public PathMeshSlice[] GeneratedSlices {
+//			get {
+//				return _generatedSlices;
+//			}
+//			set {
+//				// TODO should we clone the array?
+//				this._generatedSlices = value;
+//			}
+//		}
 
 
 #endregion
@@ -240,16 +253,16 @@ namespace Tracks
 
 #region Event Handlers
 
-		private void OnDataSourceDataChanged (TrackDataChangedEventArgs e)
+		private void OnDataSourceDataChanged (PathDataChangedEventArgs e)
 		{
 			// TODO what if we're destroyed?
-			if (e.Stage == TrackDataStage.Unprocessed) {
+			if (e.Stage == PathDataStage.Unprocessed) {
 				// Source data has changed
 				if (autoUpdateWithPath) {
 					// Invalidate our processed data to trigger its reprocessing
 					e.DataSource.InvalidateProcessedData ();
 				}
-			} else if (e.Stage == TrackDataStage.Processed) {
+			} else if (e.Stage == PathDataStage.Processed) {
 				MarkSlicesDirty ();
 				if (autoUpdateMesh) {
 					// TODO How dow we know if this is Primary or Colliders?
@@ -298,9 +311,9 @@ namespace Tracks
 //			}
 //			return mgc;
 //		}
-		private static TrackDataSource CreateDataSource ()
+		private static PathDataSource CreateDataSource ()
 		{
-			TrackDataSource ds = new TrackDataSource (1);
+			PathDataSource ds = new PathDataSource (1);
 			ds.Name = "Default";
 			return ds;
 		}
@@ -312,13 +325,16 @@ namespace Tracks
 				BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, types, null);
 		}
 
-		private void AttachDataSource (TrackDataSource ds)
+
+
+		private void AttachDataSource (PathDataSource ds)
 		{
-			MethodInfo m = FindMethod (ds, "Attach", typeof(Track));
+
+			MethodInfo m = FindMethod (ds, "OnAttach", typeof(IPathDataSourceContainer));
 			if (null == m) {
-				Debug.LogWarning ("No lifecycle method Attach(Track) found on TrackDataSource: " + ds);
+				Debug.LogWarning ("No lifecycle method OnAttach(IPathDataSourceContainer) found on PathDataSource: " + ds);
 			} else {
-				m.Invoke (ds, new object[] {this});
+				m.Invoke (ds, new object[] {new PathDataSourceContainer (this)});
 
 				ds.DataChanged -= OnDataSourceDataChanged;
 				ds.DataChanged += OnDataSourceDataChanged;
@@ -326,13 +342,13 @@ namespace Tracks
 			}
 		}
 
-		private void DetachDataSource (TrackDataSource ds)
+		private void DetachDataSource (PathDataSource ds)
 		{
-			MethodInfo m = FindMethod (ds, "Detach", typeof(Track));
+			MethodInfo m = FindMethod (ds, "OnDetach", typeof(IPathDataSourceContainer));
 			if (null == m) {
-				Debug.LogWarning ("No lifecycle method Detach(Track) found on TrackDataSource: " + ds);
+				Debug.LogWarning ("No lifecycle method OnDetach(IPathDataSourceContainer) found on PathDataSource: " + ds);
 			} else {
-				m.Invoke (ds, new object[] {this});
+				m.Invoke (ds, new object[] {new PathDataSourceContainer (this)});
 
 				ds.DataChanged -= OnDataSourceDataChanged;
 
@@ -371,18 +387,18 @@ namespace Tracks
 
 
 
-		public TrackSlice[] GetTrackSlices ()
-		{
-			return null;
-//			MeshGeneratorContainer mgc = GetMeshGeneratorContainer (target, true);
-//			IMeshGenerator mg = mgc.MeshGeneratorInstance;
-//
-//			generatedSlices = mg.CreateSlices (MeshDataSource, false);
-//			}
-//			TrackSlice[] arr = new TrackSlice[generatedSlices.Length];
-//			Array.Copy (generatedSlices, arr, generatedSlices.Length);
-//			return arr;
-		}
+//		public PathMeshSlice[] GetTrackSlices ()
+//		{
+//			return null;
+////			MeshGeneratorContainer mgc = GetMeshGeneratorContainer (target, true);
+////			IMeshGenerator mg = mgc.MeshGeneratorInstance;
+////
+////			generatedSlices = mg.CreateSlices (MeshDataSource, false);
+////			}
+////			TrackSlice[] arr = new TrackSlice[generatedSlices.Length];
+////			Array.Copy (generatedSlices, arr, generatedSlices.Length);
+////			return arr;
+//		}
 
 		private void MarkSlicesDirty ()
 		{

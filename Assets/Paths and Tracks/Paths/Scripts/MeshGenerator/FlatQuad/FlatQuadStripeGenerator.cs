@@ -2,13 +2,12 @@ using UnityEngine;
 using UnityEditor;
 using Util;
 using Paths;
+using Paths.MeshGenerator;
+using Paths.MeshGenerator.SliceStrip;
 
-using Tracks;
-using Tracks.Tube;
-
-namespace Tracks.FlatQuad
+namespace Paths.MeshGenerator.FlatQuad
 {
-	public class FlatQuadTrackGenerator : TubeGenerator
+	public class FlatQuadStripeGenerator : AbstractSliceStripGenerator
 	{
 		private float width = 2.0f;
 
@@ -18,30 +17,23 @@ namespace Tracks.FlatQuad
 			}
 		}
 
-		public FlatQuadTrackGenerator () : base()
+		public FlatQuadStripeGenerator () : base()
 		{
 			SliceEdges = 1;
-			FacesDir = FaceDir.Up;
+			FacesDir = MeshFaceDir.Up;
 		}
 
-		public override int SliceEdges {
-			get {
-				return 1;
-			}
-			set {
-				base.SliceEdges = 1;
-			} 
-		}
 
-		public override void LoadParameters (ParameterStore store)
+
+		public override void OnLoadParameters (ParameterStore store)
 		{
-			//base.LoadParameters (store);
+			base.OnLoadParameters (store);
 			width = store.GetFloat ("width", width);
 		}
 
-		public override void SaveParameters (ParameterStore store)
+		public override void OnSaveParameters (ParameterStore store)
 		{
-			//base.SaveParameters (store);
+			base.OnSaveParameters (store);
 			store.SetFloat ("width", width);
 
 		}
@@ -57,26 +49,26 @@ namespace Tracks.FlatQuad
         }
     }*/
 
-		protected override TrackSlice CreateSlice (Vector3 center, Quaternion sliceRotation)
+		protected override SliceStripSlice CreateSlice (Vector3 center, Quaternion sliceRotation)
 		{
-			return new FlatQuadTrackSlice (center, sliceRotation, width);
+			return new FlatQuadStripeSlice (center, sliceRotation, width);
 		}
 
-		public override Mesh CreateMesh (TrackDataSource dataSource, Mesh mesh)
-		{
-//      return DoCreateMesh(path, mesh, 1, false, true, false);
-			DoCreateMesh (dataSource, mesh, false);
-			return mesh;
-		}
+//		public override Mesh CreateMesh (PathDataSource dataSource, Mesh mesh)
+//		{
+////      return DoCreateMesh(path, mesh, 1, false, true, false);
+//			DoCreateMesh (dataSource, mesh, false);
+//			return mesh;
+//		}
 
 
 	}
 
-	public class FlatQuadTrackSlice : TrackSlice
+	public class FlatQuadStripeSlice : SliceStripSlice
 	{
 		private Vector3[] points;
     
-		public FlatQuadTrackSlice (Vector3 center, Quaternion rotation, float width) 
+		public FlatQuadStripeSlice (Vector3 center, Quaternion rotation, float width) 
     : base(center, rotation)
 		{
         

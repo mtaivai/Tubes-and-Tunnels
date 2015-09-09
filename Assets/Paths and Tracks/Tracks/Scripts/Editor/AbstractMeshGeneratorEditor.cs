@@ -9,14 +9,14 @@ using Paths;
 
 namespace Tracks.Editor
 {
-	public abstract class AbstractTrackGeneratorEditor<T> : ITrackGeneratorEditor
+	public abstract class AbstractMeshGeneratorEditor<T> : IMeshGeneratorEditor
 	{
-		protected TrackGeneratorEditorContext editorContext;
+		protected MeshGeneratorEditorContext editorContext;
 		protected T target;
 		protected Track track;
 		protected TrackEditor trackInspector;
     
-		private void SetContext (TrackGeneratorEditorContext context)
+		private void SetContext (MeshGeneratorEditorContext context)
 		{
 			this.editorContext = context;
 			this.target = (T)context.TrackGenerator;
@@ -24,7 +24,7 @@ namespace Tracks.Editor
 			this.trackInspector = (TrackEditor)context.TrackEditor;
 		}
     
-		public void OnEnable (TrackGeneratorEditorContext context)
+		public void OnEnable (MeshGeneratorEditorContext context)
 		{
 			SetContext (context);
 			this.OnEnable ();
@@ -32,7 +32,7 @@ namespace Tracks.Editor
 
 		public abstract void OnEnable ();
 
-		public void DrawInspectorGUI (TrackGeneratorEditorContext context)
+		public void DrawInspectorGUI (MeshGeneratorEditorContext context)
 		{
 			SetContext (context);
 			this.DrawInspectorGUI ();
@@ -40,7 +40,7 @@ namespace Tracks.Editor
     
 		public abstract void DrawInspectorGUI ();
     
-		public void DrawSceneGUI (TrackGeneratorEditorContext context)
+		public void DrawSceneGUI (MeshGeneratorEditorContext context)
 		{
 			SetContext (context);
 			this.DrawSceneGUI ();

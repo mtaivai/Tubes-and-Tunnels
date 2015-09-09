@@ -9,7 +9,7 @@ using Paths;
 
 namespace Tracks
 {
-	public interface ITrackGenerator
+	public interface IMeshGenerator
 	{
 		void LoadParameters (ParameterStore store);
 
@@ -19,13 +19,13 @@ namespace Tracks
 
 		string GetEditorPref (string key, string defaultValue);
 
-		TrackSlice[] CreateSlices (Track track);
+		TrackSlice[] CreateSlices (TrackDataSource dataSource);
 
-		TrackSlice[] CreateSlices (Track track, bool repeatFirstInLoop);
+		TrackSlice[] CreateSlices (TrackDataSource dataSource, bool repeatFirstInLoop);
 
-		Mesh CreateMesh (Track track);
+		Mesh CreateMesh (TrackDataSource dataSource);
 
-		Mesh CreateMesh (Track track, Mesh mesh);
+		Mesh CreateMesh (TrackDataSource dataSource, Mesh mesh);
 
 		string GetSavedMeshAssetPath ();
 
@@ -34,8 +34,7 @@ namespace Tracks
 
 	}
 
-	// TODO rename to AbstractTrackGenerator?
-	public abstract class TrackGenerator : ITrackGenerator
+	public abstract class AbstractMeshGenerator : IMeshGenerator
 	{
 
 		private bool usePathResolution = true;
@@ -50,12 +49,12 @@ namespace Tracks
 		/// interface.
 		/// </summary>
 		/// <returns>An array of track generator types in no particular order.</returns>
-		public static Type[] FindTrackGeneratorTypes ()
+		public static Type[] FindMeshGeneratorTypes ()
 		{
-			return Util.TypeUtil.FindImplementingTypes (typeof(ITrackGenerator));
+			return Util.TypeUtil.FindImplementingTypes (typeof(IMeshGenerator));
 		}
 
-		public TrackGenerator ()
+		public AbstractMeshGenerator ()
 		{
 		}
 
@@ -78,7 +77,7 @@ namespace Tracks
 			customResolution = store.GetInt ("customResolution", customResolution);
 			previousMeshAssetPath = store.GetString ("previousMeshAssetPath", previousMeshAssetPath);
 
-			ParameterStore eps = new ParameterStore (store, "editor");
+			ParameterStore eps = store.ChildWithPrefix ("editor");
 			string[] editorParams = eps.FindParametersStartingWith ("");
 			this.editorPrefs.Clear ();
 			foreach (string n in editorParams) {
@@ -93,7 +92,7 @@ namespace Tracks
 			store.SetString ("previousMeshAssetPath", previousMeshAssetPath);
 
 
-			ParameterStore eps = new ParameterStore (store, "editor");
+			ParameterStore eps = store.ChildWithPrefix ("editor");
 			foreach (KeyValuePair<string, string> kvp in editorPrefs) {
 				eps.SetString (kvp.Key, kvp.Value);
 			}
@@ -123,33 +122,43 @@ namespace Tracks
 			this.previousMeshAssetPath = path;
 		}
 
-		public TrackSlice[] CreateSlices (Track track)
+		public TrackSlice[] CreateSlices (TrackDataSource dataSource)
 		{
-			return CreateSlices (track, false);
+			return CreateSlices (dataSource, false);
 		}
     
 		protected abstract TrackSlice CreateSlice (Vector3 center, Quaternion sliceRotation);
 
 
 
-		public TrackSlice[] CreateSlices (Track track, bool repeatFirstInLoop)
+		public TrackSlice[] CreateSlices (TrackDataSource dataSource, bool repeatFirstInLoop)
 		{
+			TrackSlice[] slices;
 			long startTime = System.DateTime.Now.Ticks / System.TimeSpan.TicksPerMillisecond;
         
 			// Create slices
 			//int slicesPerSgement = path.PointsPerSegment;
 
-			PathPoint[] points;
-
-			// TODO usePAthResolution is not used any longer!
-			int ppFlags;
-			if (usePathResolution) {
-				points = track.PrimaryDataSource.GetProcessedPoints (out ppFlags);
+			if (null == dataSource) {
+				Debug.LogError ("No Data Source configured; not creating any slices");
+				slices = new TrackSlice[0];
 			} else {
-				// TODO path should provide "lowres" and "highres" paths!
-				Debug.LogError ("Custom resolution is no longer supported");
-				return null;
-//          points = path.GetPathGenerator().GeneratePoints(customResolution);
+				slices = DoCreateSlices (dataSource, repeatFirstInLoop);
+			}
+
+			long endTime = System.DateTime.Now.Ticks / System.TimeSpan.TicksPerMillisecond;
+			
+			long deltaTime = endTime - startTime;
+			Debug.Log ("Creating " + slices.Length + " slices took " + deltaTime + " ms");
+
+			return slices;
+		}
+		private TrackSlice[] DoCreateSlices (TrackDataSource dataSource, bool repeatFirstInLoop)
+		{
+			int ppFlags;
+			PathPoint[] points = dataSource.GetProcessedPoints (out ppFlags);
+			if (null == points) {
+				throw new Exception ("No data available in data source: " + dataSource.PathSelector);
 			}
 
 			//Debug.Log ("dirs: " + directions.Length + "; pts: " + points.Length);
@@ -158,9 +167,9 @@ namespace Tracks
 			if (isLoop && !repeatFirstInLoop) {
 				sliceCount -= 1;
 			}
-        
+			
 			TrackSlice[] slices = new TrackSlice[sliceCount];
-        
+			
 			// TODO split long segments to shorter
 			bool usingGeneratedDirections = false;
 			//int lastIndex = points.Length - 1;
@@ -182,20 +191,20 @@ namespace Tracks
 						dir = Vector3.forward;
 					}
 				}
-
+				
 				Vector3 up;
 				if (PathPoint.IsUp (ppFlags) && points [i].HasUp) {
 					up = points [i].Up;
 				} else {
 					up = Vector3.up;
 				}
-
-            
+				
+				
 				//Quaternion sliceRot = Quaternion.LookRotation(dir);
-
+				
 				Quaternion sliceRot = Quaternion.LookRotation (dir, up);
 				//Quaternion sliceRot = Quaternion.FromToRotation(Vector3.forward, dir);
-            
+				
 				slices [i] = CreateSlice (pt0, sliceRot);
 			}
 			if (usingGeneratedDirections) {
@@ -204,22 +213,18 @@ namespace Tracks
 			if (isLoop && repeatFirstInLoop) {
 				slices [sliceCount - 1] = slices [0];
 			}
-			long endTime = System.DateTime.Now.Ticks / System.TimeSpan.TicksPerMillisecond;
-        
-			long deltaTime = endTime - startTime;
-			Debug.Log ("Creating " + slices.Length + " slices took " + deltaTime + " ms");
-        
-			return slices;
 
+			
+			return slices;
 		}
 
-		public Mesh CreateMesh (Track track)
+		public Mesh CreateMesh (TrackDataSource dataSource)
 		{
 			Mesh mesh = new Mesh ();
-			return CreateMesh (track, mesh);
+			return CreateMesh (dataSource, mesh);
 		}
 
-		public abstract Mesh CreateMesh (Track track, Mesh mesh);
+		public abstract Mesh CreateMesh (TrackDataSource dataSource, Mesh mesh);
 
 
 	}

@@ -12,18 +12,18 @@ using Util.Editor;
 using Paths;
 using Paths.Editor;
 
-namespace Tracks.Editor
+namespace Paths.MeshGenerator.Editor
 {
 
 	// TODO move this class outside this class!
 	// This is for PathModifierEditor drawing only, wraps the TrackDataSource's unprocessed data
-	internal class TrackPathDataWrapper : IPathData
+	internal class PathDataSourceWrapper : IPathData
 	{
 //		private Track track;
-		private TrackDataSource dataSource;
+		private PathDataSource dataSource;
 		private int initialOutputFlags;
 
-		public TrackPathDataWrapper (TrackDataSource ds)
+		public PathDataSourceWrapper (PathDataSource ds)
 		{
 			this.dataSource = ds;
 			initialOutputFlags = ds.PathSelector.HasValidData ? ds.PathSelector.PathData.GetOutputFlags () : 0;

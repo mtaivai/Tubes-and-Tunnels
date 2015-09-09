@@ -164,7 +164,7 @@ namespace Paths
 		
 		public ParameterStore EditorParameters {
 			get {
-				return new ParameterStore (this.parameterStore, "Editor.");
+				return this.parameterStore.ChildWithPrefix ("Editor");
 			}
 		}
 		#endregion Properties
@@ -213,7 +213,7 @@ namespace Paths
 		
 		public void OnBeforeSerialize ()
 		{
-			parameterStore.OnBeforeSerialize ();
+//			parameterStore.OnBeforeSerialize ();
 			// TODO should we call OnBeforeSerialize() for all data sets here?
 			OnBeforePathSerialize ();
 		}
@@ -223,7 +223,7 @@ namespace Paths
 		}
 		public void OnAfterDeserialize ()
 		{
-			parameterStore.OnAfterDeserialize ();
+//			parameterStore.OnAfterDeserialize ();
 			
 			int dsCount = GetDataSetCount ();
 			for (int i = 0; i < dsCount; i++) {

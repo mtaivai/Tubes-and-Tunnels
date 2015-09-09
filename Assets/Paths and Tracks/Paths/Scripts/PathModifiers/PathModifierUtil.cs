@@ -148,7 +148,7 @@ namespace Paths
 			for (int i = 0; i < pathModifiers.Count; i++) {
                 
 				IPathModifier pm = pathModifiers [i];
-				ParameterStore pmstore = new ParameterStore (parameterStore, "pathModifiers[" + i + "]");
+				ParameterStore pmstore = parameterStore.ChildWithPrefix ("pathModifiers[" + i + "]");
 				pmstore.SetString ("Type", pm.GetType ().FullName);
 				pm.SaveParameters (pmstore);
 			}
@@ -161,7 +161,7 @@ namespace Paths
 			int pmCount = parameterStore.GetInt ("pathModifiers.Count");
 //            Debug.Log("Materializing " + pmCount + " PathModifiers");
 			for (int i = 0; i < pmCount; i++) {
-				ParameterStore pmstore = new ParameterStore (parameterStore, "pathModifiers[" + i + "]");
+				ParameterStore pmstore = parameterStore.ChildWithPrefix ("pathModifiers[" + i + "]");
 				string pmTypeName = pmstore.GetString ("Type");
 				Type pmType = Type.GetType (pmTypeName);
 				if (null != pmType) {

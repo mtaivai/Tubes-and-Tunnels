@@ -34,6 +34,18 @@ namespace Paths
 		bool IsLoop ();
 	}
 
+	public sealed class EmptyPathInfo : IPathInfo
+	{
+		public static EmptyPathInfo Instance = new EmptyPathInfo ();
+		private EmptyPathInfo ()
+		{
+
+		}
+		public bool IsLoop ()
+		{
+			return false;
+		}
+	}
 
 	public interface IPathData
 	{
@@ -344,13 +356,13 @@ namespace Paths
 #endregion Serialization
 		public void OnBeforeSerialize ()
 		{
-			parameterStore.OnBeforeSerialize ();
+//			parameterStore.OnBeforeSerialize ();
 			// TODO should we save pathmodifiers in here????
 		}
 
 		public void OnAfterDeserialize ()
 		{
-			parameterStore.OnAfterDeserialize ();
+//			parameterStore.OnAfterDeserialize ();
 			
 //			this._cachedInputSourceObj = null;
 			

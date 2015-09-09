@@ -64,7 +64,7 @@ public class PathFlyer : MonoBehaviour
 		int hitCount = ppLookup.GetLookupCount () - ppLookup.GetCacheMissCount ();
 		this.cacheHitRatio = (float)hitCount / (float)ppLookup.GetLookupCount () * 100.0f;
 
-		Path path = pathSelection.Path;
+		Paths.Path path = pathSelection.Path;
 		transform.position = path.transform.TransformPoint (pp.Position);
 		//flyPath.Add (transform.position);
 

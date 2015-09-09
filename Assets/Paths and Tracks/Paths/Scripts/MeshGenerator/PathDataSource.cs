@@ -9,22 +9,23 @@ using System.Collections.Generic;
 using Util;
 using Paths;
 
-namespace Tracks
+namespace Paths.MeshGenerator
 {
-	public delegate void TrackDataChangedHandler (TrackDataChangedEventArgs e);
+	public delegate void PathDataChangedHandler (PathDataChangedEventArgs e);
 
-	public enum TrackDataStage
+	public enum PathDataStage
 	{
 		Processed,
 		Unprocessed
 	}
-	public class TrackDataChangedEventArgs : EventArgs
+
+	public class PathDataChangedEventArgs : EventArgs
 	{
 		private object source;
-		private TrackDataSource dataSource;
-		private TrackDataStage stage;
+		private PathDataSource dataSource;
+		private PathDataStage stage;
 		
-		public TrackDataChangedEventArgs (object source, TrackDataSource dataSource, TrackDataStage stage)
+		public PathDataChangedEventArgs (object source, PathDataSource dataSource, PathDataStage stage)
 		{
 			this.source = source;
 			this.dataSource = dataSource;
@@ -35,29 +36,34 @@ namespace Tracks
 				return source;
 			}
 		}
-		public TrackDataSource DataSource {
+		public PathDataSource DataSource {
 			get {
 				return dataSource;
 			}
 		}
-		public TrackDataStage Stage {
+		public PathDataStage Stage {
 			get {
 				return stage;
 			}
 		}
 		public override string ToString ()
 		{
-			return string.Format ("[TrackDataChangedEventArgs: source={0}, dataSource={1}, stage={2}, Source={3}, DataSource={4}, Stage={5}]", source, dataSource, stage, Source, DataSource, Stage);
+			return string.Format ("[PathDataChangedEventArgs: source={0}, dataSource={1}, stage={2}, Source={3}, DataSource={4}, Stage={5}]", source, dataSource, stage, Source, DataSource, Stage);
 		}
 		
 	}
 
+	public interface IPathDataSourceContainer
+	{
+		IReferenceContainer GetReferenceContainer ();
+		ParameterStore GetParameterStore (PathDataSource ds);
+	}
 
 	[Serializable]
-	public class TrackDataSource : ISerializationCallbackReceiver
+	public class PathDataSource : ISerializationCallbackReceiver
 	{
 
-		public event TrackDataChangedHandler DataChanged;
+		public event PathDataChangedHandler DataChanged;
 
 		[SerializeField]
 		private int
@@ -72,33 +78,42 @@ namespace Tracks
 			pathSelector = new PathSelector ();
 
 		// Don't serialize: (see notes on setter of PathData property)
-		private PathSelector _previousKnownPathSelector = null;
+		[NonSerialized]
+		private PathSelector
+			_previousKnownPathSelector = null;
 
 		[SerializeField]
-		TrackDataCache
-			processedDataCache = new TrackDataCache ();
+		PathDataCache
+			processedDataCache = new PathDataCache ();
 
 		[SerializeField]
-		TrackDataCache
-			unprocessedDataCache = new TrackDataCache ();
+		PathDataCache
+			unprocessedDataCache = new PathDataCache ();
 
 
 		// Don't serialize:
 //		private Func<IPathModifierContainer> getPathModifierContainerFunc;
-		private DefaultPathModifierContainer pathModifierContainer;
+		[NonSerialized]
+		private DefaultPathModifierContainer
+			pathModifierContainer;
 
-		private IReferenceContainer referenceContainer;
-		private ParameterStore parameterStore;
+		[NonSerialized]
+		private IReferenceContainer
+			referenceContainer;
 
-		public TrackDataSource (int id)
+		[NonSerialized]
+		private ParameterStore
+			parameterStore;
+
+		public PathDataSource (int id)
 		{
 			this.id = id;
 		}
 
-		void Attach (Track track)
+		void OnAttach (IPathDataSourceContainer container)
 		{
-			this.referenceContainer = track.GetReferenceContainer ();
-			this.parameterStore = track.ParameterStore.ChildWithPrefix ("DataSource[" + id + "]");
+			this.referenceContainer = container.GetReferenceContainer ();
+			this.parameterStore = container.GetParameterStore (this);
 
 			// HACK: first unregister listeners to make sure that we have only one listener!
 			this.DoUnregisterPathChangedListeners ();
@@ -106,13 +121,15 @@ namespace Tracks
 
 			if (null == pathModifierContainer) {
 				pathModifierContainer = CreatePathModifierContainer ();
+				pathModifierContainer.LoadConfiguration ();
 			}
 		}
 		// TODO rename to Detach?
-		void Detach (Track track)
+		void OnDetach (IPathDataSourceContainer container)
 		{
 			this.referenceContainer = null;
 			this.parameterStore = null;
+			this.pathModifierContainer = null;
 			this.DoUnregisterPathChangedListeners ();
 		}
 		public void OnBeforeSerialize ()
@@ -121,6 +138,12 @@ namespace Tracks
 		
 		public void OnAfterDeserialize ()
 		{
+			if (null == processedDataCache) {
+				processedDataCache = new PathDataCache ();
+			}
+			if (null == unprocessedDataCache) {
+				unprocessedDataCache = new PathDataCache ();
+			}
 			if (null != pathModifierContainer) {
 				this.pathModifierContainer.LoadConfiguration ();
 			}
@@ -162,7 +185,7 @@ namespace Tracks
 //		}
 		public override string ToString ()
 		{
-			return string.Format ("[TrackDataSource: id={0}, name={1}, pathSelector={2}]", id, name, pathSelector);
+			return string.Format ("[PathDataSource: id={0}, name={1}, pathSelector={2}]", id, name, pathSelector);
 		}
 		
 
@@ -186,7 +209,7 @@ namespace Tracks
 				return pathSelector;
 			}
 			set {
-				PathSelector prevState = this.pathSelector;
+//				PathSelector prevState = this.pathSelector;
 //				bool succeeded = false;
 				try {
 					if (this.pathSelector != value) {
@@ -219,8 +242,8 @@ namespace Tracks
 				
 				DoRegisterPathChangedListeners ();
 				
-				DoInvalidateData (TrackDataStage.Unprocessed);
-				DoInvalidateData (TrackDataStage.Processed);
+				DoInvalidateData (PathDataStage.Unprocessed);
+				DoInvalidateData (PathDataStage.Processed);
 			}
 		}
 
@@ -318,24 +341,24 @@ namespace Tracks
 		public void InvalidateProcessedData (bool fireEvents = true)
 		{
 			UpdatePathSelectorState ();
-			DoInvalidateData (TrackDataStage.Processed);
+			DoInvalidateData (PathDataStage.Processed);
 		}
 
 		public void InvalidateUnprocessedData (bool fireEvents = true)
 		{
 			UpdatePathSelectorState ();
-			DoInvalidateData (TrackDataStage.Unprocessed);
+			DoInvalidateData (PathDataStage.Unprocessed);
 		}
 		
-		private void DoInvalidateData (TrackDataStage stage, bool fireEvents = true)
+		private void DoInvalidateData (PathDataStage stage, bool fireEvents = true)
 		{
 			bool wasValid;
 			switch (stage) {
-			case TrackDataStage.Processed:
+			case PathDataStage.Processed:
 				wasValid = processedDataCache.Valid;
 				processedDataCache.Invalidate ();
 				break;
-			case TrackDataStage.Unprocessed:
+			case PathDataStage.Unprocessed:
 				wasValid = unprocessedDataCache.Valid;
 				unprocessedDataCache.Invalidate ();
 				break;
@@ -344,11 +367,11 @@ namespace Tracks
 				break;
 			}
 			if (fireEvents && wasValid) {
-				FireEvent (new TrackDataChangedEventArgs (this, this, stage));
+				FireEvent (new PathDataChangedEventArgs (this, this, stage));
 			}
 		}
 
-		private void FireEvent (TrackDataChangedEventArgs ev)
+		private void FireEvent (PathDataChangedEventArgs ev)
 		{
 			if (null != DataChanged) {
 				DataChanged (ev);

@@ -9,11 +9,11 @@ using System.Collections.Generic;
 using Util;
 using Paths;
 
-namespace Tracks
+namespace Paths.MeshGenerator
 {
 
 	[Serializable]
-	public class TrackDataCache
+	public class PathDataCache
 	{
 		[SerializeField]
 		private PathPoint[]
@@ -27,7 +27,7 @@ namespace Tracks
 		private bool
 			pointsValid;
 
-		public TrackDataCache ()
+		public PathDataCache ()
 		{
 			
 		}

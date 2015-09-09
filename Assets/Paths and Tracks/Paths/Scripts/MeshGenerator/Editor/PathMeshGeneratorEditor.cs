@@ -6,14 +6,14 @@ using System.Collections.Generic;
 
 using Util;
 using Util.Editor;
-using Paths;
 using Paths.Editor;
+using Paths.MeshGenerator;
 
-namespace Tracks.Editor
+namespace Paths.MeshGenerator.Editor
 {
 
-	[CustomEditor(typeof(Track))]
-	public class TrackEditor : UnityEditor.Editor
+	[CustomEditor(typeof(PathMeshGenerator))]
+	public class PathMeshGeneratorEditor : UnityEditor.Editor
 	{
 
 		private Type[] availableMeshGeneratorTypes;
@@ -27,17 +27,17 @@ namespace Tracks.Editor
 
 		TypedCustomToolEditorPrefs editorPrefs;
 
-		private Track track;
+		private PathMeshGenerator track;
 
 		bool dataSourceExpanded = false;
 
-		public TrackEditor ()
+		public PathMeshGeneratorEditor ()
 		{
 		}
 
 		void OnEnable ()
 		{
-			this.track = target as Track;
+			this.track = target as PathMeshGenerator;
 
 			this.editorPrefs = 
 				new PrefixCustomToolEditorPrefs (new ParameterStoreCustomToolEditorPrefs (track.ParameterStore), "Editor.");
@@ -61,7 +61,7 @@ namespace Tracks.Editor
 
 		public void TrackGeneratorModified ()
 		{
-			Track track = target as Track;
+			PathMeshGenerator track = target as PathMeshGenerator;
 			// TODO refactor the SetMeshDirty(). ... ConfigurationChanged --- PathModifiersChanged etc system
 			EditorUtility.SetDirty (track);
 			//SliceConfigurationChanged();
@@ -92,7 +92,7 @@ namespace Tracks.Editor
 
 		private int FindCurrentMeshGeneratorTypeIndex ()
 		{
-			Track track = target as Track;
+			PathMeshGenerator track = target as PathMeshGenerator;
         
 			// Find selected index
 			int selectedTgIndex = -1;
@@ -171,13 +171,13 @@ namespace Tracks.Editor
 
 		private void PathModifiersChanged ()
 		{
-			Track track = target as Track;
 			// TODO invalidate the processed data
 			//			track.ConfigurationChanged (false, true);
 
 //			track.GetPathModifierContainer ().ConfigurationChanged ();
+			track.DataSource.GetPathModifierContainer ().ConfigurationChanged ();
 
-			EditorUtility.SetDirty (track);
+			EditorUtility.SetDirty (target);
 			//			track.OnPathModifiersChanged ();
 		}
 
@@ -199,7 +199,7 @@ namespace Tracks.Editor
 
 		public void DrawDefaultInspectorGUI ()
 		{
-			this.track = target as Track;
+			this.track = target as PathMeshGenerator;
 
 
 			ToolbarSheet selectedSheet = (ToolbarSheet)editorPrefs.GetInt ("selectedSheet", (int)ToolbarSheet.General);
@@ -248,108 +248,11 @@ namespace Tracks.Editor
 		void DrawGeneralInspectorSheet ()
 		{
 			
-
-//			EditorGUI.BeginChangeCheck ();
-//			EditorGUILayout.PropertyField (primaryDataSouceProperty);
-//			if (EditorGUI.EndChangeCheck ()) {
-//				// Just make the data source to refersh its state:
-//				track.PrimaryDataSource.UpdatePathSelectorState ();
-//			}
-
-			
-			//			PathSelector dataId = track.PrimaryDataSource.PathSelector;
-			//			if (PathEditorUtil.DrawPathDataSelection (ref dataId)) {
-			//				track.PrimaryDataSource.PathSelector = dataId;
-			//				EditorUtility.SetDirty (track);
-			//			}
-			
-			//			EditorGUI.BeginChangeCheck ();
-			//			EditorGUILayout.PropertyField (pathProp, new GUIContent ("Path"));
-			//			if (EditorGUI.EndChangeCheck ()) {
-			//				track.ConfigurationChanged ();
-			//				EditorUtility.SetDirty (track);
-			//			}
-			
-			
-
 		}
-
-
-//		private bool DrawDataSourceSelectionGUI (ref int selectedId, ref bool configurationExpanded)
-//		{
-//			TrackDataSource[] dataSources = GetAvailableDataSources (track);
-//			List<string> dsNames = new List<string> ();
-//			List<int> dsIds = new List<int> ();
-//			// Add (none) with id 0
-//			dsNames.Add ("(none)");
-//			dsIds.Add (0);
-//			List<string> duplicateNames = new List<string> ();
-//			Array.ForEach (dataSources, (ds) => {
-//				string n = ds.Name;
-//				if (StringUtil.IsEmpty (n)) {
-//					n = "(no name)";
-//				}
-//				if (dsNames.Contains (n)) {
-//					duplicateNames.Add (n);
-//				}
-//				dsNames.Add (n);
-//				dsIds.Add (ds.Id);});
-//			// Add [id = n] suffix to names with duplicates:
-//			for (int i = 0; i < dsNames.Count; i++) {
-//				if (duplicateNames.Contains (dsNames [i])) {
-//					dsNames [i] += " [id = " + dsIds [i] + "]";
-//				}
-//				
-//			}
-//
-//			int prevSelectedId = selectedId;
-//			int selectedDsIndex = Mathf.Clamp (dsIds.IndexOf (selectedId), 0, dsNames.Count - 1);
-//			TrackDataSource selectedDs = selectedDsIndex > 0 ? dataSources [selectedDsIndex - 1] : null;
-//			selectedId = (null != selectedDs) ? selectedDs.Id : 0;
-//
-//
-////			int dsPoints = (null != selectedDs ) ? selectedDs.GetProcessedPointCount()
-//
-//			EditorGUI.BeginChangeCheck ();
-//			EditorGUILayout.BeginHorizontal ();
-//			selectedDsIndex = EditorGUILayout.Popup ("Selected Path Data Source", selectedDsIndex, dsNames.ToArray ());
-//			if (EditorGUI.EndChangeCheck ()) {
-//				// TODO record undo
-//				//					track.XXXDataSourceId = dsIds [selectedDsIndex];
-//				selectedDs = selectedDsIndex > 0 ? dataSources [selectedDsIndex - 1] : null;
-//				EditorUtility.SetDirty (track);
-//			}
-//			
-////			if (GUILayout.Button ("New...", EditorStyles.miniButton, GUILayout.ExpandWidth (false))) {
-////				// TODO record undo
-////				selectedDs = track.AddDataSource ();
-////				//					track.XXXDataSourceId = selectedDs.Id;
-////				dsNames.Add (selectedDs.Name);
-////				dsIds.Add (selectedDs.Id);
-////				selectedDsIndex = dsIds.Count - 1;
-////				configurationExpanded = true;
-////				EditorUtility.SetDirty (track);
-////				
-////			}
-//			EditorGUILayout.EndHorizontal ();
-//
-//			EditorGUI.BeginDisabledGroup (null == selectedDs);
-//			configurationExpanded = EditorGUILayout.Foldout (configurationExpanded, "Data Source Configuration");
-//
-//			if (configurationExpanded && null != selectedDs) {
-//				EditorGUI.indentLevel++;
-//				DrawDataSourceConfigurationGUI (selectedDs);
-//				EditorGUI.indentLevel--;
-//			}
-//			EditorGUI.EndDisabledGroup ();
-//
-//			selectedId = (null != selectedDs) ? selectedDs.Id : 0;
-//			return (selectedId != prevSelectedId);
-//		}
 
 		private void DrawDataSourceConfigurationGUI ()
 		{
-			TrackDataSource ds = track.DataSource;
+			PathDataSource ds = track.DataSource;
 			PathSelector pathSelector = ds.PathSelector;
 			if (PathEditorUtil.DrawPathDataSelection ("Path Selection", ref pathSelector, (snapshotName) => {
 				ds.PathSelector = ds.PathSelector.WithSnapshotName (snapshotName);})) {
@@ -360,7 +263,7 @@ namespace Tracks.Editor
 					
 
 			Path path = pathSelector.Path;
-			TrackPathDataWrapper pathDataWrapper = new TrackPathDataWrapper (ds);
+			PathDataSourceWrapper pathDataWrapper = new PathDataSourceWrapper (ds);
 			PathModifierEditorContext context = new PathModifierEditorContext (
 						pathDataWrapper, path, this, PathModifiersChanged, editorPrefs);
 			PathModifierEditorUtil.DrawPathModifiersInspector (context, track, 
@@ -611,7 +514,7 @@ namespace Tracks.Editor
 
 		void OnSceneGUI ()
 		{
-			this.track = target as Track;
+			this.track = target as PathMeshGenerator;
 			if (!track.isActiveAndEnabled) {
 				// TODO add a configuration parameter for this behaviour!
 				return;
@@ -647,9 +550,9 @@ namespace Tracks.Editor
 //
 //		}
 
-		private void DrawSlice (TrackSlice slice)
+		private void DrawSlice (SliceStrip.SliceStripSlice slice)
 		{
-			Track track = target as Track;
+			PathMeshGenerator track = target as PathMeshGenerator;
 			Transform transform = track.transform;
 
 			int slicePoints = slice.Points.Length;

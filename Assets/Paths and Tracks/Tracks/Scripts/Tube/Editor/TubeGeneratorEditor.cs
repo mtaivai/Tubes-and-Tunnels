@@ -11,8 +11,8 @@ using Tracks.Editor;
 
 namespace Tracks.Tube.Editor
 {
-	[TrackGeneratorCustomEditor(typeof(TubeGenerator))]
-	public class TubeGeneratorEditor : DefaultTrackGeneratorEditor
+	[MeshGeneratorCustomEditor(typeof(TubeGenerator))]
+	public class TubeGeneratorEditor : DefaultMeshGeneratorEditor
 	{
 
 		bool sliceConfigVisible = true;

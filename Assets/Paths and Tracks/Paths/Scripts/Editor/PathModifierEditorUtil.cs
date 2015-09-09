@@ -39,10 +39,8 @@ namespace Paths.Editor
 			DrawPathModifiersInspector (context, dirtyObject);
 		}
 
-		public static void DrawPathModifiersInspector (PathModifierEditorContext context, UnityEngine.Object dirtyObject)
+		public static void DrawPathModifiersInspector (PathModifierEditorContext context, UnityEngine.Object dirtyObject, Action headerAction = null)
 		{
-
-
 			IPathModifierContainer container = context.PathModifierContainer;
 			IPathModifier[] pathModifiers = container.GetPathModifiers ();
 
@@ -95,35 +93,55 @@ namespace Paths.Editor
 				editorPrefs.SetBool (".Visible", pathModifiersVisible);
                 
 			}
-			EditorGUI.indentLevel++;
-			EditorGUI.BeginChangeCheck ();
-			bool messagesVisible = EditorGUILayout.Foldout (
-				editorPrefs.GetBool (".MessagesVisible", true), "Messages" + (haveErrors ? " *** ERRORS ***" : ""));
-			if (EditorGUI.EndChangeCheck ()) {
-				editorPrefs.SetBool (".MessagesVisible", messagesVisible);
-			}
-			if (messagesVisible) {
-				if (haveErrors) {
-					// Collect all errors
-					string errorsString = "Processing of PathModifier was aborted due to error(s): ";
-					foreach (IPathModifier pm in pathModifiers) {
-						foreach (string errorMsg in container.GetCurrentMessages(PathModifierMessageType.Error, pm)) {
-							errorsString += "\n- " + errorMsg;
-						}
-					}
-					EditorGUILayout.HelpBox (errorsString, MessageType.Error);
-				}
-			}
-			EditorGUI.indentLevel--;
+
 
 			Dictionary<string, object> pmParams = new Dictionary<string,object> ();
 			if (pathModifiersVisible) {
 				EditorGUI.indentLevel++;
+
+				if (null != headerAction) {
+					headerAction ();
+				}
+//				EditorGUI.indentLevel++;
+
+				// TODO Foldout is bad GUI here
+				EditorGUI.BeginChangeCheck ();
+				bool messagesVisible = EditorGUILayout.Foldout (
+					editorPrefs.GetBool (".MessagesVisible", true), "Messages" + (haveErrors ? " *** ERRORS ***" : ""));
+				if (EditorGUI.EndChangeCheck ()) {
+					editorPrefs.SetBool (".MessagesVisible", messagesVisible);
+				}
+				if (messagesVisible) {
+					if (haveErrors) {
+						// Collect all errors
+						string errorsString = "Processing of PathModifier was aborted due to error(s): ";
+						foreach (IPathModifier pm in pathModifiers) {
+							foreach (string errorMsg in container.GetCurrentMessages(PathModifierMessageType.Error, pm)) {
+								errorsString += "\n- " + errorMsg;
+							}
+						}
+						EditorGUILayout.HelpBox (errorsString, MessageType.Error);
+					}
+				}
+//				EditorGUI.indentLevel--;
+
+				int combinedOutputFlags = CalculateCombinedOutputFlags (pathData, pmParams);
+				// TODO use RED if some flag is missing!
+				PathEditor.DrawPathPointMask ("Output Caps", combinedOutputFlags);
+
+
 				int currentInputFlags = pathData.GetOutputFlagsBeforeModifiers ();
 
 				bool hasPreviousErrors = false;
+
+				bool hasNewPathModifier = false;
+
+
 				for (int i = 0; i < pathModifiers.Length; i++) {
 					IPathModifier pm = pathModifiers [i];
+					if (pm is NewPathModifier) {
+						hasNewPathModifier = true;
+					}
 
 					bool thisHasErrors = container.HasMessages (PathModifierMessageType.Error, pm);
 					if (thisHasErrors) {
@@ -166,28 +184,46 @@ namespace Paths.Editor
 					}
 				}
 				EditorGUI.indentLevel--;
+
+				
+				if (!hasNewPathModifier) {
+					EditorGUILayout.BeginHorizontal ();
+					EditorGUILayout.LabelField ("");
+					if (GUILayout.Button ("Add New Path Modifier...", EditorStyles.miniButton, GUILayout.ExpandWidth (false))) {
+						// TODO don't add if we already have one!
+						// Add the "New" item:
+						container.AddPathModifer (new NewPathModifier ());
+						// Fetch new list of PathModifiers: (see #2)
+						pathModifiers = container.GetPathModifiers ();
+						
+						// The "new" item is visible by default
+						// TODO reimplement followin:
+						//					visibilityPrefs.SetBool (pathModifiers.Length, true);
+					}
+					EditorGUILayout.EndHorizontal ();
+				}
+				
+
 			}
-            
-			//if (GUILayout.Button("Add Path Modifier")) {
-			//  AddPathModifier();
-			//}
 
+//			EditorGUILayout.Separator ();
+		}
 
-
+		static int CalculateCombinedOutputFlags (IPathData pathData, Dictionary<string, object> pmParams)
+		{
 			// Calculate combined output of all PM's:
-			bool hasNewPathModifier = false;
+			IPathModifierContainer container = pathData.GetPathModifierContainer ();
+			IPathModifier[] pathModifiers = container.GetPathModifiers ();
+
 			int combinedOutputFlags = pathData.GetOutputFlags ();
-			pmParams = new Dictionary<string, object> ();
+
 			for (int i = 0; i < pathModifiers.Length; i++) {
 				IPathModifier pm = pathModifiers [i];
-				if (pm is NewPathModifier) {
-					hasNewPathModifier = true;
-					continue;
-				}
+
 				if (!pm.IsEnabled ()) {
 					continue;
 				}
-
+				
 				//int inputCaps, passthroughCaps, generateCaps;
 				//PathModifierUtil.GetPathModifierCaps(pm.GetType(), out inputCaps, out passthroughCaps, out generateCaps);
 				//int inputCaps, passthroughCaps, generateCaps;
@@ -197,27 +233,7 @@ namespace Paths.Editor
 				// TODO could we use pm.GetOutputFlags(pmc) in here?
 				combinedOutputFlags = ((pm.GetProcessFlags (pmc) | pm.GetPassthroughFlags (pmc)) & combinedOutputFlags) | pm.GetGenerateFlags (pmc);
 			}
-
-
-			if (!hasNewPathModifier) {
-
-				if (GUILayout.Button ("Add Path Modifier")) {
-					// TODO don't add if we already have one!
-					// Add the "New" item:
-					container.AddPathModifer (new NewPathModifier ());
-					// Fetch new list of PathModifiers: (see #2)
-					pathModifiers = container.GetPathModifiers ();
-
-					// The "new" item is visible by default
-					// TODO reimplement followin:
-//					visibilityPrefs.SetBool (pathModifiers.Length, true);
-				}
-			}
-
-			// TODO use RED if some flag is missing!
-			PathEditor.DrawPathPointMask ("Output Caps", combinedOutputFlags);
-
-			EditorGUILayout.Separator ();
+			return combinedOutputFlags;
 		}
 
 		static void DoDrawPathModifierInspector (PathModifierEditorContext context, bool skippedDueToErrors)
@@ -253,11 +269,8 @@ namespace Paths.Editor
 //				PathModifierEditorContext pmeCtx = new PathModifierEditorContext (
 //                    dc.context.PathData, null, pm, dc.context.Path, dc.context.EditorHost, dc.context.TargetModified, pmPrefs);
 //
-
 				pme.DrawInspectorGUI (context);
 
-
-			
 				EditorGUILayout.Separator ();
 //				EditorGUI.indentLevel--;
 			}
