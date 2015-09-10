@@ -8,6 +8,7 @@ namespace Paths.Polyline
 {
 
 	[ExecuteInEditMode]
+	[AddComponentMenu("Paths/Polyline Path", 1)]
 	public class PolylinePath : Path
 	{
 		

@@ -20,14 +20,16 @@ namespace Paths.Editor
 
 
 
-		public static void DrawPathModifiersInspector (Path path, IPathData pathData, UnityEditor.Editor editor, UnityEngine.Object dirtyObject, CustomToolEditorContext.TargetModifiedFunc modifiedCallback)
+		public static void DrawPathModifiersInspector (
+			Path path, IPathData pathData, 
+			UnityEditor.Editor editor, UnityEngine.Object dirtyObject, 
+			CustomToolEditorContext.TargetModifiedFunc modifiedCallback)
 		{
 //			Path path = pathData.GetPath ();
 			IPathModifierContainer pmc = pathData.GetPathModifierContainer ();
 			ParameterStore pmcParams = pmc.GetParameterStore ();
 
-			TypedCustomToolEditorPrefs prefs = new PrefixCustomToolEditorPrefs (new ParameterStoreCustomToolEditorPrefs (pmcParams), "Editor.");
-            
+			ContextEditorPrefs prefs = new ContextEditorPrefs (pmcParams.Prefix);
 			// Path Modifiers
 			PathModifierEditorContext context = new PathModifierEditorContext (
 				pathData, path, editor, modifiedCallback, prefs);
@@ -52,9 +54,10 @@ namespace Paths.Editor
 			//container.HasErrors();
 
 			// TODO is prefs already prefixed????
-			PrefixCustomToolEditorPrefs editorPrefs = new PrefixCustomToolEditorPrefs (
-                context.CustomToolEditorPrefs, "PathModifiers");
-
+//			PrefixCustomToolEditorPrefs editorPrefs = new PrefixCustomToolEditorPrefs (
+//                context.CustomToolEditorPrefs, "PathModifiers");
+//
+//
 //          // Make sure that we have one NewPathModifier in the list
 //          bool createNew = true;
 //          foreach (IPathModifier pm in pathModifiers) {
@@ -86,6 +89,7 @@ namespace Paths.Editor
 				}
 
 			}
+			ContextEditorPrefs editorPrefs = context.ContextEditorPrefs;
 
 			bool pathModifiersVisible = EditorGUILayout.Foldout (
 				editorPrefs.GetBool (".Visible", true), "Path Modifiers (" + enabledPathModifierCount + "/" + totalPathModifierCount + ")" + (haveErrors ? " *** ERRORS ***" : ""));
@@ -165,7 +169,7 @@ namespace Paths.Editor
 						currentInputFlags = ((pm.GetPassthroughFlags (pmc) | pm.GetProcessFlags (pmc)) & currentInputFlags) | pm.GetGenerateFlags (pmc);
 					}
 
-					TypedCustomToolEditorPrefs pmEditorPrefs = new PrefixCustomToolEditorPrefs (editorPrefs, "[" + i + "].");
+					ContextEditorPrefs pmEditorPrefs = new ContextEditorPrefs (editorPrefs.Prefix + "[" + i + "]");
 
 					PathModifierEditorContext pmec = new PathModifierEditorContext (
 						context.PathData, pmc, pm, context.Path, context.EditorHost, context.TargetModified, pmEditorPrefs);
@@ -239,9 +243,9 @@ namespace Paths.Editor
 		static void DoDrawPathModifierInspector (PathModifierEditorContext context, bool skippedDueToErrors)
 		{
 			IPathModifier pm = context.PathModifier;
-			TypedCustomToolEditorPrefs prefs = context.EditorPrefs;
+			ContextEditorPrefs prefs = context.ContextEditorPrefs;
 
-			if (!prefs.ContainsKey ("Visible")) {
+			if (!prefs.HasKey ("Visible")) {
 				prefs.SetBool ("Visible", true);
 			}
 			string pmTitle = PathModifierUtil.GetDisplayName (pm);

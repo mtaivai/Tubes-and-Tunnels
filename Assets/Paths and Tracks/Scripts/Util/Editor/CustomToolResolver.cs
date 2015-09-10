@@ -6,7 +6,18 @@ using System.Collections.Generic;
 namespace Util.Editor
 {
 
+	// TODO refactor the whole "customtool" system
+	// We should have:
+	// Attribute "Component" (or similar) annotates the class to be resolvable by CustomToolResolver
+	// - Classes having attribute that is subclass of Component should also be resolved!
+	//   - As an alternative the Component attribute class should be sealed; in such case components
+	//     could have other attributes as well (such as PathModifier)
+	// Attribute "ComponentEditor" to replace CustomToolEditor
+	//
+
+
 	// TODO add documentation (briefly)
+	// TODO rename to ComponentResolver (or SubComponentResolver or so)
 	public class CustomToolResolver
 	{
         
@@ -39,27 +50,37 @@ namespace Util.Editor
 		private DisplayNameResolverFunc displayNameResolver;
 		private DisplayNameResolverFunc fallbackDisplayNameResolver;
 
-		public ToolEditorMatcherFunc DefaultEditorMatcher {
-			get {
-				return DoMatchToolEditorByCustomToolEditorAttribute;
-			}
-		}
 
-		public DisplayNameResolverFunc DefaultDisplayNameResolver {
-			get {
-				return CustomTool.GetToolName;
-			}
-		}
-
-		public CustomToolResolver ()
+		public static CustomToolResolver ForCustomToolType (Type customToolType)
 		{
-			this.editorMatcher = DefaultEditorMatcher;
-			this.displayNameResolver = DefaultDisplayNameResolver;
+			return ForCustomToolType (customToolType, typeof(ICustomToolEditor));
+		}
+
+
+		public static CustomToolResolver ForCustomToolType (Type customToolType, Type customToolEditorType)
+		{
+
+			FindTypesFunc findToolTypes = () => 
+			{
+				return Util.TypeUtil.FindTypesHavingAttribute (typeof(CustomTool), customToolType);
+			};
+			FindTypesFunc findEditorTypes = () => 
+			{
+				return Util.TypeUtil.FindTypesHavingAttribute (typeof(CustomToolEditor), customToolEditorType);
+			};
+			// TODO implement static cache!
+			return new CustomToolResolver (findToolTypes, findEditorTypes);
+		}
+
+		public CustomToolResolver () : this(null, DefaultFindEditorTypesFunc)
+		{
+
 		}
 
 		public CustomToolResolver (FindTypesFunc toolTypesFinder, FindTypesFunc editorTypesFinder)
-        : this()
 		{
+			this.editorMatcher = DefaultEditorMatcher;
+			this.displayNameResolver = DefaultDisplayNameResolver;
 			this.toolTypesFinder = toolTypesFinder;
 			this.editorTypesFinder = editorTypesFinder;
 		}
@@ -71,6 +92,30 @@ namespace Util.Editor
 			this.editorMatcher = toolEditorMatcher;
 			this.displayNameResolver = displayNameResolver;
 		}
+
+		public ToolEditorMatcherFunc DefaultEditorMatcher {
+			get {
+				return DoMatchToolEditorByCustomToolEditorAttribute;
+			}
+		}
+		
+		public DisplayNameResolverFunc DefaultDisplayNameResolver {
+			get {
+				return CustomTool.GetToolName;
+			}
+		}
+		
+		public static Type[] DefaultFindToolTypesFunc ()
+		{
+			//			return Util.TypeUtil.FindTypesHavingAttribute (typeof(CustomTool), typeof(ICustomTool));
+			return new Type[0];
+		}
+		
+		public static Type[] DefaultFindEditorTypesFunc ()
+		{
+			return Util.TypeUtil.FindTypesHavingAttribute (typeof(CustomToolEditor), typeof(ICustomToolEditor));
+		}
+
 
 		public FindTypesFunc ToolTypesFinder {
 			get {

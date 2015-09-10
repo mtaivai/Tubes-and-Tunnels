@@ -32,6 +32,81 @@ namespace Util.Editor
 
 	}
     
+
+	// TODO EditorState and EditorPrefs should be separate concepts!
+
+	// TODO move ContextEditorPrefs to its own file
+	public class ContextEditorPrefs
+	{
+		private string contextPrefix;
+		public ContextEditorPrefs (string prefix)
+		{
+			this.contextPrefix = prefix;
+		}
+		public string Prefix {
+			get {
+				return contextPrefix;
+			}
+		}
+
+		private string PrefixKey (string key)
+		{
+			return contextPrefix + key;
+		}
+
+		public bool HasKey (string key)
+		{
+			key = PrefixKey (key);
+			return UnityEditor.EditorPrefs.HasKey (key);
+		}
+		public void DeleteKey (string key)
+		{
+			key = PrefixKey (key);
+			UnityEditor.EditorPrefs.DeleteKey (key);
+		}
+
+		public string GetString (string key, string defaultValue = "")
+		{
+			key = PrefixKey (key);
+			return UnityEditor.EditorPrefs.GetString (key, defaultValue);
+		}
+		public void SetString (string key, string value)
+		{
+			key = PrefixKey (key);
+			UnityEditor.EditorPrefs.SetString (key, value);
+		}
+		public bool GetBool (string key, bool defaultValue = false)
+		{
+			key = PrefixKey (key);
+			return UnityEditor.EditorPrefs.GetBool (key, defaultValue);
+		}
+		public void SetBool (string key, bool value)
+		{
+			key = PrefixKey (key);
+			UnityEditor.EditorPrefs.SetBool (key, value);
+		}
+		public int GetInt (string key, int defaultValue = 0)
+		{
+			key = PrefixKey (key);
+			return UnityEditor.EditorPrefs.GetInt (key, defaultValue);
+		}
+		public void SetInt (string key, int value)
+		{
+			key = PrefixKey (key);
+			UnityEditor.EditorPrefs.SetInt (key, value);
+		}
+		public float GetFloat (string key, float defaultValue = 0f)
+		{
+			key = PrefixKey (key);
+			return UnityEditor.EditorPrefs.GetFloat (key, defaultValue);
+		}
+		public void SetFloat (string key, float value)
+		{
+			key = PrefixKey (key);
+			UnityEditor.EditorPrefs.SetFloat (key, value);
+		}
+	}
+
 	public class CustomToolEditorContext
 	{
 		public delegate void TargetModifiedFunc ();
@@ -42,24 +117,24 @@ namespace Util.Editor
 		private UnityEditor.Editor editorHost;
 		private UnityEngine.Object target;
 		private TargetModifiedFunc targetModifiedFunc;
-		private CustomToolEditorPrefs editorPrefs;
+		private ContextEditorPrefs editorPrefs;
 
-		public CustomToolEditorContext (object customTool, UnityEngine.Object target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc)
-        : this(customTool, target, e, targetModifiedFunc, new DictionaryCustomToolEditorPrefs())
+//		public CustomToolEditorContext (object customTool, UnityEngine.Object target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc)
+//			: this(customTool, target, e, targetModifiedFunc, new ContextEditorPrefs(""))
+//		{
+//
+//		}
+		public CustomToolEditorContext (object customTool, UnityEngine.Object target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc, string editorPrefsPrefix)
+			: this(customTool, target, e, targetModifiedFunc, new ContextEditorPrefs(editorPrefsPrefix))
 		{
-
 		}
-
-		public CustomToolEditorContext (object customTool, UnityEngine.Object target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc, CustomToolEditorPrefs editorPrefs)
+		public CustomToolEditorContext (object customTool, UnityEngine.Object target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc, ContextEditorPrefs editorPrefs)
 		{
 			this.customTool = customTool;
 			this.target = target;
 			this.editorHost = e;
 			//          this.toolResolver = toolResolver;
 			this.targetModifiedFunc = targetModifiedFunc;
-			if (null == editorPrefs) {
-				editorPrefs = new DictionaryCustomToolEditorPrefs ();
-			}
 			this.editorPrefs = editorPrefs;
 
 		}
@@ -82,7 +157,7 @@ namespace Util.Editor
 			}
 		}
 
-		public CustomToolEditorPrefs CustomToolEditorPrefs {
+		public ContextEditorPrefs ContextEditorPrefs {
 			get {
 				return editorPrefs;
 			}

@@ -58,6 +58,10 @@ namespace Paths.MeshGenerator.Tube
 			}
 			return points;
 		}
+//		public override int GetEdgeCount ()
+//		{
+//			return points.Length;
+//		}
     
 		protected override Vector3[] GetLocalPoints ()
 		{

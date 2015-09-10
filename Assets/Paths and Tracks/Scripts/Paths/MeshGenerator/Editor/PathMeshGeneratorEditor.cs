@@ -15,6 +15,7 @@ namespace Paths.MeshGenerator.Editor
 	[CustomEditor(typeof(PathMeshGenerator))]
 	public class PathMeshGeneratorEditor : UnityEditor.Editor
 	{
+		private new PathMeshGenerator target;
 
 		private Type[] availableMeshGeneratorTypes;
 		private string[] availableMeshGeneratorDisplayNames;
@@ -23,13 +24,14 @@ namespace Paths.MeshGenerator.Editor
 		private bool meshDirty;
 
 		// Type to editor instance
-		private Dictionary<string, IMeshGeneratorEditor> meshGeneratorEditorMap;
+//		private Dictionary<string, IMeshGeneratorEditor> meshGeneratorEditorMap;
 
-		TypedCustomToolEditorPrefs editorPrefs;
+		private IMeshGeneratorEditor meshGeneratorEditor;
 
-		private PathMeshGenerator track;
+		ContextEditorPrefs editorPrefs;
 
-		bool dataSourceExpanded = false;
+
+//		bool dataSourceExpanded = false;
 
 		public PathMeshGeneratorEditor ()
 		{
@@ -37,12 +39,11 @@ namespace Paths.MeshGenerator.Editor
 
 		void OnEnable ()
 		{
-			this.track = target as PathMeshGenerator;
+			this.target = base.target as PathMeshGenerator;
 
+			// TODO should we share editor preferences between instances? Maybe not!
 			this.editorPrefs = 
-				new PrefixCustomToolEditorPrefs (new ParameterStoreCustomToolEditorPrefs (track.ParameterStore), "Editor.");
-
-			this.meshGeneratorEditorMap = new Dictionary<string, IMeshGeneratorEditor> (); 
+				new ContextEditorPrefs ("PathMeshGenerator[" + target.GetInstanceID () + "]");
 
 			InitMeshGeneratorTypes ();
 		}
@@ -50,7 +51,7 @@ namespace Paths.MeshGenerator.Editor
 		void OnDisable ()
 		{
 		}
-
+//
 		public override void OnInspectorGUI ()
 		{
 
@@ -59,13 +60,16 @@ namespace Paths.MeshGenerator.Editor
 		}
 
 
-		public void TrackGeneratorModified ()
+		private void MeshGeneratorModified ()
 		{
 			PathMeshGenerator track = target as PathMeshGenerator;
 			// TODO refactor the SetMeshDirty(). ... ConfigurationChanged --- PathModifiersChanged etc system
 			EditorUtility.SetDirty (track);
 			//SliceConfigurationChanged();
 			SetMeshDirty ();
+
+			// Save the configuration
+			target.SaveMeshGeneratorParameters ();
 
 //			track.ConfigurationChanged (true, false);
 			SceneView.RepaintAll ();
@@ -106,68 +110,68 @@ namespace Paths.MeshGenerator.Editor
 			return selectedTgIndex;
 		}
 
-		static Type[] FindMeshGeneratorEditorTypes ()
-		{
-			Type[] editorTypes = Util.TypeUtil.FindTypesHavingAttribute (typeof(MeshGeneratorCustomEditor));
-			return editorTypes;
-		}
+//		static Type[] FindMeshGeneratorEditorTypes ()
+//		{
+//			Type[] editorTypes = Util.TypeUtil.FindTypesHavingAttribute (typeof(MeshGeneratorCustomEditor));
+//			return editorTypes;
+//		}
 
-		static Type FindMeshGeneratorEditorType (Type meshGeneratorType)
-		{
-			Type[] editorTypes = FindMeshGeneratorEditorTypes ();
-			for (int i = 0; i < editorTypes.Length; i++) {
-				object[] attrs = editorTypes [i].GetCustomAttributes (typeof(MeshGeneratorCustomEditor), true);
-				for (int j = 0; j < attrs.Length; j++) {
-					MeshGeneratorCustomEditor tge = (MeshGeneratorCustomEditor)attrs [j];
-					if (meshGeneratorType == tge.InspectedType) {
-						return editorTypes [i];
-					}
-				}
-			}
-			// Look for base type:
-			Type baseType = meshGeneratorType.BaseType;
-			return (null != baseType) ? FindMeshGeneratorEditorType (baseType) : null;
-		}
+//		static Type FindMeshGeneratorEditorType (Type meshGeneratorType)
+//		{
+//			Type[] editorTypes = FindMeshGeneratorEditorTypes ();
+//			for (int i = 0; i < editorTypes.Length; i++) {
+//				object[] attrs = editorTypes [i].GetCustomAttributes (typeof(MeshGeneratorCustomEditor), true);
+//				for (int j = 0; j < attrs.Length; j++) {
+//					MeshGeneratorCustomEditor tge = (MeshGeneratorCustomEditor)attrs [j];
+//					if (meshGeneratorType == tge.InspectedType) {
+//						return editorTypes [i];
+//					}
+//				}
+//			}
+//			// Look for base type:
+//			Type baseType = meshGeneratorType.BaseType;
+//			return (null != baseType) ? FindMeshGeneratorEditorType (baseType) : null;
+//		}
 
-		private IMeshGeneratorEditor GetMeshGeneratorEditor (IMeshGenerator mg)
-		{
-
-			IMeshGeneratorEditor cachedEditor;
-			if (null != mg) {
-				string typeName = mg.GetType ().FullName;
-				cachedEditor = meshGeneratorEditorMap.ContainsKey (typeName) ? meshGeneratorEditorMap [typeName] : null;
-
-				if (null == cachedEditor) {
-					cachedEditor = DoCreateMeshGeneratorEditor (mg);
-					meshGeneratorEditorMap [typeName] = cachedEditor;
-				}
-			} else {
-				cachedEditor = null;
-			}
-			return cachedEditor;
-		}
-	
-
-
-		private IMeshGeneratorEditor DoCreateMeshGeneratorEditor (IMeshGenerator mg)
-		{
-			IMeshGeneratorEditor editorInstance;
-			Type tgEditorType = FindMeshGeneratorEditorType (mg.GetType ());
-			if (null != tgEditorType) {
-				if (!typeof(IMeshGeneratorEditor).IsAssignableFrom (tgEditorType)) {
-					Debug.LogError ("Class '" + tgEditorType + "' has attribute TrackGeneratorCustomEditor but it doesn't implement the ITrackGeneratorEditor interface");
-					editorInstance = null;
-				} else if (typeof(ScriptableObject).IsAssignableFrom (tgEditorType)) {
-					editorInstance = (IMeshGeneratorEditor)ScriptableObject.CreateInstance (tgEditorType);
-				} else {
-					editorInstance = (IMeshGeneratorEditor)Activator.CreateInstance (tgEditorType);
-				}
-				editorInstance.OnEnable (new MeshGeneratorEditorContext (mg, track, this));
-			} else {
-				editorInstance = null;
-			}
-			return editorInstance;
-		}
+//		private IMeshGeneratorEditor GetMeshGeneratorEditor (IMeshGenerator mg)
+//		{
+//
+//			IMeshGeneratorEditor cachedEditor;
+//			if (null != mg) {
+//				string typeName = mg.GetType ().FullName;
+//				cachedEditor = meshGeneratorEditorMap.ContainsKey (typeName) ? meshGeneratorEditorMap [typeName] : null;
+//
+//				if (null == cachedEditor) {
+//					cachedEditor = DoCreateMeshGeneratorEditor (mg);
+//					meshGeneratorEditorMap [typeName] = cachedEditor;
+//				}
+//			} else {
+//				cachedEditor = null;
+//			}
+//			return cachedEditor;
+//		}
+//	
+//
+//
+//		private IMeshGeneratorEditor DoCreateMeshGeneratorEditor (IMeshGenerator mg)
+//		{
+//			IMeshGeneratorEditor editorInstance;
+//			Type tgEditorType = FindMeshGeneratorEditorType (mg.GetType ());
+//			if (null != tgEditorType) {
+//				if (!typeof(IMeshGeneratorEditor).IsAssignableFrom (tgEditorType)) {
+//					Debug.LogError ("Class '" + tgEditorType + "' has attribute TrackGeneratorCustomEditor but it doesn't implement the ITrackGeneratorEditor interface");
+//					editorInstance = null;
+//				} else if (typeof(ScriptableObject).IsAssignableFrom (tgEditorType)) {
+//					editorInstance = (IMeshGeneratorEditor)ScriptableObject.CreateInstance (tgEditorType);
+//				} else {
+//					editorInstance = (IMeshGeneratorEditor)Activator.CreateInstance (tgEditorType);
+//				}
+//				editorInstance.OnEnable (new MeshGeneratorEditorContext (mg, track, this));
+//			} else {
+//				editorInstance = null;
+//			}
+//			return editorInstance;
+//		}
 
 		private void PathModifiersChanged ()
 		{
@@ -175,7 +179,7 @@ namespace Paths.MeshGenerator.Editor
 			//			track.ConfigurationChanged (false, true);
 
 //			track.GetPathModifierContainer ().ConfigurationChanged ();
-			track.DataSource.GetPathModifierContainer ().ConfigurationChanged ();
+			target.DataSource.GetPathModifierContainer ().ConfigurationChanged ();
 
 			EditorUtility.SetDirty (target);
 			//			track.OnPathModifiersChanged ();
@@ -199,8 +203,6 @@ namespace Paths.MeshGenerator.Editor
 
 		public void DrawDefaultInspectorGUI ()
 		{
-			this.track = target as PathMeshGenerator;
-
 
 			ToolbarSheet selectedSheet = (ToolbarSheet)editorPrefs.GetInt ("selectedSheet", (int)ToolbarSheet.General);
 			selectedSheet = (ToolbarSheet)GUILayout.Toolbar ((int)selectedSheet, ToolbarContents);
@@ -252,7 +254,7 @@ namespace Paths.MeshGenerator.Editor
 
 		private void DrawDataSourceConfigurationGUI ()
 		{
-			PathDataSource ds = track.DataSource;
+			PathDataSource ds = target.DataSource;
 			PathSelector pathSelector = ds.PathSelector;
 			if (PathEditorUtil.DrawPathDataSelection ("Path Selection", ref pathSelector, (snapshotName) => {
 				ds.PathSelector = ds.PathSelector.WithSnapshotName (snapshotName);})) {
@@ -266,8 +268,19 @@ namespace Paths.MeshGenerator.Editor
 			PathDataSourceWrapper pathDataWrapper = new PathDataSourceWrapper (ds);
 			PathModifierEditorContext context = new PathModifierEditorContext (
 						pathDataWrapper, path, this, PathModifiersChanged, editorPrefs);
-			PathModifierEditorUtil.DrawPathModifiersInspector (context, track, 
+			PathModifierEditorUtil.DrawPathModifiersInspector (context, target, 
 				() => EditorGUILayout.HelpBox ("Track's Path Modifiers can be used to modify the path before it's feed to the Track Generator. Modifiers will not modify the original Path.", MessageType.Info));
+		}
+
+		IMeshGeneratorEditor GetMeshGeneratorEditor ()
+		{
+			if (null == meshGeneratorEditor) {
+				IMeshGenerator mg = target.MeshGeneratorInstance;
+				
+				CustomToolResolver ctr = CustomToolResolver.ForCustomToolType (typeof(IMeshGenerator), typeof(IMeshGeneratorEditor));
+				meshGeneratorEditor = (IMeshGeneratorEditor)ctr.CreateToolEditorInstance (mg);
+			}
+			return meshGeneratorEditor;
 		}
 
 		IMeshGenerator DrawMeshGeneratorSelectionGUI ()
@@ -276,25 +289,36 @@ namespace Paths.MeshGenerator.Editor
 			int tgIndex = FindCurrentMeshGeneratorTypeIndex ();
 			tgIndex = EditorGUILayout.Popup ("Mesh Generator", tgIndex, availableMeshGeneratorDisplayNames);
 			if (EditorGUI.EndChangeCheck ()) {
-				track.MeshGeneratorType = availableMeshGeneratorTypes [tgIndex].FullName;
-				EditorUtility.SetDirty (track);
+				target.MeshGeneratorType = availableMeshGeneratorTypes [tgIndex].FullName;
+				EditorUtility.SetDirty (target);
 
 				// Force recreation of the editor
-				meshGeneratorEditorMap.Remove (track.MeshGeneratorType);
-				TrackGeneratorModified ();
+				this.meshGeneratorEditor = null;
+				MeshGeneratorModified ();
 			}
 
-			IMeshGenerator mg = track.MeshGeneratorInstance;
-			
-			IMeshGeneratorEditor mgEditor = GetMeshGeneratorEditor (mg);
-			if (null != mgEditor) {
-				
-				MeshGeneratorEditorContext ctx = new MeshGeneratorEditorContext (mg, track, this);
-				mgEditor.DrawInspectorGUI (ctx);
-				EditorGUILayout.Separator ();
+			IMeshGenerator mg = target.MeshGeneratorInstance;
+
+			IMeshGeneratorEditor mge = GetMeshGeneratorEditor ();
+			if (null != mge) {
+				MeshGeneratorEditorContext mgeContext = new MeshGeneratorEditorContext (
+					mg, target, this, MeshGeneratorModified, editorPrefs);
+				mge.DrawInspectorGUI (mgeContext);
 			}
+
+
+
+//			IMeshGeneratorEditor mgEditor = GetMeshGeneratorEditor (mg);
+//			if (null != mgEditor) {
+//				
+//				MeshGeneratorEditorContext ctx = new MeshGeneratorEditorContext (mg, track, this);
+//				mgEditor.DrawInspectorGUI (ctx);
+//				EditorGUILayout.Separator ();
+//			}
 			return mg;
 		}
+
+
 
 
 		void DrawMeshInspectorSheet ()
@@ -342,31 +366,31 @@ namespace Paths.MeshGenerator.Editor
 		void DrawSettingsInspectorSheet ()
 		{
 			EditorGUI.BeginChangeCheck ();
-			track.AutomaticUpdateWithPath = EditorGUILayout.Toggle ("Automatic Update with Path", track.AutomaticUpdateWithPath);
+			target.AutomaticUpdateWithPath = EditorGUILayout.Toggle ("Automatic Update with Path", target.AutomaticUpdateWithPath);
 			if (EditorGUI.EndChangeCheck ()) {
-				EditorUtility.SetDirty (track);
+				EditorUtility.SetDirty (target);
 			}
 		
 			//EditorGUI.BeginDisabledGroup (track.AutomaticUpdateWithPath == false);
 			EditorGUI.BeginChangeCheck ();
-			track.AutomaticMeshUpdate = EditorGUILayout.Toggle ("Automatic Mesh Update", track.AutomaticMeshUpdate);
+			target.AutomaticMeshUpdate = EditorGUILayout.Toggle ("Automatic Mesh Update", target.AutomaticMeshUpdate);
 			if (EditorGUI.EndChangeCheck ()) {
-				EditorUtility.SetDirty (track);
+				EditorUtility.SetDirty (target);
 			}
 		}
 
 		protected void GenerateMesh ()
 		{
 			// Add MeshFilter and MeshRenderer if not already added
-			MeshFilter mf = track.gameObject.GetComponent<MeshFilter> ();
+			MeshFilter mf = target.gameObject.GetComponent<MeshFilter> ();
 			if (null == mf) {
-				mf = track.gameObject.AddComponent<MeshFilter> ();
+				mf = target.gameObject.AddComponent<MeshFilter> ();
 			}
-			MeshRenderer mr = track.gameObject.GetComponent<MeshRenderer> ();
+			MeshRenderer mr = target.gameObject.GetComponent<MeshRenderer> ();
 			if (null == mr) {
-				mr = track.gameObject.AddComponent<MeshRenderer> ();
+				mr = target.gameObject.AddComponent<MeshRenderer> ();
 			}
-			track.GenerateMesh ();
+			target.GenerateMesh ();
 //			track.GenerateMesh (Track.MeshGeneratorTarget.Primary);
 			this.meshDirty = false;
 			SceneView.RepaintAll ();
@@ -514,8 +538,7 @@ namespace Paths.MeshGenerator.Editor
 
 		void OnSceneGUI ()
 		{
-			this.track = target as PathMeshGenerator;
-			if (!track.isActiveAndEnabled) {
+			if (!target.isActiveAndEnabled) {
 				// TODO add a configuration parameter for this behaviour!
 				return;
 			}

@@ -10,6 +10,7 @@ namespace Paths.MeshGenerator
 {
 
 	[ExecuteInEditMode]
+	[AddComponentMenu("Paths/Path Mesh Generator", 3)]
 	public class PathMeshGenerator : MonoBehaviour, ISerializationCallbackReceiver
 	{
 		private class PathDataSourceContainer : IPathDataSourceContainer
@@ -174,6 +175,8 @@ namespace Paths.MeshGenerator
 
 		public void OnDestory ()
 		{
+			// TODO we should destroy all related EditorPrefs!
+
 			// OnDisable() is already called, so no need to do anything in here
 //			primaryDataSource.OnDisable (this);
 		}
@@ -239,14 +242,14 @@ namespace Paths.MeshGenerator
 
 	
 
-//		public void xSaveMeshGeneratorParameters (MeshGeneratorTarget target)
-//		{
-//			IMeshGenerator mg = GetMeshGeneratorInstance (target);
-//			if (null != mg) {
-//				ParameterStore store = GetMeshGeneratorParameterStore (mg, target);
-//				mg.SaveParameters (store);
-//			}
-//		}
+		public void SaveMeshGeneratorParameters ()
+		{
+			IMeshGenerator mg = MeshGeneratorInstance;
+			if (null != mg) {
+				ParameterStore store = GetParameterStoreForMG (mg);
+				mg.SaveParameters (store);
+			}
+		}
 
 #endregion Serialization
 

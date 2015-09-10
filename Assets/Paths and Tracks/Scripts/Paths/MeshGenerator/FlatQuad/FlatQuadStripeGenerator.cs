@@ -11,19 +11,34 @@ namespace Paths.MeshGenerator.FlatQuad
 	{
 		private float width = 2.0f;
 
+
+
+		public FlatQuadStripeGenerator () : base()
+		{
+			FacesDir = MeshFaceDir.Up;
+		}
+		public float Width {
+			get {
+				return this.width;
+			}
+			set {
+				this.width = Mathf.Max (0f, value);
+			}
+		}
 		public override string DisplayName {
 			get {
 				return "Flat Quad";
 			}
 		}
 
-		public FlatQuadStripeGenerator () : base()
+		protected override int GetSliceEdgeCount ()
 		{
-			SliceEdges = 1;
-			FacesDir = MeshFaceDir.Up;
+			return 1;
 		}
-
-
+		protected override bool IsSliceClosedShape ()
+		{
+			return false;
+		}
 
 		public override void OnLoadParameters (ParameterStore store)
 		{
@@ -81,6 +96,8 @@ namespace Paths.MeshGenerator.FlatQuad
 			circumference = width;
 		}
     
+
+
 		protected override Vector3[] GetLocalPoints ()
 		{
 			return points;

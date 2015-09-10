@@ -10,20 +10,17 @@ using Util.Editor;
 using Paths;
 using Paths.Editor;
 
-namespace Tracks.Editor
+namespace Paths.MeshGenerator.Editor
 {
-	[MeshGeneratorCustomEditor(typeof(AbstractMeshGenerator))]
-	public class DefaultMeshGeneratorEditor : AbstractMeshGeneratorEditor<AbstractMeshGenerator>
+	[CustomToolEditor(typeof(IMeshGenerator))]
+	public class FallbackMeshGeneratorEditor : AbstractMeshGeneratorEditor<AbstractMeshGenerator>
 	{
 		//bool pathModifiersVisible = false;
 
 		// TODO should we persist "prefs"?
 //        Dictionary<string, string> prefs = new Dictionary<string, string>();
 
-		public override void OnEnable ()
-		{
-//          pathModifiersVisible = bool.Parse (target.GetEditorPref("pathModifiersVisible", false.ToString()));
-		}
+
 
 		public override void DrawInspectorGUI ()
 		{

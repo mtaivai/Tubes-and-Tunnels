@@ -25,7 +25,7 @@ namespace Paths.Editor
 		private PathModifierEditorContext pathModifierEditorContext;
 
 		public PathModifierInputFilterEditorContext (PathModifierInputFilter customTool, PathModifierEditorContext pmec)
-		: base(customTool, pmec.Target, pmec.EditorHost, pmec.TargetModified, pmec.EditorPrefs)
+		: base(customTool, pmec.Target, pmec.EditorHost, pmec.TargetModified, pmec.ContextEditorPrefs)
 		{
 			this.pathModifierEditorContext = pmec;
 		}

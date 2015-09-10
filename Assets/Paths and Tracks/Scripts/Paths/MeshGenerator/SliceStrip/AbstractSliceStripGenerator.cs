@@ -17,7 +17,7 @@ namespace Paths.MeshGenerator.SliceStrip
 	// Rename to AbstractSliceStripGenerator
 	public abstract class AbstractSliceStripGenerator : AbstractMeshGenerator
 	{
-		private int sliceEdges = 16;
+		//
 		private MeshFaceDir facesDir = MeshFaceDir.Up;
 		private float sliceRotation = 45.0f;
 		private bool perSideSubmeshes = true;
@@ -30,14 +30,7 @@ namespace Paths.MeshGenerator.SliceStrip
 		{
 		}
 
-		public virtual int SliceEdges {
-			get {
-				return this.sliceEdges;
-			}
-			set {
-				sliceEdges = value;
-			}
-		}
+
 		
 		public float SliceRotation {
 			get {
@@ -88,7 +81,6 @@ namespace Paths.MeshGenerator.SliceStrip
 
 		public override void OnLoadParameters (ParameterStore store)
 		{
-			sliceEdges = store.GetInt ("sliceEdges", sliceEdges);
 			sliceRotation = store.GetFloat ("sliceRotation", sliceRotation);
 			facesDir = store.GetEnum ("facesDir", facesDir);
 			perSideSubmeshes = store.GetBool ("perSideSubmeshes", perSideSubmeshes);
@@ -98,7 +90,6 @@ namespace Paths.MeshGenerator.SliceStrip
 		public override void OnSaveParameters (ParameterStore store)
 		{
 			store.SetString ("name", Name);
-			store.SetInt ("sliceEdges", sliceEdges);
 			store.SetFloat ("sliceRotation", sliceRotation);
 			store.SetEnum ("facesDir", facesDir);
 			store.SetBool ("perSideSubmeshes", perSideSubmeshes);
@@ -109,7 +100,9 @@ namespace Paths.MeshGenerator.SliceStrip
 		{
 			return CreateSlices (dataSource, false);
 		}
-		
+
+		protected abstract  int GetSliceEdgeCount ();
+		protected abstract  bool IsSliceClosedShape ();
 		protected abstract SliceStripSlice CreateSlice (Vector3 center, Quaternion sliceRotation);
 		
 		protected SliceStripSlice[] CreateSlices (PathDataSource dataSource, bool repeatFirstInLoop)
@@ -211,11 +204,11 @@ namespace Paths.MeshGenerator.SliceStrip
 //			} else {
 //				
 //			}
-			DoCreateMesh (dataSource, mesh, true);
+			DoCreateMesh (dataSource, mesh);
 			return mesh;
 		}
 		
-		protected void DoCreateMesh (PathDataSource dataSource, Mesh mesh, bool closedShape)
+		protected void DoCreateMesh (PathDataSource dataSource, Mesh mesh)
 		{
 			
 			mesh.Clear (false);
@@ -225,6 +218,31 @@ namespace Paths.MeshGenerator.SliceStrip
 			if (slices.Length == 0) {
 				return;
 			}
+			int sliceEdges = GetSliceEdgeCount ();
+			bool closedShape = IsSliceClosedShape ();
+
+//			int sliceEdges = -1;
+//			foreach (SliceStripSlice s in slices) {
+//				// Edges = points
+//				int edgeCount = s.GetEdgeCount ();
+//				if (edgeCount < 1) {
+//					// TODO use better exception class
+//					throw new Exception ("SliceStripSlice has invalid 'edgeCount': " + edgeCount);
+//				}
+//				if (sliceEdges >= 0) {
+//					// Not first
+//					if (edgeCount != sliceEdges) {
+//						// TODO use better exception class
+//						throw new Exception ("SliceStripSlices have mismatching 'edgeCount'; first had " + sliceEdges + " edges whereas latter had " + edgeCount + " edges!");
+//					}
+//				} else {
+//					// First
+//					sliceEdges = edgeCount;
+//				}
+//
+//			}
+
+
 			int sliceCount = slices.Length;
 			//      int segmentCount = sliceCount - 1;
 			
@@ -369,7 +387,7 @@ namespace Paths.MeshGenerator.SliceStrip
 			mesh.uv = uv;
 			mesh.tangents = tangents;
 			
-			int triangleCount = CalculateTriangleCount (sliceCount, facesDir == MeshFaceDir.Both);
+			int triangleCount = CalculateTriangleCount (sliceCount, sliceEdges, facesDir == MeshFaceDir.Both);
 			int facesPerSegment = verticesPerSliceSide - 1;
 			
 			
@@ -419,7 +437,7 @@ namespace Paths.MeshGenerator.SliceStrip
 			
 		}
 		
-		private int CalculateTriangleCount (int sliceCount, bool doubleSided)
+		private int CalculateTriangleCount (int sliceCount, int sliceEdges, bool doubleSided)
 		{
 			//			const int verticesPerTriangle = 3;
 			

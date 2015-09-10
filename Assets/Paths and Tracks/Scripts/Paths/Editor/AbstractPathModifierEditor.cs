@@ -35,7 +35,7 @@ namespace Paths.Editor
 	public abstract class AbstractPathModifierEditor : IPathModifierEditor
 	{
 		protected PathModifierEditorContext context;
-		protected TypedCustomToolEditorPrefs editorPrefs;
+		protected ContextEditorPrefs editorPrefs;
 
 		private bool messagesVisible = false;
 		private bool newMessages = false;
@@ -57,7 +57,7 @@ namespace Paths.Editor
 				try {
 					_inDrawInspectorGUI = true;
 					this.context = context;
-					editorPrefs = (TypedCustomToolEditorPrefs)context.CustomToolEditorPrefs;
+					editorPrefs = context.ContextEditorPrefs;
 					OnDrawInspectorGUI ();
 				} finally {
 					_inDrawInspectorGUI = false;

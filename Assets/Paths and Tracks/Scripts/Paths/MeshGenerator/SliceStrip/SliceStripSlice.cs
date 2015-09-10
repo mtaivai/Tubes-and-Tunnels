@@ -20,6 +20,7 @@ namespace Paths.MeshGenerator.SliceStrip
 			this.rotation = rotation;
 		}
 
+
 		public Vector3 Center {
 			get {
 				return center;
@@ -51,8 +52,7 @@ namespace Paths.MeshGenerator.SliceStrip
 			}
 		}
 
-
-
+//		public abstract int GetEdgeCount ();
 		protected abstract Vector3[] GetLocalPoints ();
 	}
 }

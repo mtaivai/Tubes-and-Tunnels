@@ -13,8 +13,13 @@ namespace Paths.MeshGenerator.Tube
 	{
 
 
+		private int sliceEdges = 16;
 		private Vector2 sliceSize = new Vector2 (2f, 2f);
 
+
+		public TubeGenerator () : base()
+		{
+		}
 
 		public override string DisplayName {
 			get {
@@ -22,8 +27,13 @@ namespace Paths.MeshGenerator.Tube
 			}
 		}
 
-		public TubeGenerator () : base()
-		{
+		public virtual int SliceEdges {
+			get {
+				return this.sliceEdges;
+			}
+			set {
+				sliceEdges = value;
+			}
 		}
 
 		public Vector2 SliceSize {
@@ -38,33 +48,26 @@ namespace Paths.MeshGenerator.Tube
 		public override void OnLoadParameters (ParameterStore store)
 		{
 			base.OnLoadParameters (store);
+			sliceEdges = store.GetInt ("sliceEdges", sliceEdges);
 			sliceSize = store.GetVector2 ("sliceSize", sliceSize);
-
-
-			// To dictionary:
-			//Dictionary<string, TrackParameter> map = new Dictionary<string, TrackParameter>();
-			//foreach (TrackParameter tp in parameters) {
-			//  map[tp.name] = tp;
-			//}
-
-
-
-			//Debug.Log("Store: " + store);
-			/*if (store["name"] != Name) {
-            // Not out store
-            Debug.Log ("Not our store: " + store["name"]);
-            return;
-        }*/
-
 		}
 
 		public override void OnSaveParameters (ParameterStore store)
 		{
 			base.OnSaveParameters (store);
-
+			store.SetInt ("sliceEdges", sliceEdges);
 			store.SetVector2 ("sliceSize", sliceSize);
-
 		}
+
+		protected override int GetSliceEdgeCount ()
+		{
+			return sliceEdges;
+		}
+		protected override bool IsSliceClosedShape ()
+		{
+			return true;
+		}
+
 
 		protected override SliceStripSlice CreateSlice (Vector3 center, Quaternion sliceRotation)
 		{
