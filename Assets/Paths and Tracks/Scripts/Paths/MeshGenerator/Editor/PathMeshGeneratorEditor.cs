@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEditor;
 using UnityEditor.AnimatedValues;
 using System;
@@ -13,7 +13,7 @@ namespace Paths.MeshGenerator.Editor
 {
 
 	[CustomEditor(typeof(PathMeshGenerator))]
-	public class PathMeshGeneratorEditor : UnityEditor.Editor
+	public class PathMeshGeneratorEditor : UnityEditor.Editor, IPluginEditorHost
 	{
 		private new PathMeshGenerator target;
 
@@ -30,8 +30,15 @@ namespace Paths.MeshGenerator.Editor
 
 		ContextEditorPrefs editorPrefs;
 
+//		private SerializedProperty meshGeneratorTypeProperty;
+//
+//		private SerializedProperty updateMeshFilterProperty;
+//		private SerializedProperty createMeshFilterProperty;
+//		private SerializedProperty createMeshRenderedProperty;
+//		private SerializedProperty updateMeshColliderProperty;
+//		private SerializedProperty createMeshColliderProperty;
 
-//		bool dataSourceExpanded = false;
+		private Dictionary<object, IPluginEditor> _cachedPluginEditors = new Dictionary<object, IPluginEditor> ();
 
 		public PathMeshGeneratorEditor ()
 		{
@@ -45,18 +52,48 @@ namespace Paths.MeshGenerator.Editor
 			this.editorPrefs = 
 				new ContextEditorPrefs ("PathMeshGenerator[" + target.GetInstanceID () + "]");
 
+//			meshGeneratorTypeProperty = serializedObject.FindProperty ("meshGeneratorType");
+//
+//			updateMeshFilterProperty = serializedObject.FindProperty ("updateMeshFilter");
+//			createMeshFilterProperty = serializedObject.FindProperty ("createMeshFilter");
+//			createMeshRenderedProperty = serializedObject.FindProperty ("createMeshRendered");
+//			updateMeshColliderProperty = serializedObject.FindProperty ("updateMeshCollider");
+//			createMeshColliderProperty = serializedObject.FindProperty ("createMeshCollider");
+
+
 			InitMeshGeneratorTypes ();
 		}
 
 		void OnDisable ()
 		{
 		}
-//
+
+
+		public void SetEditorFor (object pluginInstance, IPluginEditor editor)
+		{
+			if (null == editor) {
+				if (_cachedPluginEditors.ContainsKey (pluginInstance)) {
+					_cachedPluginEditors.Remove (pluginInstance);
+				}
+			} else {
+				_cachedPluginEditors [pluginInstance] = editor;
+			}
+		}
+		
+		public IPluginEditor GetEditorFor (object pluginInstance)
+		{
+			if (_cachedPluginEditors.ContainsKey (pluginInstance)) {
+				return _cachedPluginEditors [pluginInstance];
+			} else {
+				return null;
+			}
+		}
+
 		public override void OnInspectorGUI ()
 		{
-
+			//EditorUtility.
 			DrawDefaultInspectorGUI ();
-
+//			serializedObject.ApplyModifiedProperties ();
 		}
 
 
@@ -243,7 +280,6 @@ namespace Paths.MeshGenerator.Editor
 //			track.SaveMeshGeneratorParameters (Track.MeshGeneratorTarget.Primary);
 //			track.SaveMeshGeneratorParameters (Track.MeshGeneratorTarget.Colliders);
 
-			serializedObject.ApplyModifiedProperties ();
 		}
 
 
@@ -267,7 +303,7 @@ namespace Paths.MeshGenerator.Editor
 			Path path = pathSelector.Path;
 			PathDataSourceWrapper pathDataWrapper = new PathDataSourceWrapper (ds);
 			PathModifierEditorContext context = new PathModifierEditorContext (
-						pathDataWrapper, path, this, PathModifiersChanged, editorPrefs);
+						pathDataWrapper, path, this, PathModifiersChanged, editorPrefs.WithPrefix ("PathModifiers"));
 			PathModifierEditorUtil.DrawPathModifiersInspector (context, target, 
 				() => EditorGUILayout.HelpBox ("Track's Path Modifiers can be used to modify the path before it's feed to the Track Generator. Modifiers will not modify the original Path.", MessageType.Info));
 		}
@@ -277,8 +313,8 @@ namespace Paths.MeshGenerator.Editor
 			if (null == meshGeneratorEditor) {
 				IMeshGenerator mg = target.MeshGeneratorInstance;
 				
-				CustomToolResolver ctr = CustomToolResolver.ForCustomToolType (typeof(IMeshGenerator), typeof(IMeshGeneratorEditor));
-				meshGeneratorEditor = (IMeshGeneratorEditor)ctr.CreateToolEditorInstance (mg);
+				PluginResolver ctr = PluginResolver.ForPluginType (typeof(IMeshGenerator), typeof(IMeshGeneratorEditor));
+				meshGeneratorEditor = (IMeshGeneratorEditor)ctr.CreatePluginEditorInstance (mg);
 			}
 			return meshGeneratorEditor;
 		}
@@ -290,6 +326,7 @@ namespace Paths.MeshGenerator.Editor
 			tgIndex = EditorGUILayout.Popup ("Mesh Generator", tgIndex, availableMeshGeneratorDisplayNames);
 			if (EditorGUI.EndChangeCheck ()) {
 				target.MeshGeneratorType = availableMeshGeneratorTypes [tgIndex].FullName;
+//				meshGeneratorTypeProperty.stringValue = target.MeshGeneratorType;
 				EditorUtility.SetDirty (target);
 
 				// Force recreation of the editor
@@ -298,15 +335,6 @@ namespace Paths.MeshGenerator.Editor
 			}
 
 			IMeshGenerator mg = target.MeshGeneratorInstance;
-
-			IMeshGeneratorEditor mge = GetMeshGeneratorEditor ();
-			if (null != mge) {
-				MeshGeneratorEditorContext mgeContext = new MeshGeneratorEditorContext (
-					mg, target, this, MeshGeneratorModified, editorPrefs);
-				mge.DrawInspectorGUI (mgeContext);
-			}
-
-
 
 //			IMeshGeneratorEditor mgEditor = GetMeshGeneratorEditor (mg);
 //			if (null != mgEditor) {
@@ -318,14 +346,78 @@ namespace Paths.MeshGenerator.Editor
 			return mg;
 		}
 
+		void DrawMeshGeneratorConfigurationGUI ()
+		{
+			IMeshGenerator mg = target.MeshGeneratorInstance;
+//			Debug.LogWarning ("MeshGeneratorInstance: " + mg);
+			
+			IMeshGeneratorEditor mge = GetMeshGeneratorEditor ();
+			if (null != mge) {
+				MeshGeneratorEditorContext mgeContext = new MeshGeneratorEditorContext (
+					mg, target, this, MeshGeneratorModified, editorPrefs);
+				mge.DrawInspectorGUI (mgeContext);
+			}
+		}
 
+		void DrawToggle (string label, ref bool value)
+		{
+			//				EditorGUI.BeginDisabledGroup (null == target.GetComponent<MeshFilter> ());
+			EditorGUI.BeginChangeCheck ();
+			value = EditorGUILayout.Toggle (label, value);
+			if (EditorGUI.EndChangeCheck ()) {
+				Undo.RecordObject (target, "Toggle " + label);
+				EditorUtility.SetDirty (target);
+			}
+			//				EditorGUILayout.PropertyField (updateMeshFilterProperty);
+			//				EditorGUI.EndDisabledGroup ();
+		}
 
-
+		bool meshComponentsSectionExpanded = true;
 		void DrawMeshInspectorSheet ()
 		{
 			DrawDataSourceConfigurationGUI ();
 			IMeshGenerator mg = DrawMeshGeneratorSelectionGUI ();
+			if (null != mg) {
+				DrawMeshGeneratorConfigurationGUI ();
+			}
 
+			EditorGUILayout.Separator ();
+
+			meshComponentsSectionExpanded = EditorGUILayout.Foldout (meshComponentsSectionExpanded, "Mesh Components");
+			if (meshComponentsSectionExpanded) {
+				EditorGUI.indentLevel++;
+
+//				EditorGUI.BeginDisabledGroup (null == target.GetComponent<MeshFilter> ());
+				DrawToggle ("Create Mesh Filter", ref target.updateMeshFilter);
+//				EditorGUILayout.PropertyField (updateMeshFilterProperty);
+//				EditorGUI.EndDisabledGroup ();
+
+				EditorGUI.indentLevel++;
+//				EditorGUI.BeginDisabledGroup (null != target.GetComponent<MeshFilter> ());
+				DrawToggle ("Create Mesh Filter", ref target.createMeshFilter);
+//				EditorGUILayout.PropertyField (createMeshFilterProperty);
+//				EditorGUI.EndDisabledGroup ();
+
+//				EditorGUI.BeginDisabledGroup (null != target.GetComponent<MeshRenderer> ());
+				DrawToggle ("Create Mesh Renderer", ref target.createMeshRenderer);
+//				EditorGUILayout.PropertyField (createMeshRenderedProperty);
+//				EditorGUI.EndDisabledGroup ();
+				EditorGUI.indentLevel--;
+
+//				EditorGUI.BeginDisabledGroup (null != target.GetComponent<MeshCollider> ());
+				DrawToggle ("Update Mesh Collider", ref target.updateMeshCollider);
+//				EditorGUILayout.PropertyField (updateMeshColliderProperty);
+//				EditorGUI.EndDisabledGroup ();
+
+				EditorGUI.indentLevel++;
+//				EditorGUI.BeginDisabledGroup (null != target.GetComponent<MeshCollider> ());
+				DrawToggle ("Create Mesh Collider", ref target.createMeshCollider);
+//				EditorGUILayout.PropertyField (createMeshColliderProperty);
+//				EditorGUI.EndDisabledGroup ();
+				EditorGUI.indentLevel--;
+
+				EditorGUI.indentLevel--;
+			}
 
 			EditorGUI.BeginDisabledGroup (null == mg);
 			string generateMeshLabel = "Generate Mesh";
@@ -382,14 +474,14 @@ namespace Paths.MeshGenerator.Editor
 		protected void GenerateMesh ()
 		{
 			// Add MeshFilter and MeshRenderer if not already added
-			MeshFilter mf = target.gameObject.GetComponent<MeshFilter> ();
-			if (null == mf) {
-				mf = target.gameObject.AddComponent<MeshFilter> ();
-			}
-			MeshRenderer mr = target.gameObject.GetComponent<MeshRenderer> ();
-			if (null == mr) {
-				mr = target.gameObject.AddComponent<MeshRenderer> ();
-			}
+//			MeshFilter mf = target.gameObject.GetComponent<MeshFilter> ();
+//			if (null == mf) {
+//				mf = target.gameObject.AddComponent<MeshFilter> ();
+//			}
+//			MeshRenderer mr = target.gameObject.GetComponent<MeshRenderer> ();
+//			if (null == mr) {
+//				mr = target.gameObject.AddComponent<MeshRenderer> ();
+//			}
 			target.GenerateMesh ();
 //			track.GenerateMesh (Track.MeshGeneratorTarget.Primary);
 			this.meshDirty = false;

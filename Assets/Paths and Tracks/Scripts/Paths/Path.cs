@@ -196,6 +196,11 @@ namespace Paths
 //			Debug.Log ("OnDisable");
 		}
 
+//		protected void Destroy ()
+//		{
+//
+//		}
+
 		protected virtual void OnDrawGizmos ()
 		{
 			DrawGizmos ();
@@ -516,9 +521,14 @@ namespace Paths
 			}
 
 			DoRemoveDataSet (index);
-
+		
 			DetachPathData (dataToRemove);
-			
+
+			try {
+				dataToRemove.GetPathModifierContainer ().RemoveAllPathModifiers ();
+			} catch (Exception ex) {
+				Debug.LogWarning ("Catched an exception: " + ex, this);
+			}
 
 		}
 

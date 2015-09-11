@@ -19,27 +19,8 @@ using Paths.MeshGenerator.Tube;
 namespace Paths.MeshGenerator.Tube.Editor
 {
 
-	[CustomToolEditor(typeof(Paths.MeshGenerator.FlatQuad.FlatQuadStripeGenerator))]
-	public class FlatQuadStripeGeneratorEditor : AbstractSliceStripGeneratorEditor<Paths.MeshGenerator.FlatQuad.FlatQuadStripeGenerator>
-	{
-		
-		protected override void DrawCustomSliceConfigurationGUI ()
-		{
-//			EditorGUI.BeginChangeCheck ();
-			target.Width = EditorGUILayout.FloatField ("Slice Width", target.Width);
-//			if (EditorGUI.EndChangeCheck ()) {
-//				//EditorUtility.SetDirty(trackInspector.target);
-//				editorContext.TargetModified ();
-//			}
-		}
-		
-		public override void DrawSceneGUI ()
-		{
-			//throw new NotImplementedException ();
-		}
-	}
 
-	[CustomToolEditor(typeof(Paths.MeshGenerator.Tube.TubeGenerator))]
+	[PluginEditor(typeof(TubeGenerator))]
 	public class TubeGeneratorEditor : AbstractSliceStripGeneratorEditor<TubeGenerator>
 	{
 

@@ -13,7 +13,7 @@ using Paths;
 namespace Paths.Editor
 {
 
-	public interface IPathModifierEditor : ICustomToolEditor
+	public interface IPathModifierEditor : IPluginEditor
 	{
 	}
 

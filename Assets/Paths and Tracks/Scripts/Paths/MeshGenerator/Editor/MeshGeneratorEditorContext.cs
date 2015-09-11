@@ -20,7 +20,7 @@ namespace Paths.MeshGenerator.Editor
 	/// the specified target type.
 	/// </summary>
 
-	public class MeshGeneratorEditorContext : CustomToolEditorContext
+	public class MeshGeneratorEditorContext : PluginEditorContext
 	{
 
 	

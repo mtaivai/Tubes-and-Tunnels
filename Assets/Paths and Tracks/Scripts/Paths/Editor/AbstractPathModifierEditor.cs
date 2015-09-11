@@ -16,7 +16,7 @@ using Paths;
 
 namespace Paths.Editor
 {
-	[CustomToolEditor(typeof(IPathModifier))]
+	[PluginEditor(typeof(IPathModifier))]
 	public class FallbackPathModifierEditor : AbstractPathModifierEditor
 	{
 		protected override void OnDrawConfigurationGUI ()
@@ -44,7 +44,8 @@ namespace Paths.Editor
 		{
 		}
 
-		public void DrawInspectorGUI (CustomToolEditorContext context)
+
+		public void DrawInspectorGUI (PluginEditorContext context)
 		{
 			DrawInspectorGUI ((PathModifierEditorContext)context);
 		}
@@ -181,46 +182,55 @@ namespace Paths.Editor
 				}
 				messagesInfo += string.Format ("{0} Info", info.Count);
 			}
-			if (messagesInfo.Length > 0) {
-				messagesLabel += " (" + messagesInfo + ")";
+
+			if (messagesInfo.Length == 0) {
+				messagesInfo = "none";
 			}
 
 			if (messagesInfo.Length > 0) {
-				if (newMessages) {
-					messagesVisible = true;
-					newMessages = false;
-				}
-
-				EditorGUI.indentLevel++;
-				messagesVisible = EditorGUILayout.Foldout (messagesVisible, messagesLabel);
-				if (messagesVisible) {
-					if (errors.Count > 0) {
-
-						string errorsString = "";
-						foreach (string errorMsg in errors) {
-							errorsString += "\n- " + errorMsg;
-						}
-						EditorGUILayout.HelpBox ("*** ERROR ***: Processing of PathModifier was aborted due to error(s): " + errorsString, MessageType.Error, true);
-					}
-					if (warnings.Count > 0) {
-						
-						string warningsString = "";
-						foreach (string warningMsg in warnings) {
-							warningsString += "\n- " + warningMsg;
-						}
-						EditorGUILayout.HelpBox ("Warning: " + warningsString, MessageType.Warning, true);
-					}
-					if (info.Count > 0) {
-						
-						string infoString = "";
-						foreach (string msg in info) {
-							infoString += "\n- " + msg;
-						}
-						EditorGUILayout.HelpBox (infoString, MessageType.Info, true);
-					}
-				}
-				EditorGUI.indentLevel--;
+				messagesLabel = string.Format ("{0} ({1})", messagesLabel, messagesInfo);
 			}
+
+
+
+//			if (messagesInfo.Length > 0) {
+			if (newMessages) {
+				messagesVisible = true;
+				newMessages = false;
+			}
+
+			EditorGUI.indentLevel++;
+			messagesVisible = EditorGUILayout.Foldout (messagesVisible, messagesLabel);
+			if (messagesVisible) {
+
+				if (errors.Count > 0) {
+
+					string errorsString = "";
+					foreach (string errorMsg in errors) {
+						errorsString += "\n- " + errorMsg;
+					}
+					EditorGUILayout.HelpBox ("*** ERROR ***: Processing of PathModifier was aborted due to error(s): " + errorsString, MessageType.Error, true);
+				}
+				if (warnings.Count > 0) {
+						
+					string warningsString = "";
+					foreach (string warningMsg in warnings) {
+						warningsString += "\n- " + warningMsg;
+					}
+					EditorGUILayout.HelpBox ("Warning: " + warningsString, MessageType.Warning, true);
+				}
+				if (info.Count > 0) {
+						
+					string infoString = "";
+					foreach (string msg in info) {
+						infoString += "\n- " + msg;
+					}
+					EditorGUILayout.HelpBox (infoString, MessageType.Info, true);
+				}
+			}
+			EditorGUI.indentLevel--;
+				
+//			}
 
 
 			EditorGUI.BeginChangeCheck ();
@@ -263,8 +273,8 @@ namespace Paths.Editor
 					EditorGUI.BeginDisabledGroup (pmIndex <= 0);
 					{
 						if (GUILayout.Button ("Up", EditorStyles.miniButtonLeft, GUILayout.ExpandWidth (false))) {
-							pmc.RemovePathModifer (pmIndex);
-							pmc.InsertPathModifer (pmIndex - 1, pm);
+							pmc.RemovePathModifier (pmIndex);
+							pmc.InsertPathModifier (pmIndex - 1, pm);
 							// TODO reimplement following:
 							//						visibilityPrefs.SetBool (pmIndex, visibilityPrefs.GetBool (pmIndex - 1));
 							//						visibilityPrefs.SetBool (pmIndex - 1, true);
@@ -279,8 +289,8 @@ namespace Paths.Editor
 					EditorGUI.BeginDisabledGroup (pmIndex < 0 || pmIndex == pmCount - 1);
 					{
 						if (GUILayout.Button ("Down", EditorStyles.miniButtonMid, GUILayout.ExpandWidth (false))) {
-							pmc.RemovePathModifer (pmIndex);
-							pmc.InsertPathModifer (pmIndex + 1, pm);
+							pmc.RemovePathModifier (pmIndex);
+							pmc.InsertPathModifier (pmIndex + 1, pm);
 							// TODO reimplement following:
 							//						visibilityPrefs.SetBool (pmIndex, visibilityPrefs.GetBool (pmIndex + 1));
 							//						visibilityPrefs.SetBool (pmIndex + 1, true);
@@ -293,7 +303,7 @@ namespace Paths.Editor
 					}
 					EditorGUI.EndDisabledGroup ();
 					if (GUILayout.Button (((pm is NewPathModifier) ? "Cancel" : "Remove"), EditorStyles.miniButtonRight, GUILayout.ExpandWidth (false))) {
-						pmc.RemovePathModifer (pmIndex);
+						pmc.RemovePathModifier (pmIndex);
 						if (null != context.Target) {
 							EditorUtility.SetDirty (context.Target);
 						}
@@ -331,7 +341,7 @@ namespace Paths.Editor
 					EditorGUILayout.LabelField ("Input Filter", f.GetType ().Name);
 					// TODO CACHE THE EDITOR INSTANCE!!!
 
-					ICustomToolEditor editor = (ICustomToolEditor)PathModifierInputFilterResolver.Instance.CreateToolEditorInstance (f);
+					IPluginEditor editor = PluginResolver.ForPluginType (typeof(PathModifierInputFilter)).CreatePluginEditorInstance (f);
 					if (null != editor) {
 						bool configVisible = editorPrefs.GetBool ("InputFilterConfigVisible", false);
 						configVisible = EditorGUILayout.Foldout (configVisible, "Filter Configuration");
@@ -351,10 +361,17 @@ namespace Paths.Editor
 			DoDrawMasks (true, true, true);
 		}
 
-		protected void DrawDefaultCommonInspector ()
+		protected virtual void DrawTypeField ()
 		{
 			IPathModifier pm = context.PathModifier;
 			EditorGUILayout.LabelField ("Type", pm.GetName () + " (" + pm.GetType ().FullName + ")");
+		}
+
+		protected void DrawDefaultCommonInspector ()
+		{
+			IPathModifier pm = context.PathModifier;
+
+			DrawTypeField ();
 
 			string name = PathModifierUtil.GetDisplayName (pm);
 			EditorGUI.BeginChangeCheck ();
@@ -371,28 +388,28 @@ namespace Paths.Editor
 		}
 		protected void DrawDefaultNotes ()
 		{
-			IPathModifier pm = context.PathModifier;
-
-			bool notesVisible = editorPrefs.GetBool ("NotesEditing", false);
-			EditorGUI.indentLevel++;
-			notesVisible = EditorGUILayout.Foldout (notesVisible, "Notes");
-			editorPrefs.SetBool ("NotesEditing", notesVisible);
-			if (notesVisible) {
-				if (!StringUtil.IsEmpty (pm.GetDescription ())) {
-					EditorGUILayout.HelpBox (pm.GetDescription (), MessageType.Info);
-				}
-				
-				EditorGUI.BeginChangeCheck ();
-				
-				string notes = StringUtil.Trim (pm.GetInstanceDescription ());
-				//                        EditorGUILayout.PrefixLabel("Notes");
-				notes = EditorGUILayout.TextArea (notes);
-				if (EditorGUI.EndChangeCheck ()) {
-					pm.SetInstanceDescription (notes);
-					EditorUtility.SetDirty (context.Target);
-				}
-			}
-			EditorGUI.indentLevel--;
+//			IPathModifier pm = context.PathModifier;
+//
+//			bool notesVisible = editorPrefs.GetBool ("NotesEditing", false);
+//			EditorGUI.indentLevel++;
+//			notesVisible = EditorGUILayout.Foldout (notesVisible, "Notes");
+//			editorPrefs.SetBool ("NotesEditing", notesVisible);
+//			if (notesVisible) {
+//				if (!StringUtil.IsEmpty (pm.GetDescription ())) {
+//					EditorGUILayout.HelpBox (pm.GetDescription (), MessageType.Info);
+//				}
+//				
+//				EditorGUI.BeginChangeCheck ();
+//				
+//				string notes = StringUtil.Trim (pm.GetInstanceDescription ());
+//				//                        EditorGUILayout.PrefixLabel("Notes");
+//				notes = EditorGUILayout.TextArea (notes);
+//				if (EditorGUI.EndChangeCheck ()) {
+//					pm.SetInstanceDescription (notes);
+//					EditorUtility.SetDirty (context.Target);
+//				}
+//			}
+//			EditorGUI.indentLevel--;
 		}
 		protected virtual void DoDrawMasks (bool input, bool process, bool output)
 		{

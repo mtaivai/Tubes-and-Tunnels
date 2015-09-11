@@ -23,7 +23,7 @@ namespace Paths.MeshGenerator.Editor
 		private void SetContext (MeshGeneratorEditorContext context)
 		{
 			this.editorContext = context;
-			this.target = (T)context.CustomTool;
+			this.target = (T)context.PluginInstance;
 			this.pathMeshGenerator = (PathMeshGenerator)context.Target;
 			this.editorHost = (PathMeshGeneratorEditor)context.EditorHost;
 			this.editorPrefs = context.ContextEditorPrefs;
@@ -39,7 +39,12 @@ namespace Paths.MeshGenerator.Editor
 
 //		public abstract void OnEnable ();
 
-		public void DrawInspectorGUI (CustomToolEditorContext context)
+		public void DeleteEditorPrefs ()
+		{
+
+		}
+
+		public void DrawInspectorGUI (PluginEditorContext context)
 		{
 			SetContext ((MeshGeneratorEditorContext)context);
 			this.DrawInspectorGUI ();

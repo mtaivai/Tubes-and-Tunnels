@@ -12,7 +12,7 @@ using Paths;
 
 namespace Paths.Editor
 {
-	[CustomToolEditor(typeof(RepeatPathModifier))]
+	[PluginEditor(typeof(RepeatPathModifier))]
 	public class RepeatPathModifierEditor : AbstractPathModifierEditor
 	{
         

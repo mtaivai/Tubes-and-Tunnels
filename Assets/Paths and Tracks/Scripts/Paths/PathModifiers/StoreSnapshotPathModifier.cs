@@ -11,6 +11,8 @@ using Paths;
 
 namespace Paths
 {
+
+
 	[PathModifier(requiredInputFlags=PathPoint.NONE, passthroughCaps=PathPoint.ALL)]
 	public class StoreSnapshotPathModifier : AbstractPathModifier
 	{

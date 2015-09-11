@@ -8,6 +8,51 @@ using Util;
 namespace Paths
 {
 
+	class PMCUtil
+	{
+
+		public static void FireLifecyleEvent (IPathModifier pm, PathModifierLifecycleEventArgs e)
+		{
+			if (null != pm && pm is IPathModifierLifecycleAware) {
+				IPathModifierLifecycleAware pmla = (IPathModifierLifecycleAware)pm;
+				DoFireLifecyleEvent (pmla, e);
+			}
+		}
+
+		public static void DoFireLifecyleEvent (IPathModifierLifecycleAware pm, PathModifierLifecycleEventArgs e)
+		{
+			try {
+				pm.HandleLifecycleEvent (e);
+			} catch (Exception ex) {
+				Debug.LogErrorFormat ("Catched an exception from HandleLifecycleEvent; phase={0}, pm={1}, exception={2}", e.Phase, pm, ex);
+			}
+		}
+
+		public static void FireEvent (IPathModifierContainer c, IPathModifier pm, PathModifierLifecyclePhase phase)
+		{
+			if (null != pm && pm is IPathModifierLifecycleAware) {
+				PathModifierLifecycleEventArgs e = new PathModifierLifecycleEventArgs (c, pm, phase);
+				DoFireLifecyleEvent ((IPathModifierLifecycleAware)pm, e);
+			}
+		}
+//		public static void FireCreateEvent (IPathModifierContainer c, IPathModifier pm)
+//		{
+//			FireEvent (c, pm, PathModifierLifecyclePhase.Create);
+//		}
+		public static void FireAttachEvent (IPathModifierContainer c, IPathModifier pm)
+		{
+			FireEvent (c, pm, PathModifierLifecyclePhase.Attach);
+		}
+		public static void FireDetachEvent (IPathModifierContainer c, IPathModifier pm)
+		{
+			FireEvent (c, pm, PathModifierLifecyclePhase.Detach);
+		}
+		public static void FireDestroyEvent (IPathModifierContainer c, IPathModifier pm)
+		{
+			FireEvent (c, pm, PathModifierLifecyclePhase.Destroy);
+		}
+	}
+
 	// TODO we don't really need the IPath interface since we're always referring to Path
 	// (which is a GameObject)
 	public class SimplePathModifierContainer : IPathModifierContainer
@@ -21,7 +66,7 @@ namespace Paths
 		{
             
 		}
-        
+
 		public IPathModifier[] GetPathModifiers ()
 		{
 			return pathModifiers.ToArray ();
@@ -29,20 +74,28 @@ namespace Paths
         
 		public void AddPathModifer (IPathModifier pm)
 		{
-			pathModifiers.Add (pm);
-			pm.Attach (this);
+			InsertPathModifier (pathModifiers.Count, pm);
 		}
         
-		public void InsertPathModifer (int index, IPathModifier pm)
+		public void InsertPathModifier (int index, IPathModifier pm)
 		{
 			pathModifiers.Insert (index, pm);
+//			PMCUtil.FireCreateEvent (this, pm);
+			PMCUtil.FireAttachEvent (this, pm);
 		}
         
-		public void RemovePathModifer (int index)
+		public void RemovePathModifier (int index)
 		{
-			pathModifiers [index].Detach ();
+			PMCUtil.FireDetachEvent (this, pathModifiers [index]);
+			PMCUtil.FireDestroyEvent (this, pathModifiers [index]);
 
 			pathModifiers.RemoveAt (index);
+		}
+		public void RemoveAllPathModifiers ()
+		{
+			for (int i = pathModifiers.Count - 1; i >= 0; i--) {
+				RemovePathModifier (i);
+			}
 		}
         
 		public int IndexOf (IPathModifier pm)
@@ -81,7 +134,7 @@ namespace Paths
 		{
 			throw new NotImplementedException ();
 		}
-		public PathPoint[] xxxRunPathModifiers (PathModifierContext context, PathPoint[] pp, ref int flags)
+		public PathPoint[] RunPathModifiers (PathModifierContext context, PathPoint[] pp, ref int flags)
 		{
 			throw new NotImplementedException ();
 		}
@@ -160,12 +213,15 @@ namespace Paths
 		{
 			pathModifierInstances = PathModifierUtil.LoadPathModifiers (parameterStore);
 			foreach (IPathModifier pm in pathModifierInstances) {
-				pm.Attach (this);
+				PMCUtil.FireAttachEvent (this, pm);
 			}
 		}
 		public void LoadConfiguration ()
 		{
-			LoadPathModifiers (GetParameterStore ());
+			ParameterStore store = GetParameterStore ();
+			if (null != store) {
+				LoadPathModifiers (store);
+			}
 		}
 
 		private void SavePathModifiers (ParameterStore parameterStore)
@@ -193,7 +249,7 @@ namespace Paths
 //			return xxxRunPathModifiers (context, pp, ref flags, true);
 //		}
 
-		public PathPoint[] xxxRunPathModifiers (PathModifierContext context, PathPoint[] pp, ref int flags)
+		public PathPoint[] RunPathModifiers (PathModifierContext context, PathPoint[] pp, ref int flags)
 		{
 			// TODO we don't need the Context!
 
@@ -215,26 +271,42 @@ namespace Paths
         
 		public void AddPathModifer (IPathModifier pm)
 		{
-			pathModifierInstances.Add (pm);
-			pm.Attach (this);
-			ConfigurationChanged ();
+			InsertPathModifier (pathModifierInstances.Count, pm);
 		}
         
-		public void InsertPathModifer (int index, IPathModifier pm)
+		public void InsertPathModifier (int index, IPathModifier pm)
 		{
 			pathModifierInstances.Insert (index, pm);
-			pm.Attach (this);
+//			PMCUtil.FireCreateEvent (this, pm);
+			PMCUtil.FireAttachEvent (this, pm);
 			ConfigurationChanged ();
 		}
         
-		public void RemovePathModifer (int index)
+		public void RemovePathModifier (int index)
+		{
+			DoRemovePathModifier (index, true);
+		}
+		private void DoRemovePathModifier (int index, bool notifyConfigurationChanged)
 		{
 			IPathModifier pmToRemove = pathModifierInstances [index];
 			pathModifierInstances.RemoveAt (index);
-			pmToRemove.Detach ();
-			ConfigurationChanged ();
+			PMCUtil.FireDetachEvent (this, pmToRemove);
+			PMCUtil.FireDestroyEvent (this, pmToRemove);
+			if (notifyConfigurationChanged) {
+				ConfigurationChanged ();
+			}
 		}
-        
+		public void RemoveAllPathModifiers ()
+		{
+			bool wasntEmpty = pathModifierInstances.Count > 0;
+			for (int i = pathModifierInstances.Count - 1; i >= 0; i--) {
+				DoRemovePathModifier (i, false);
+			}
+			if (wasntEmpty) {
+				ConfigurationChanged ();
+			}
+		}
+
 		public int IndexOf (IPathModifier pm)
 		{
 			return pathModifierInstances.IndexOf (pm);

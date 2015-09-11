@@ -12,7 +12,7 @@ using Paths.Editor;
 
 namespace Paths.MeshGenerator.Editor
 {
-	[CustomToolEditor(typeof(IMeshGenerator))]
+	[PluginEditor(typeof(IMeshGenerator))]
 	public class FallbackMeshGeneratorEditor : AbstractMeshGeneratorEditor<AbstractMeshGenerator>
 	{
 		//bool pathModifiersVisible = false;

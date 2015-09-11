@@ -9,6 +9,7 @@ namespace Paths
 {
 
 	//contextParams={"1", "2"}
+	[Plugin]
 	[PathModifier(requiredInputFlags = PathPoint.NONE, 
                   processCaps = PathPoint.NONE,
                   passthroughCaps = PathPoint.NONE, 
@@ -105,7 +106,7 @@ namespace Paths
 			store.Property ("includedPathPosOffset", ref includedPathPosOffset);
 		}
 
-		public override void OnDetach ()
+		protected override void OnDetach ()
 		{
 			SetIncludedPath (GetContainer ().GetReferenceContainer (), null);
 		}

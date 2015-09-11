@@ -12,7 +12,7 @@ using Paths;
 
 namespace Paths.Editor
 {
-	[CustomToolEditor(typeof(SubdividePathModifier))]
+	[PluginEditor(typeof(SubdividePathModifier))]
 	public class SubdividePathModifierEditor : AbstractPathModifierEditor
 	{
 

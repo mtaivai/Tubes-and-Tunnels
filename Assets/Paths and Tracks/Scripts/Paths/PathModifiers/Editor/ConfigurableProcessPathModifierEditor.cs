@@ -12,7 +12,7 @@ using Paths;
 
 namespace Paths.Editor
 {
-	[CustomToolEditor(typeof(ConfigurableProcessPathModifier))]
+	[PluginEditor(typeof(ConfigurableProcessPathModifier))]
 	public class FallbackConfigurableProcessPathModifierEditor : ConfigurableProcessPathModifierEditor
 	{
 		protected override void DrawGeneralConfigurationGUI (PathModifierEditorContext context)

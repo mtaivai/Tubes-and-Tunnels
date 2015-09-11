@@ -21,7 +21,7 @@ namespace Paths.Editor
 	/// Marks the target type as an IPathModifierEditor implementation for
 	/// the specified target (IPathModifer) type.
 	/// </summary>
-	public class PathModifierEditorContext : CustomToolEditorContext
+	public class PathModifierEditorContext : PluginEditorContext
 	{
 		private IPathData pathData;
 		private PathModifierContext pathModifierContext;
@@ -50,7 +50,7 @@ namespace Paths.Editor
 
 		public IPathModifier PathModifier {
 			get {
-				return (IPathModifier)CustomTool;
+				return (IPathModifier)PluginInstance;
 			}
 		}
 		public IPathData PathData {

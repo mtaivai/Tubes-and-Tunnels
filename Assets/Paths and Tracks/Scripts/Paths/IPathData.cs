@@ -119,10 +119,17 @@ namespace Paths
 	[Serializable]
 	public abstract class AbstractPathData : IPathData, IAttachableToPath, ISerializationCallbackReceiver, IPathSnapshotManager
 	{
-		private Path _path;
-		private PathChangedEventHandler pathChangedEventHandler;
+		[NonSerialized]
+		private Path
+			_path;
 
-		private DefaultPathModifierContainer pathModifierContainer = null;
+		[NonSerialized]
+		private PathChangedEventHandler
+			pathChangedEventHandler;
+
+		[NonSerialized]
+		private DefaultPathModifierContainer
+			pathModifierContainer = null;
 		
 		[SerializeField]
 		private int
@@ -186,9 +193,13 @@ namespace Paths
 			totalDistance;
 
 		// Don't serialize
-		private long updateToken = 0;
+		[NonSerialized]
+		private long
+			updateToken = 0;
 
-		private IPathInfo pathInfo;
+		[NonSerialized]
+		private IPathInfo
+			pathInfo;
 
 
 		protected AbstractPathData (int id, string name)
@@ -590,7 +601,7 @@ namespace Paths
 			 
 			PathModifierContext pmContext = new PathModifierContext (pathInfo, pmc, flags);
 			//pp = PathModifierUtil.RunPathModifiers (pmContext, pp, false, ref flags, true);
-			pp = pmc.xxxRunPathModifiers (pmContext, pp, ref flags);
+			pp = pmc.RunPathModifiers (pmContext, pp, ref flags);
 			if (pmContext.HasErrors) {
 				string allErrors = "";
 				pmContext.Errors.ForEach ((err) => allErrors += (allErrors.Length > 0 ? "; " + err : err));

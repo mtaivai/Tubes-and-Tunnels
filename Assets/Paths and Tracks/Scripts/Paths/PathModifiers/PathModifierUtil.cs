@@ -7,7 +7,7 @@ using Paths;
 
 namespace Paths
 {
-	public class PathModifierUtil
+	public static class PathModifierUtil
 	{
 
 		public static string GetDisplayName (IPathModifier pm)

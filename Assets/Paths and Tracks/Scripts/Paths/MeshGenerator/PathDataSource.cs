@@ -110,6 +110,12 @@ namespace Paths.MeshGenerator
 			this.id = id;
 		}
 
+		public void Dispose ()
+		{
+			GetPathModifierContainer ().RemoveAllPathModifiers ();
+
+		}
+
 		void OnAttach (IPathDataSourceContainer container)
 		{
 			this.referenceContainer = container.GetReferenceContainer ();
@@ -306,7 +312,7 @@ namespace Paths.MeshGenerator
 						for (int i = 0; i < copyOfUnprocessedPoints.Length; i++) {
 							copyOfUnprocessedPoints [i] = new PathPoint (unprocessedPoints [i]);
 						}
-						processedPoints = pmc.xxxRunPathModifiers (context, copyOfUnprocessedPoints, ref flags);
+						processedPoints = pmc.RunPathModifiers (context, copyOfUnprocessedPoints, ref flags);
 //						processedPoints = PathModifierUtil.RunPathModifiers (context, unprocessedPoints, true, ref flags, true);
 					}
 				}

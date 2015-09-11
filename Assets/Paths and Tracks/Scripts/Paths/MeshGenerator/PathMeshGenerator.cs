@@ -60,7 +60,6 @@ namespace Paths.MeshGenerator
 		private SimpleReferenceContainer
 			referenceContainer = new SimpleReferenceContainer ();
 		
-		// TODO should this be serialized?
 		[SerializeField]
 		private bool
 			autoUpdateWithPath = false;
@@ -68,6 +67,24 @@ namespace Paths.MeshGenerator
 		[SerializeField]
 		private bool
 			autoUpdateMesh = false;
+
+		[SerializeField]
+		public bool
+			updateMeshFilter = true;
+		[SerializeField]
+		public bool
+			createMeshFilter = true;
+		[SerializeField]
+		public bool
+			createMeshRenderer = true;
+
+		[SerializeField]
+		public bool
+			updateMeshCollider = true;
+		[SerializeField]
+		public bool
+			createMeshCollider = true;
+
 		
 		// don't serialize!
 		//private DefaultPathModifierContainer pathModifierContainer = null;
@@ -155,15 +172,51 @@ namespace Paths.MeshGenerator
 			Debug.Log ("Reset Track: " + this.ToString ());
 			// TODO reset everything!
 
-			this.dataSource = CreateDataSource ();
+			bool firstTime = (null == this.dataSource);
+
+			if (null != dataSource) {
+				DetachDataSource (dataSource);
+				dataSource.Dispose ();
+			}
+
+			dataSource = CreateDataSource ();
+			AttachDataSource (dataSource);
+
+
+			if (firstTime) {
+				// First time
+				PathSelector pathSel = dataSource.PathSelector;
+				if (null == pathSel.Path) {
+					// Use the local Path componenent or any Path in parent objects:
+					Path path = GetComponentInParent<Path> ();
+					if (null != path) {
+						dataSource.PathSelector = pathSel.WithPath (path).WithDataSetId (0).WithUseSnapshot (false);
+						//						pathSel.Path = path;
+						//						pathSel.DataSetId = 0; // the default
+						//						pathSel.UseSnapshot = false;
+					}
+				}
+			}
+
+			autoUpdateWithPath = false;
+			autoUpdateMesh = false;
+			
+			updateMeshFilter = true;
+			createMeshFilter = true;
+			createMeshRenderer = true;
+			
+			updateMeshCollider = true;
+			createMeshCollider = true;
 
 		}
 		
 		public void OnEnable ()
 		{
+//			Debug.Log ("OnEnable: " + this);
 			if (null != dataSource) {
 				AttachDataSource (dataSource);
 			}
+
 		}
 
 		public void OnDisable ()
@@ -179,6 +232,11 @@ namespace Paths.MeshGenerator
 
 			// OnDisable() is already called, so no need to do anything in here
 //			primaryDataSource.OnDisable (this);
+
+			if (null != dataSource) {
+				dataSource.GetPathModifierContainer ().RemoveAllPathModifiers ();
+			}
+
 		}
 
 		// Use this for initialization
@@ -216,7 +274,6 @@ namespace Paths.MeshGenerator
 
 		public void OnAfterDeserialize ()
 		{
-			Debug.Log ("OnAfterDeserialize");
 //			ParameterStore.OnAfterDeserialize ();
 
 			if (null == dataSource) {
@@ -628,9 +685,37 @@ namespace Paths.MeshGenerator
 				}
 				generatedMesh = mg.CreateMesh (DataSource, generatedMesh);
 
-				MeshFilter mf = GetComponent<MeshFilter> ();
-				if (null != mf) {
-					mf.sharedMesh = generatedMesh;
+				if (updateMeshFilter) {
+					MeshFilter mf = GetComponent<MeshFilter> ();
+					if (null == mf && createMeshFilter) {
+						mf = gameObject.AddComponent<MeshFilter> ();
+					}
+					if (null != mf) {
+						mf.sharedMesh = generatedMesh;
+					}
+
+					MeshRenderer mr = GetComponent<MeshRenderer> ();
+					if (null == mr && createMeshRenderer) {
+						mr = gameObject.AddComponent<MeshRenderer> ();
+					}
+				}
+
+
+
+				if (updateMeshCollider) {
+					MeshCollider mc = GetComponent<MeshCollider> ();
+					if (null == mc && createMeshCollider) {
+						mc = gameObject.AddComponent<MeshCollider> ();
+					}
+					if (null != mc) {
+						mc.sharedMesh = generatedMesh;
+						// Force refresh:
+						bool mcWasenabled = mc.enabled;
+						if (mcWasenabled) {
+							mc.enabled = false;
+							mc.enabled = true;
+						}
+					}
 				}
 
 				return true;

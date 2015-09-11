@@ -34,7 +34,7 @@ namespace Paths.MeshGenerator.Editor
 //	}
 
 
-	public interface IMeshGeneratorEditor : ICustomToolEditor
+	public interface IMeshGeneratorEditor : IPluginEditor
 	{
 //		void OnEnable (MeshGeneratorEditorContext context);
 

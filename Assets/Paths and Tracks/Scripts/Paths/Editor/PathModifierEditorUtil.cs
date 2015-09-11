@@ -15,7 +15,7 @@ namespace Paths.Editor
 
 
 	// TODO this class is getting quite complicated; please consider about refactoring
-	public class PathModifierEditorUtil
+	public static class PathModifierEditorUtil
 	{
 
 
@@ -23,7 +23,7 @@ namespace Paths.Editor
 		public static void DrawPathModifiersInspector (
 			Path path, IPathData pathData, 
 			UnityEditor.Editor editor, UnityEngine.Object dirtyObject, 
-			CustomToolEditorContext.TargetModifiedFunc modifiedCallback)
+			PluginEditorContext.TargetModifiedFunc modifiedCallback)
 		{
 //			Path path = pathData.GetPath ();
 			IPathModifierContainer pmc = pathData.GetPathModifierContainer ();
@@ -108,25 +108,24 @@ namespace Paths.Editor
 				}
 //				EditorGUI.indentLevel++;
 
-				// TODO Foldout is bad GUI here
-				EditorGUI.BeginChangeCheck ();
-				bool messagesVisible = EditorGUILayout.Foldout (
-					editorPrefs.GetBool (".MessagesVisible", true), "Messages" + (haveErrors ? " *** ERRORS ***" : ""));
-				if (EditorGUI.EndChangeCheck ()) {
-					editorPrefs.SetBool (".MessagesVisible", messagesVisible);
-				}
-				if (messagesVisible) {
-					if (haveErrors) {
-						// Collect all errors
-						string errorsString = "Processing of PathModifier was aborted due to error(s): ";
-						foreach (IPathModifier pm in pathModifiers) {
-							foreach (string errorMsg in container.GetCurrentMessages(PathModifierMessageType.Error, pm)) {
-								errorsString += "\n- " + errorMsg;
-							}
+//				EditorGUI.BeginChangeCheck ();
+//				bool messagesVisible = EditorGUILayout.Foldout (
+//					editorPrefs.GetBool (".MessagesVisible", true), "Messages" + (haveErrors ? " *** ERRORS ***" : ""));
+//				if (EditorGUI.EndChangeCheck ()) {
+//					editorPrefs.SetBool (".MessagesVisible", messagesVisible);
+//				}
+//				if (messagesVisible) {
+				if (haveErrors) {
+					// Collect all errors
+					string errorsString = "Processing of PathModifier was aborted due to error(s): ";
+					foreach (IPathModifier pm in pathModifiers) {
+						foreach (string errorMsg in container.GetCurrentMessages(PathModifierMessageType.Error, pm)) {
+							errorsString += "\n- " + errorMsg;
 						}
-						EditorGUILayout.HelpBox (errorsString, MessageType.Error);
 					}
+					EditorGUILayout.HelpBox (errorsString, MessageType.Error);
 				}
+//				}
 //				EditorGUI.indentLevel--;
 
 				int combinedOutputFlags = CalculateCombinedOutputFlags (pathData, pmParams);
@@ -286,9 +285,9 @@ namespace Paths.Editor
 		{
 			IPathModifierEditor pme;
 			
-			ICUstomToolEditorHost cteh = context.EditorHost as ICUstomToolEditorHost;
+			IPluginEditorHost cteh = context.EditorHost as IPluginEditorHost;
 			if (null != cteh) {
-				ICustomToolEditor cte = cteh.GetEditorFor (pm);
+				IPluginEditor cte = cteh.GetEditorFor (pm);
 				pme = cte as IPathModifierEditor;
 				if (null == pme && null != cte) {
 					Debug.LogWarning ("Failed to get IPathModifierEditor for '" + pm + "' from ICustomToolEditorHost: " + cteh);
@@ -298,9 +297,9 @@ namespace Paths.Editor
 			}
 			
 			if (null == pme) {
-				pme = PathModifierResolver.Instance.CreateToolEditorInstance (pm) as IPathModifierEditor;
+				pme = PathModifierResolver.Instance.CreatePluginEditorInstance (pm) as IPathModifierEditor;
 				if (null == pme) {
-					Debug.LogWarning ("No IPathModifierEditor found for PathModifier '" + pm + "'; using FallbackPathModifierEditor.");
+					//Debug.LogWarning ("No IPathModifierEditor found for PathModifier '" + pm + "'; using FallbackPathModifierEditor.");
 					pme = new FallbackPathModifierEditor ();
 				}
 				if (null != cteh) {

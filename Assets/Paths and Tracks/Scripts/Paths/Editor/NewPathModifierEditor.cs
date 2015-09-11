@@ -12,23 +12,30 @@ using Paths;
 
 namespace Paths.Editor
 {
-	[CustomToolEditor(typeof(NewPathModifier))]
+	[PluginEditor(typeof(NewPathModifier))]
 	internal class NewPathModifierEditor : AbstractPathModifierEditor
 	{
+
+
 		protected override void OnDrawConfigurationGUI ()
 		{
 
-			CustomToolResolver toolResolver = PathModifierResolver.Instance;
+		}
+		protected override void DrawTypeField ()
+		{
+
+			//PluginResolver toolResolver = PathModifierResolver.Instance;
 			NewPathModifier pm = (NewPathModifier)context.PathModifier;
 			IPathModifierContainer pmContainer = context.PathModifierContainer;
 //          Path path = pmeContext.Path;
             
 			// Show type selection
 
-			Type[] pmTypes = toolResolver.FindToolTypes ();
+
+			Type[] pmTypes = PathModifierResolver.Instance.FindPluginTypes ();
 			List<string> displayNameList = new List<string> ();
 			for (int j = 0; j < pmTypes.Length; j++) {
-				displayNameList.Add (toolResolver.GetToolDisplayName (pmTypes [j]));
+				displayNameList.Add (PathModifierResolver.Instance.GetPluginDisplayName (pmTypes [j]));
 			}
 
 			string[] displayNames = displayNameList.ToArray ();
@@ -53,12 +60,12 @@ namespace Paths.Editor
 			}
 
 			EditorGUI.BeginDisabledGroup (pm.pathModifier == null || pm.pathModifierIndex < 0);
-			if (GUILayout.Button ("Add") && pm.pathModifier != null && pm.pathModifierIndex >= 0) {
+			if (GUILayout.Button ("Add", EditorStyles.miniButton, GUILayout.ExpandWidth (false)) && pm.pathModifier != null && pm.pathModifierIndex >= 0) {
 				// TODO should we use "pmContainer" as target in here
 				Undo.RecordObject (context.Target, "Add Path Modifier");
 
 				int thisIndex = pmContainer.IndexOf (pm);
-				pmContainer.RemovePathModifer (thisIndex);
+				pmContainer.RemovePathModifier (thisIndex);
 
 				if (!StringUtil.IsEmpty (pm.GetInstanceName ()) && pm.GetName () != pm.GetInstanceName ()) {
 					pm.pathModifier.SetInstanceName (pm.GetInstanceName ());
@@ -66,7 +73,7 @@ namespace Paths.Editor
 				if (!StringUtil.IsEmpty (pm.GetInstanceDescription ())) {
 					pm.pathModifier.SetInstanceDescription (pm.GetInstanceDescription ());
 				}
-				pmContainer.InsertPathModifer (thisIndex, pm.pathModifier);
+				pmContainer.InsertPathModifier (thisIndex, pm.pathModifier);
 				pm.pathModifier = null;
 
                 

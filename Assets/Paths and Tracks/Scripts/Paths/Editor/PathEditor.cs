@@ -28,7 +28,7 @@ namespace Paths.Editor
 
 
 	// TODO refactor this class; it's getting too complex
-	public class AbstractPathEditor<TPath, TPathData> : UnityEditor.Editor, ICUstomToolEditorHost where TPath: Path where TPathData: IPathData
+	public class AbstractPathEditor<TPath, TPathData> : UnityEditor.Editor, IPluginEditorHost where TPath: Path where TPathData: IPathData
 	{
 
 		public enum ToolbarSheet : int
@@ -52,7 +52,7 @@ namespace Paths.Editor
 		private Dictionary<int, bool> pointExpanded = new Dictionary<int, bool> ();
 		private int _selectedControlPointIndex = -1;
 
-		private Dictionary<object, ICustomToolEditor> _cachedCustomToolEditors = new Dictionary<object, ICustomToolEditor> ();
+		private Dictionary<object, IPluginEditor> _cachedPluginEditors = new Dictionary<object, IPluginEditor> ();
 
 		protected TPath path;
 		protected TPathData pathData;
@@ -69,21 +69,21 @@ namespace Paths.Editor
 			this.editorParams = path.EditorParameters;
 			UpdateDataSetSelection ();
 		}
-		public void SetEditorFor (object customToolInstance, ICustomToolEditor editor)
+		public void SetEditorFor (object pluginInstance, IPluginEditor editor)
 		{
 			if (null == editor) {
-				if (_cachedCustomToolEditors.ContainsKey (customToolInstance)) {
-					_cachedCustomToolEditors.Remove (customToolInstance);
+				if (_cachedPluginEditors.ContainsKey (pluginInstance)) {
+					_cachedPluginEditors.Remove (pluginInstance);
 				}
 			} else {
-				_cachedCustomToolEditors [customToolInstance] = editor;
+				_cachedPluginEditors [pluginInstance] = editor;
 			}
 		}
 
-		public ICustomToolEditor GetEditorFor (object customToolInstance)
+		public IPluginEditor GetEditorFor (object pluginInstance)
 		{
-			if (_cachedCustomToolEditors.ContainsKey (customToolInstance)) {
-				return _cachedCustomToolEditors [customToolInstance];
+			if (_cachedPluginEditors.ContainsKey (pluginInstance)) {
+				return _cachedPluginEditors [pluginInstance];
 			} else {
 				return null;
 			}

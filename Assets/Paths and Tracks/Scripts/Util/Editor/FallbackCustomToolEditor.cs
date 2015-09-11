@@ -10,18 +10,22 @@ using Util;
 namespace Util.Editor
 {
 
-   
-	// TODO make this abstract FallbackCustomToolEditor???
 	// TODO implement editing of all supported types!
-	public class FallbackCustomToolEditor : ICustomToolEditor
+	[PluginEditor(typeof(object))]
+	public class FallbackCustomToolEditor : IPluginEditor
 	{
         
-		public void DrawInspectorGUI (CustomToolEditorContext context)
+		public void DeleteEditorPrefs ()
+		{
+
+		}
+
+		public void DrawInspectorGUI (PluginEditorContext context)
 		{
 			DoDrawInspectorGUI (context);
 		}
 
-		public static void DoDrawInspectorGUI (CustomToolEditorContext context, params string[] excludedFields)
+		public static void DoDrawInspectorGUI (PluginEditorContext context, params string[] excludedFields)
 		{
 			//          PathModifierEditorContext pmeContext = (PathModifierEditorContext)context;
 
@@ -30,7 +34,7 @@ namespace Util.Editor
 			// Collect all read/write fields:
 			List<MemberInfo> inspectedMembers = new List<MemberInfo> ();
             
-			foreach (MemberInfo mi in context.CustomTool.GetType().GetMembers(BindingFlags.Instance|BindingFlags.Public)) {
+			foreach (MemberInfo mi in context.PluginInstance.GetType().GetMembers(BindingFlags.Instance|BindingFlags.Public)) {
 				bool excludeThis = false;
 				foreach (string excluded in excludedFields) {
 					if (excluded == mi.Name) {
@@ -92,9 +96,9 @@ namespace Util.Editor
 			}
 		}
         
-		static void Field (CustomToolEditorContext context, MemberInfo mi)
+		static void Field (PluginEditorContext context, MemberInfo mi)
 		{
-			object obj = context.CustomTool;
+			object obj = context.PluginInstance;
             
 			EditorGUI.BeginChangeCheck ();
             

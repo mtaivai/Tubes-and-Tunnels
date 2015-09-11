@@ -20,7 +20,7 @@ namespace Paths.Editor
 //	{
 //	}
 
-	public class PathModifierInputFilterEditorContext : CustomToolEditorContext
+	public class PathModifierInputFilterEditorContext : PluginEditorContext
 	{
 		private PathModifierEditorContext pathModifierEditorContext;
 
@@ -34,16 +34,21 @@ namespace Paths.Editor
 		}
 	}
 
-	[CustomToolEditor(typeof(IndexRangePathModifierInputFilter))]
-	public class IndexRangePathModifierInputFilterEditor : ICustomToolEditor
+	[PluginEditor(typeof(IndexRangePathModifierInputFilter))]
+	public class IndexRangePathModifierInputFilterEditor : IPluginEditor
 	{
 		PathModifierInputFilterEditorContext context;
 		IndexRangePathModifierInputFilter filter;
 
-		public void DrawInspectorGUI (CustomToolEditorContext context)
+		public void DeleteEditorPrefs ()
+		{
+
+		}
+
+		public void DrawInspectorGUI (PluginEditorContext context)
 		{
 			this.context = (PathModifierInputFilterEditorContext)context;
-			this.filter = (IndexRangePathModifierInputFilter)context.CustomTool;
+			this.filter = (IndexRangePathModifierInputFilter)context.PluginInstance;
 			OnDrawInspectorGUI ();
 		}
 
@@ -204,7 +209,7 @@ namespace Paths.Editor
 //			EditorGUI.indentLevel = prevIndentLevel;
 		}
 	}
-	[CustomToolEditor(typeof(IncludePathModifier))]
+	[PluginEditor(typeof(IncludePathModifier))]
 	public class IncludePathModifierEditor : AbstractPathModifierEditor
 	{
 		private string snapshotNameFromList = null;

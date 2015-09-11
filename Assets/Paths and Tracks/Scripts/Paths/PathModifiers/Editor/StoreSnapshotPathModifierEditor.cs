@@ -25,7 +25,7 @@ namespace Paths.Editor
 //	}
 
 
-	[CustomToolEditor(typeof(StoreSnapshotPathModifier))]
+	[PluginEditor(typeof(StoreSnapshotPathModifier))]
 	public class StoreSnapshotPathModifierEditor : AbstractPathModifierEditor
 	{
 
