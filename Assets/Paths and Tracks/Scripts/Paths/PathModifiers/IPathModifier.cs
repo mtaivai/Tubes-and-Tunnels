@@ -77,7 +77,7 @@ namespace Paths
 		public PathModifierLifecycleEventArgs (IPathModifierContainer container, IPathModifier pm, PathModifierLifecyclePhase phase)
 		{
 			this.container = container;
-			this.pathModifier = pathModifier;
+			this.pathModifier = pm;
 			this.phase = phase;
 		}
 		public PathModifierLifecyclePhase Phase {
