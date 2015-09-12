@@ -337,10 +337,12 @@ namespace Paths.MeshGenerator.SliceStrip
 						slicePtIndex = j;
 					}
 					vertices [vi] = slice.Points [slicePtIndex];
-					if (facesDir == MeshFaceDir.Up) {
-						normals [vi] = slice.Normals [slicePtIndex];
-					} else {
+					if (facesDir == MeshFaceDir.Down) {
+						// Faces point "downwards"; invert slice normals
 						normals [vi] = -slice.Normals [slicePtIndex];
+					} else {
+						// Faces point "upwards"; use slice normals as they are
+						normals [vi] = slice.Normals [slicePtIndex];
 					}
 					// uv mapping 
 					/*if (j > 0) {
@@ -368,7 +370,7 @@ namespace Paths.MeshGenerator.SliceStrip
 						int vi = vi0 + verticesPerSliceSide;
 						
 						vertices [vi] = vertices [vi0];
-						normals [vi] = normals [vi0] * -1.0f;
+						normals [vi] = -normals [vi0];
 						if (createTangents) {
 							tangents [vi] = tangents [vi0];
 						}
