@@ -207,7 +207,7 @@ namespace Paths.MeshGenerator.SliceStrip
 			DoCreateMesh (dataSource, mesh);
 			return mesh;
 		}
-		
+
 		protected void DoCreateMesh (PathDataSource dataSource, Mesh mesh)
 		{
 			
@@ -329,24 +329,19 @@ namespace Paths.MeshGenerator.SliceStrip
 				
 				for (int j = 0; j < verticesPerSliceSide; j++) {
 					int vi = voffs + j;
-					
-					Vector3 pt;
+
+					int slicePtIndex;
 					if (closedShape) {
-						pt = (j <= lastSliceVerticeIndex) ? slice.Points [j] : slice.Points [0];
+						slicePtIndex = (j <= lastSliceVerticeIndex) ? j : 0;
 					} else {
-						pt = slice.Points [j];
+						slicePtIndex = j;
 					}
-					
-					vertices [vi] = pt;
-					
-					if (facesDir == MeshFaceDir.Down) {
-						normals [vi] = (pt - sliceCenter).normalized;
-						
+					vertices [vi] = slice.Points [slicePtIndex];
+					if (facesDir == MeshFaceDir.Up) {
+						normals [vi] = slice.Normals [slicePtIndex];
 					} else {
-						// 'up' side; also the first side of double-sided meshes
-						normals [vi] = (sliceCenter - pt).normalized;
+						normals [vi] = -slice.Normals [slicePtIndex];
 					}
-					
 					// uv mapping 
 					/*if (j > 0) {
                     //v += (pt - slice.points[j - 1]).magnitude;
@@ -359,7 +354,8 @@ namespace Paths.MeshGenerator.SliceStrip
 					//Debug.Log ("uv: " + uv[vi] + "; j=" + j);
 					//u += 0.25f;
 					
-					// Tangents / experimental
+					// Tangents / experimental 
+					// TODO this is not really working
 					if (createTangents) {
 						tangents [vi] = new Vector4 (slice.Direction.x, slice.Direction.y, slice.Direction.z, -1f);
 					}

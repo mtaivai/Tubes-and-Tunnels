@@ -12,6 +12,7 @@ namespace Paths.MeshGenerator.Tube
 	public class TubeSlice : SliceStripSlice
 	{
 		private Vector3[] points;
+		private Vector3[] normals;
 
 		public TubeSlice (Vector3 center, Quaternion rotation, int edges, float width, float height, float ellipseRotation) 
     : base(center, rotation)
@@ -28,7 +29,7 @@ namespace Paths.MeshGenerator.Tube
 			//  new Vector3(sliceSize, -sliceSize, 0),
 			//  new Vector3(-sliceSize, -sliceSize, 0),
 			//};
-			points = CreateEllipse (edges, width, height, ellipseRotation);
+			CreateEllipse (edges, width, height, ellipseRotation, out points, out normals);
 
 			circumference = 0.0f;
 			for (int i = 0; i < points.Length; i++) {
@@ -39,14 +40,14 @@ namespace Paths.MeshGenerator.Tube
         
 		}
     
-		Vector3[] CreateEllipse (int edges, float width, float height, float sliceRotation)
+		void CreateEllipse (int edges, float width, float height, float sliceRotation, out Vector3[] points, out Vector3[] normals)
 		{
-			Vector3[] points = new Vector3[edges];
-        
+			points = new Vector3[edges];
+			normals = new Vector3[edges];
+
 			// Rotate to keep ceiling up and floor down:
 			float rotation = (180.0f + sliceRotation) * Mathf.Deg2Rad;
-			//rotation = 0.0f;
-        
+
 			for (int i = 0; i < edges; i++) {
 				Vector3 pt;
             
@@ -55,17 +56,17 @@ namespace Paths.MeshGenerator.Tube
 				float y = height * Mathf.Sin (-t);
 				pt = new Vector3 (x, y, 0);
 				points [i] = pt;
+				normals [i] = -pt.normalized;
 			}
-			return points;
 		}
-//		public override int GetEdgeCount ()
-//		{
-//			return points.Length;
-//		}
     
 		protected override Vector3[] GetLocalPoints ()
 		{
 			return points;
+		}
+		protected override Vector3[] GetLocalNormals ()
+		{
+			return normals;
 		}
 	}
 }

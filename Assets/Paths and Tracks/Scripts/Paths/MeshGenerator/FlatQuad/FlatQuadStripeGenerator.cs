@@ -64,6 +64,8 @@ namespace Paths.MeshGenerator.FlatQuad
         }
     }*/
 
+
+	
 		protected override SliceStripSlice CreateSlice (Vector3 center, Quaternion sliceRotation)
 		{
 			return new FlatQuadStripeSlice (center, sliceRotation, width);
@@ -82,16 +84,17 @@ namespace Paths.MeshGenerator.FlatQuad
 	public class FlatQuadStripeSlice : SliceStripSlice
 	{
 		private Vector3[] points;
+		private Vector3[] normals;
     
 		public FlatQuadStripeSlice (Vector3 center, Quaternion rotation, float width) 
     : base(center, rotation)
 		{
         
 			points = new Vector3[] {
-            new Vector3 (-width / 2.0f, 0, 0),
-            new Vector3 (width / 2.0f, 0, 0),
-
-        };
+	            new Vector3 (-width / 2.0f, 0, 0),
+	            new Vector3 (width / 2.0f, 0, 0),
+	        };
+			normals = new Vector3[] {Vector3.up, Vector3.up};
 
 			circumference = width;
 		}
@@ -101,6 +104,11 @@ namespace Paths.MeshGenerator.FlatQuad
 		protected override Vector3[] GetLocalPoints ()
 		{
 			return points;
+		}
+
+		protected override Vector3[] GetLocalNormals ()
+		{
+			return normals;
 		}
 	}
 }

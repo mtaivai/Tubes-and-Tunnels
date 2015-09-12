@@ -10,6 +10,8 @@ namespace Paths.MeshGenerator.SliceStrip
 		//private Vector3[] points;
 
 		private Vector3[] transformedPoints;
+		private Vector3[] transformedNormals;
+
 		private Vector3 center;
 		private Quaternion rotation;
 		protected float circumference;
@@ -39,6 +41,18 @@ namespace Paths.MeshGenerator.SliceStrip
 				return transformedPoints;
 			}
 		}
+		public Vector3[] Normals {
+			get {
+				if (null == transformedNormals) {
+					Vector3[] localNormals = GetLocalNormals ();
+					transformedNormals = new Vector3[localNormals.Length];
+					for (int i = 0; i < localNormals.Length; i++) {
+						transformedNormals [i] = rotation * localNormals [i];
+					}
+				}
+				return transformedNormals;
+			}
+		}
 
 		public float Circumference {
 			get {
@@ -54,5 +68,6 @@ namespace Paths.MeshGenerator.SliceStrip
 
 //		public abstract int GetEdgeCount ();
 		protected abstract Vector3[] GetLocalPoints ();
+		protected abstract Vector3[] GetLocalNormals ();
 	}
 }
