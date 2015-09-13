@@ -34,6 +34,15 @@ public class PathFlyer : MonoBehaviour
 		currentDistance = 0.0f;
 //		totalDistance = pathData.GetTotalDistance ();
 		ppLookup = new PathPositionLookup (pathSelection.PathData);
+
+		PathPoint pp = ppLookup.GetPathPointAtDistance (currentDistance, out currentDistance);
+		Paths.Path path = pathSelection.Path;
+		transform.position = path.transform.TransformPoint (pp.Position);
+
+		Quaternion rot = transform.rotation;
+		rot.SetLookRotation (pp.Direction);
+		transform.rotation = rot;
+
 	}
 
 	void OnDrawGizmos ()

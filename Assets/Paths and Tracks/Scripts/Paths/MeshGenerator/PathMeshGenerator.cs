@@ -313,6 +313,7 @@ namespace Paths.MeshGenerator
 
 #region Event Handlers
 
+		// Called by our PathDataSource
 		private void OnDataSourceDataChanged (PathDataChangedEventArgs e)
 		{
 			// TODO what if we're destroyed?
@@ -330,7 +331,14 @@ namespace Paths.MeshGenerator
 					GenerateMesh ();
 				}
 			}
+		}
 
+		public void MeshGeneratorModified ()
+		{
+			MarkSlicesDirty ();
+			if (autoUpdateMesh) {
+				GenerateMesh ();
+			}
 		}
 
 //		private void OnDataSourceProcessedDataChanged ()
