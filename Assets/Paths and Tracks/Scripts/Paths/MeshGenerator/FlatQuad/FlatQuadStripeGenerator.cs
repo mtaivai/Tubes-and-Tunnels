@@ -35,10 +35,10 @@ namespace Paths.MeshGenerator.FlatQuad
 		{
 			return 1;
 		}
-		protected override bool IsSliceClosedShape ()
-		{
-			return false;
-		}
+//		protected override bool IsSliceClosedShape ()
+//		{
+//			return false;
+//		}
 
 		public override void OnLoadParameters (ParameterStore store)
 		{
@@ -66,9 +66,9 @@ namespace Paths.MeshGenerator.FlatQuad
 
 
 	
-		protected override SliceStripSlice CreateSlice (Vector3 center, Quaternion sliceRotation)
+		protected override SliceStripSlice CreateSlice (PathPoint pp)
 		{
-			return new FlatQuadStripeSlice (center, sliceRotation, width);
+			return new FlatQuadStripeSlice (width);
 		}
 
 //		public override Mesh CreateMesh (PathDataSource dataSource, Mesh mesh)
@@ -83,33 +83,11 @@ namespace Paths.MeshGenerator.FlatQuad
 
 	public class FlatQuadStripeSlice : SliceStripSlice
 	{
-		private Vector3[] points;
-		private Vector3[] normals;
-    
-		public FlatQuadStripeSlice (Vector3 center, Quaternion rotation, float width) 
-    : base(center, rotation)
+		public FlatQuadStripeSlice (float width)
+			: base(new Vector3[] { new Vector3 (-width / 2.0f, 0, 0), new Vector3 (width / 2.0f, 0, 0) }, new Vector3[] {Vector3.up, Vector3.up}, false)
 		{
-        
-			points = new Vector3[] {
-	            new Vector3 (-width / 2.0f, 0, 0),
-	            new Vector3 (width / 2.0f, 0, 0),
-	        };
-			normals = new Vector3[] {Vector3.up, Vector3.up};
-
-			circumference = width;
 		}
     
-
-
-		protected override Vector3[] GetLocalPoints ()
-		{
-			return points;
-		}
-
-		protected override Vector3[] GetLocalNormals ()
-		{
-			return normals;
-		}
 	}
 }
 

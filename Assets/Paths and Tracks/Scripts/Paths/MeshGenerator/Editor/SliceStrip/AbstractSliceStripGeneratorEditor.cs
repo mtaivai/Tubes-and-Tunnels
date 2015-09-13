@@ -44,12 +44,12 @@ namespace Paths.MeshGenerator.SliceStrip.Editor
 				
 
 				
-				EditorGUI.BeginChangeCheck ();
-				target.SliceRotation = EditorGUILayout.Slider ("Slice Rotation", target.SliceRotation, 0f, 360f);
-				if (EditorGUI.EndChangeCheck ()) {
-					//EditorUtility.SetDirty(trackInspector.target);
-					editorContext.TargetModified ();
-				}
+//				EditorGUI.BeginChangeCheck ();
+//				target.SliceRotation = EditorGUILayout.Slider ("Slice Rotation", target.SliceRotation, 0f, 360f);
+//				if (EditorGUI.EndChangeCheck ()) {
+//					//EditorUtility.SetDirty(trackInspector.target);
+//					editorContext.TargetModified ();
+//				}
 
 				DrawCustomSliceConfigurationGUI ();
 				

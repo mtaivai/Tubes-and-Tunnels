@@ -99,14 +99,16 @@ namespace Paths.MeshGenerator.Editor
 
 		private void MeshGeneratorModified ()
 		{
-			PathMeshGenerator track = target as PathMeshGenerator;
 			// TODO refactor the SetMeshDirty(). ... ConfigurationChanged --- PathModifiersChanged etc system
-			EditorUtility.SetDirty (track);
+			EditorUtility.SetDirty (target);
 			//SliceConfigurationChanged();
 			SetMeshDirty ();
 
 			// Save the configuration
 			target.SaveMeshGeneratorParameters ();
+
+			// Notify about the change
+			target.MeshGeneratorModified ();
 
 //			track.ConfigurationChanged (true, false);
 			SceneView.RepaintAll ();
@@ -665,7 +667,7 @@ namespace Paths.MeshGenerator.Editor
 //
 //		}
 
-		private void DrawSlice (SliceStrip.SliceStripSlice slice)
+		private void DrawSlice (SliceStrip.TransformedSlice slice)
 		{
 			PathMeshGenerator track = target as PathMeshGenerator;
 			Transform transform = track.transform;
@@ -686,7 +688,8 @@ namespace Paths.MeshGenerator.Editor
 				Handles.DrawLine (transform.TransformPoint (slice.Points [j]), transform.TransformPoint (slice.Points [k]));
 
 				Handles.color = Color.cyan;
-				Vector3 center = transform.TransformPoint (slice.Center);
+				//Vector3 center = transform.TransformPoint (slice.Center);
+				Vector3 center = slice.Center;
 				Handles.DrawLine (center, center + slice.Direction * 1.0f);
 			}
 		}

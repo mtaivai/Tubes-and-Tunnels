@@ -17,9 +17,10 @@ namespace Paths.MeshGenerator.SliceStrip
 	// Rename to AbstractSliceStripGenerator
 	public abstract class AbstractSliceStripGenerator : AbstractMeshGenerator
 	{
+
 		//
 		private MeshFaceDir facesDir = MeshFaceDir.Up;
-		private float sliceRotation = 45.0f;
+		//private float sliceRotation = 45.0f;
 		private bool perSideSubmeshes = true;
 		private bool perSideVertices = true;
 
@@ -32,17 +33,15 @@ namespace Paths.MeshGenerator.SliceStrip
 
 
 		
-		public float SliceRotation {
-			get {
-				return this.sliceRotation;
-			}
-			set {
-				sliceRotation = value;
-			}
-		}
-		
-		
-		
+//		public float SliceRotation {
+//			get {
+//				return this.sliceRotation;
+//			}
+//			set {
+//				sliceRotation = value;
+//			}
+//		}
+//		
 		public MeshFaceDir FacesDir {
 			get {
 				return this.facesDir;
@@ -81,7 +80,7 @@ namespace Paths.MeshGenerator.SliceStrip
 
 		public override void OnLoadParameters (ParameterStore store)
 		{
-			sliceRotation = store.GetFloat ("sliceRotation", sliceRotation);
+//			sliceRotation = store.GetFloat ("sliceRotation", sliceRotation);
 			facesDir = store.GetEnum ("facesDir", facesDir);
 			perSideSubmeshes = store.GetBool ("perSideSubmeshes", perSideSubmeshes);
 			perSideVertices = store.GetBool ("perSideVertices", perSideVertices);
@@ -89,25 +88,33 @@ namespace Paths.MeshGenerator.SliceStrip
 		
 		public override void OnSaveParameters (ParameterStore store)
 		{
+			// TODO what't "name" in here? Why? Is it used? Should it be removed?
 			store.SetString ("name", Name);
-			store.SetFloat ("sliceRotation", sliceRotation);
+//			store.SetFloat ("sliceRotation", sliceRotation);
 			store.SetEnum ("facesDir", facesDir);
 			store.SetBool ("perSideSubmeshes", perSideSubmeshes);
 			store.SetBool ("perSideVertices", perSideVertices);
 		}
 
-		protected SliceStripSlice[] CreateSlices (PathDataSource dataSource)
+		TransformedSlice[] CreateSlices (PathDataSource dataSource)
 		{
 			return CreateSlices (dataSource, false);
 		}
 
 		protected abstract  int GetSliceEdgeCount ();
-		protected abstract  bool IsSliceClosedShape ();
-		protected abstract SliceStripSlice CreateSlice (Vector3 center, Quaternion sliceRotation);
+//		protected abstract  bool IsSliceClosedShape ();
+
+		/// <summary>
+		/// Called to create a SliceStripSlice for the given PathPoints. Slice points should
+		/// not be transformed to the point position or rotation.
+		/// </summary>
+		/// <returns>The slice.</returns>
+		/// <param name="pp">Pp.</param>
+		protected abstract SliceStripSlice CreateSlice (PathPoint pp);
 		
-		protected SliceStripSlice[] CreateSlices (PathDataSource dataSource, bool repeatFirstInLoop)
+		TransformedSlice[] CreateSlices (PathDataSource dataSource, bool repeatFirstInLoop)
 		{
-			SliceStripSlice[] slices;
+			TransformedSlice[] slices;
 			long startTime = System.DateTime.Now.Ticks / System.TimeSpan.TicksPerMillisecond;
 			
 			// Create slices
@@ -115,7 +122,7 @@ namespace Paths.MeshGenerator.SliceStrip
 			
 			if (null == dataSource) {
 				Debug.LogError ("No Data Source configured; not creating any slices");
-				slices = new SliceStripSlice[0];
+				slices = new TransformedSlice[0];
 			} else {
 				slices = DoCreateSlices (dataSource, repeatFirstInLoop);
 			}
@@ -127,7 +134,7 @@ namespace Paths.MeshGenerator.SliceStrip
 			
 			return slices;
 		}
-		private SliceStripSlice[] DoCreateSlices (PathDataSource dataSource, bool repeatFirstInLoop)
+		private TransformedSlice[] DoCreateSlices (PathDataSource dataSource, bool repeatFirstInLoop)
 		{
 			int ppFlags;
 			PathPoint[] points = dataSource.GetProcessedPoints (out ppFlags);
@@ -142,7 +149,7 @@ namespace Paths.MeshGenerator.SliceStrip
 				sliceCount -= 1;
 			}
 			
-			SliceStripSlice[] slices = new SliceStripSlice[sliceCount];
+			TransformedSlice[] slices = new TransformedSlice[sliceCount];
 			
 			// TODO split long segments to shorter
 			bool usingGeneratedDirections = false;
@@ -177,8 +184,10 @@ namespace Paths.MeshGenerator.SliceStrip
 				
 				Quaternion sliceRot = Quaternion.LookRotation (dir, up);
 				//Quaternion sliceRot = Quaternion.FromToRotation(Vector3.forward, dir);
-				
-				slices [i] = CreateSlice (pt0, sliceRot);
+
+				SliceStripSlice slice = CreateSlice (points [i]);
+				TransformedSlice transformedSlice = new TransformedSlice (slice, pt0, sliceRot);
+				slices [i] = transformedSlice;
 			}
 			if (usingGeneratedDirections) {
 				Debug.LogWarning ("Using calculated directions while generating Track; expect some inaccurancy!");
@@ -214,74 +223,30 @@ namespace Paths.MeshGenerator.SliceStrip
 			mesh.Clear (false);
 			mesh.tangents = null;
 			
-			SliceStripSlice[] slices = CreateSlices (dataSource, true);
+			TransformedSlice[] slices = CreateSlices (dataSource, true);
 			if (slices.Length == 0) {
 				return;
 			}
 			int sliceEdges = GetSliceEdgeCount ();
-			bool closedShape = IsSliceClosedShape ();
-
-//			int sliceEdges = -1;
-//			foreach (SliceStripSlice s in slices) {
-//				// Edges = points
-//				int edgeCount = s.GetEdgeCount ();
-//				if (edgeCount < 1) {
-//					// TODO use better exception class
-//					throw new Exception ("SliceStripSlice has invalid 'edgeCount': " + edgeCount);
-//				}
-//				if (sliceEdges >= 0) {
-//					// Not first
-//					if (edgeCount != sliceEdges) {
-//						// TODO use better exception class
-//						throw new Exception ("SliceStripSlices have mismatching 'edgeCount'; first had " + sliceEdges + " edges whereas latter had " + edgeCount + " edges!");
-//					}
-//				} else {
-//					// First
-//					sliceEdges = edgeCount;
-//				}
-//
-//			}
-
-
 			int sliceCount = slices.Length;
-			//      int segmentCount = sliceCount - 1;
-			
-			// Non-volatiles:
-			//const int verticesPerFace = 4;
-			//const int verticesPerTriangle = 3;
-			
-			//int trianglesPerFace = facesDir == FaceDir.Both ? 4 : 2;
-			
+
 			// Parameters:
 			int verticesPerSlice = sliceEdges + 1; // The first point needs to be doubled (first == last)
-			//      int facesPerSegment = verticesPerSlice - 1; 
-			//int trianglesPerSegment = facesPerSegment * trianglesPerFace;
-			
-			//const int verticesPerSegment = facesPerSegment * verticesPerFace;
-			
 			int verticesPerSliceSide = verticesPerSlice;
 			
 			int faceSides = (facesDir == MeshFaceDir.Both) ? 2 : 1;
-			//int verticeSides;
+
 			if (perSideVertices) {
-				//verticeSides = faceSides;
 				verticesPerSlice *= faceSides;
-			} else {
-				//verticeSides = 1;
 			}
 			
 			int verticeCount = sliceCount * verticesPerSlice;
-			//int triangleCount = trianglesPerSegment * segmentCount;
-			
-			//Debug.Log ("Creating Mesh (vertices: " + verticeCount + "; triangles: " + triangleCount + ")");
-			
-			
+
 			// Assign mesh vertices and calculate normals:
 			Vector3[] vertices = new Vector3[verticeCount];
 			Vector3[] normals = new Vector3[vertices.Length];
 			Vector2[] uv = new Vector2[vertices.Length];
-			//int[] triangles = new int[triangleCount * verticesPerTriangle]; 
-			
+
 			// Tangents / experimental
 			Vector4[] tangents = createTangents ? new Vector4[verticeCount] : null;
 			
@@ -291,13 +256,13 @@ namespace Paths.MeshGenerator.SliceStrip
 			float v = 0.0f; // for uv mapping
 			for (int i = 0; i < sliceCount; i++) { 
 				
-				SliceStripSlice slice = slices [i];
-				
+				TransformedSlice slice = slices [i];
+
 				// Circumference of the slice: use this to calculate multiplier
 				// for UV mapping
 				float sliceCircum = slice.Circumference;
-				
-				
+				bool closedShape = slice.ClosedShape;
+
 				Vector3 sliceCenter = slice.Center;
 				if (i > 0) {
 					// add distance between slices to "u"
@@ -359,7 +324,8 @@ namespace Paths.MeshGenerator.SliceStrip
 					// Tangents / experimental 
 					// TODO this is not really working
 					if (createTangents) {
-						tangents [vi] = new Vector4 (slice.Direction.x, slice.Direction.y, slice.Direction.z, -1f);
+						throw new NotImplementedException ("Creating of tangents is not implemented");
+						//tangents [vi] = new Vector4 (slice.Direction.x, slice.Direction.y, slice.Direction.z, -1f);
 					}
 				}
 				if (perSideVertices && faceSides > 1) {

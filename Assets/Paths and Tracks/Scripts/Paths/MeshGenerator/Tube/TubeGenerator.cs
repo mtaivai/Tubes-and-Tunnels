@@ -11,11 +11,11 @@ namespace Paths.MeshGenerator.Tube
 {
 	public class TubeGenerator : AbstractSliceStripGenerator
 	{
-
-
 		private int sliceEdges = 16;
-		private Vector2 sliceSize = new Vector2 (2f, 2f);
+		private float startAngle = 0f;
+		private float arcLength = 360.0f;
 
+		private Vector2 sliceSize = new Vector2 (2f, 2f);
 
 		public TubeGenerator () : base()
 		{
@@ -27,12 +27,30 @@ namespace Paths.MeshGenerator.Tube
 			}
 		}
 
-		public virtual int SliceEdges {
+		public int SliceEdges {
 			get {
 				return this.sliceEdges;
 			}
 			set {
 				sliceEdges = value;
+			}
+		}
+
+		public float StartAngle {
+			get {
+				return this.startAngle;
+			}
+			set {
+				this.startAngle = value;//Mathf.Clamp (value, 0f, 360f);
+			}
+		}
+
+		public float ArcLength {
+			get {
+				return this.arcLength;
+			}
+			set {
+				this.arcLength = Mathf.Clamp (value, 0f, 360f);
 			}
 		}
 
@@ -49,6 +67,8 @@ namespace Paths.MeshGenerator.Tube
 		{
 			base.OnLoadParameters (store);
 			sliceEdges = store.GetInt ("sliceEdges", sliceEdges);
+			startAngle = store.GetFloat ("startAngle", startAngle);
+			arcLength = store.GetFloat ("arcLength", arcLength);
 			sliceSize = store.GetVector2 ("sliceSize", sliceSize);
 		}
 
@@ -56,6 +76,8 @@ namespace Paths.MeshGenerator.Tube
 		{
 			base.OnSaveParameters (store);
 			store.SetInt ("sliceEdges", sliceEdges);
+			store.SetFloat ("startAngle", startAngle);
+			store.SetFloat ("arcLength", arcLength);
 			store.SetVector2 ("sliceSize", sliceSize);
 		}
 
@@ -63,15 +85,15 @@ namespace Paths.MeshGenerator.Tube
 		{
 			return sliceEdges;
 		}
-		protected override bool IsSliceClosedShape ()
-		{
-			return true;
-		}
+//		protected override bool IsSliceClosedShape ()
+//		{
+//			return true;
+//		}
 
 
-		protected override SliceStripSlice CreateSlice (Vector3 center, Quaternion sliceRotation)
+		protected override SliceStripSlice CreateSlice (PathPoint pp)
 		{
-			return new TubeSlice (center, sliceRotation, SliceEdges, sliceSize.x, sliceSize.y, this.SliceRotation);
+			return new TubeSlice (SliceEdges, startAngle, arcLength, sliceSize);
 		}
 
 
