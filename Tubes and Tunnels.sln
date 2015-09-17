@@ -1,6 +1,8 @@
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2008
 
+Project("{F30AA83C-03C7-8E4D-CB37-C1663318821B}") = "Tubes and Tunnels", "Assembly-CSharp-firstpass.csproj", "{C97150F7-556A-98EF-5D1E-5CFB333EE510}"
+EndProject
 Project("{F30AA83C-03C7-8E4D-CB37-C1663318821B}") = "Tubes and Tunnels", "Assembly-CSharp.csproj", "{47ABF670-A3A7-DC23-C31E-079BFCD701AE}"
 EndProject
 Project("{F30AA83C-03C7-8E4D-CB37-C1663318821B}") = "Tubes and Tunnels", "Assembly-CSharp-Editor.csproj", "{A9BAC6C3-1D95-99D5-5237-2822FDEF1823}"
@@ -11,6 +13,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C97150F7-556A-98EF-5D1E-5CFB333EE510}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C97150F7-556A-98EF-5D1E-5CFB333EE510}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C97150F7-556A-98EF-5D1E-5CFB333EE510}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C97150F7-556A-98EF-5D1E-5CFB333EE510}.Release|Any CPU.Build.0 = Release|Any CPU
 		{47ABF670-A3A7-DC23-C31E-079BFCD701AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{47ABF670-A3A7-DC23-C31E-079BFCD701AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{47ABF670-A3A7-DC23-C31E-079BFCD701AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -23,7 +29,7 @@ Global
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
-																																																																									GlobalSection(MonoDevelopProperties) = preSolution
+																																																																																									GlobalSection(MonoDevelopProperties) = preSolution
 		StartupItem = Assembly-CSharp.csproj
 		Policies = $0
 		$0.TextStylePolicy = $1

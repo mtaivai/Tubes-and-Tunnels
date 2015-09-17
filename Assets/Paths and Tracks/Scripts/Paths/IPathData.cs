@@ -47,6 +47,20 @@ namespace Paths
 		}
 	}
 
+	public interface IPathMetadata
+	{
+		string[] GetWeightNames ();
+
+		float[] GetAllWeightsOfPoint (int pointIndex, float defaultWeightValue = 0.0f);
+		float[][] GetAllWeightsOfAllPoints (float defaultWeightValue = 0.0f);
+		float[] GetWeightOfAllPoints (int weightIndex, float defaultWeightValue = 0.0f);
+		float GetWeightOfPoint (int pointIndex, int weightIndex, float defaultWeightValue = 0.0f);
+		bool PointHasWeight (int pointIndex, int weightIndex);
+
+//		string[] GetMarkers(int pointIndex);
+//		string FindMarker();
+	}
+
 	public interface IPathData
 	{
 //		Path GetPath ();
@@ -79,6 +93,9 @@ namespace Paths
 		int GetOutputFlags ();
 		int GetOutputFlagsBeforeModifiers ();
 		float GetTotalDistance ();
+
+		bool IsPathMetadataSupported ();
+		IPathMetadata GetPathMetadata ();
 
 		/// <summary>
 		/// Determines whether data of this instance is up to date with the configuration.
@@ -789,6 +806,16 @@ namespace Paths
 			List<string> names = new List<string> ();
 			snapshots.ForEach ((ss) => names.Add (ss.Name));
 			return names.ToArray ();
+		}
+
+		public bool IsPathMetadataSupported ()
+		{
+			return false;
+		}
+
+		public IPathMetadata GetPathMetadata ()
+		{
+			throw new NotImplementedException ();
 		}
 	}
 

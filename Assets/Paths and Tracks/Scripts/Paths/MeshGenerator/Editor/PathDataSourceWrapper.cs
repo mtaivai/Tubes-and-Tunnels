@@ -133,6 +133,16 @@ namespace Paths.MeshGenerator.Editor
 			//				return originalPathData.GetStatusToken ();
 			throw new NotSupportedException ();
 		}
+
+		public bool IsPathMetadataSupported ()
+		{
+			return false;
+		}
+		
+		public IPathMetadata GetPathMetadata ()
+		{
+			throw new NotImplementedException ();
+		}
 	}
 
 }

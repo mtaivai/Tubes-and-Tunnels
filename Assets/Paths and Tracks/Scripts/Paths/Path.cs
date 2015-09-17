@@ -69,7 +69,6 @@ namespace Paths
 
 
 
-
 	// TODO Should this be renamed to AbstractPath?
 	[ExecuteInEditMode]
 	public abstract class Path : MonoBehaviour, ISerializationCallbackReceiver
@@ -673,7 +672,7 @@ namespace Paths
 					Vector3 pt = transform.TransformPoint (pp [i].Position);
 
 					Gizmos.color = (i == 0) ? firstPointMarkerColor : pointMarkerColor;
-					Gizmos.DrawSphere (pt, (i == 0) ? firstPointMarkerSize : pointMarkerSize);
+					//Gizmos.DrawSphere (pt, (i == 0) ? firstPointMarkerSize : pointMarkerSize);
 				}
 
 				for (int i = 0; i < pp.Length; i++) {
