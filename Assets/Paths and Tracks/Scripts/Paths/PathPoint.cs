@@ -1,3 +1,5 @@
+#undef PATHPOINT_WITH_SQUARE_DISTANCES
+
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
@@ -5,9 +7,14 @@ using System;
 
 namespace Paths
 {
+	public interface IWithPosition
+	{
+		Vector3 GetPosition ();
+	}
+
 	// TODO should we make PathPoint mutable? Vector3 itself is mutable...
 	[Serializable]
-	public class PathPoint : ICloneable
+	public class PathPoint : ICloneable, IWithPosition
 	{
 
 		/// <summary>
@@ -49,25 +56,37 @@ namespace Paths
 		/// <summary>
 		/// All flags.
 		/// </summary>
-		public const int ALL = 0x03f;
+		public const int ALL = 0x07f;
 
 		/// <summary>
 		/// No flags
 		/// </summary>
 		public const int NONE = 0x000;
+
 		[SerializeField]
 		private Vector3
 			position;
+
 		[SerializeField]
 		private float
 			distanceFromPrevious;
+
 		[SerializeField]
 		private float
 			distanceFromBegin;
+
+#if PATHPOINT_WITH_SQUARE_DISTANCES
+		[SerializeField]
+		private bool
+			distanceFromPreviousIsSquare = false;
+		[SerializeField]
+		private bool
+			distanceFromBeginIsSquare = false;
+#endif
+
 		[SerializeField]
 		private Vector3
 			direction; // direction from this to next point
-
 
 		/// <summary>
 		/// The up vector
@@ -85,6 +104,42 @@ namespace Paths
 		private int
 			flags;
 
+
+#if PATHPOINT_WITH_SQUARE_DISTANCES
+		public PathPoint (Vector3 pos, Vector3 dir, Vector3 up, float angle, float distFromPrev, float distFromBegin, int flags)
+			: this(pos, dir, up, angle, distFromPrev, false, distFromBegin, false, flags)
+		{
+		}
+		public PathPoint (Vector3 pos, Vector3 dir, Vector3 up, float angle, float distFromPrev, bool distFromPrevIsSquare, float distFromBegin, bool distFromBeginIsSquare, int flags)
+		{
+			this.position = pos;
+			this.direction = dir;
+			this.up = up;
+			this.angle = angle;
+			this.distanceFromPrevious = distFromPrev;
+			this.distanceFromPreviousIsSquare = distFromPrevIsSquare;
+			
+			this.distanceFromBegin = distFromBegin;
+			this.distanceFromBeginIsSquare = distFromBeginIsSquare;
+			
+			this.flags = (flags & ~RIGHT_CALCULATED);
+		}
+		public PathPoint (Vector3 pos, Vector3 dir)
+			: this(pos, dir, Vector3.zero, 0f, 0f, false, 0f, false, POSITION | DIRECTION)
+		{
+		}
+		
+		public PathPoint (Vector3 pos)
+			: this(pos, Vector3.zero, Vector3.zero, 0f, 0f, false, 0f, false, POSITION)
+		{
+		}
+		public PathPoint (PathPoint src, int flags)
+			: this(src.position, src.direction, src.up, src.angle, src.distanceFromPrevious, src.distanceFromPreviousIsSquare, src.distanceFromBegin, src.distanceFromBeginIsSquare, flags)
+		{
+			this.right = src.right;
+			ClearUnusedComponents ();
+		}
+#else
 		public PathPoint (Vector3 pos, Vector3 dir, Vector3 up, float angle, float distFromPrev, float distFromBegin, int flags)
 		{
 			this.position = pos;
@@ -95,29 +150,32 @@ namespace Paths
 			this.distanceFromBegin = distFromBegin;
 			this.flags = (flags & ~RIGHT_CALCULATED);
 		}
+		public PathPoint (Vector3 pos, Vector3 dir)
+			: this(pos, dir, Vector3.zero, 0f, 0f, 0f, POSITION | DIRECTION)
+		{
+		}
+		
+		public PathPoint (Vector3 pos)
+			: this(pos, Vector3.zero, Vector3.zero, 0f, 0f, 0f, POSITION)
+		{
+		}
+		public PathPoint (PathPoint src, int flags)
+			: this(src.position, src.direction, src.up, src.angle, src.distanceFromPrevious, src.distanceFromBegin, flags)
+		{
+			this.right = src.right;
+			ClearUnusedComponents ();
+		}
+#endif
 
 //        
-		public PathPoint (Vector3 pos, Vector3 dir)
-            : this(pos, dir, Vector3.zero, 0f, 0f, 0f, POSITION | DIRECTION)
-		{
-		}
-            
-		public PathPoint (Vector3 pos)
-            : this(pos, Vector3.zero, Vector3.zero, 0f, 0f, 0f, POSITION)
-		{
-		}
+
 
 		public PathPoint (PathPoint src)
         : this(src, src.flags)
 		{
 		}
 
-		public PathPoint (PathPoint src, int flags)
-        : this(src.position, src.direction, src.up, src.angle, src.distanceFromPrevious, src.distanceFromBegin, flags)
-		{
-			this.right = src.right;
-			ClearUnusedComponents ();
-		}
+
 
 		public PathPoint ()
 		{
@@ -135,12 +193,67 @@ namespace Paths
 			if (obj.GetType () != typeof(PathPoint))
 				return false;
 			PathPoint other = (PathPoint)obj;
-			return position == other.position && distanceFromPrevious == other.distanceFromPrevious && distanceFromBegin == other.distanceFromBegin && direction == other.direction && up == other.up && right == other.right && angle == other.angle && flags == other.flags;
+
+			if (this.flags != other.flags) {
+				return false;
+			} 
+			if (HasFlag (ANGLE) && this.angle != other.angle) {
+				return false;
+			}
+			if (HasFlag (POSITION) && this.position != other.position) {
+				return false;
+			}
+			if (HasFlag (DIRECTION) && this.direction != other.direction) {
+				return false;
+			}
+			if (HasFlag (UP) && this.up != other.up) {
+				return false;
+			}
+
+#if PATHPOINT_WITH_SQUARE_DISTANCES
+			if (HasFlag (DISTANCE_FROM_PREVIOUS)) {
+
+				if (this.distanceFromPreviousIsSquare == other.distanceFromPreviousIsSquare
+					&& this.distanceFromPrevious != other.distanceFromPrevious) {
+					return false;
+				} else if (this.distanceFromPreviousIsSquare && this.GetDistanceFromPrevious () != other.distanceFromPrevious) {
+					// Get square root of our distanceFromPrevious by using method  GetDistanceFromPrevious()^
+					// HACK this code smells a bit - our Equals() implementation has a side effect
+					return false;
+				} else if (other.GetDistanceFromPrevious () != this.distanceFromPrevious) {
+					/// NOTE: we get the other.distanceFromPrevious by using method GetDistanceFromPrevious()
+					return false;
+				}
+			}
+			if (HasFlag (DISTANCE_FROM_BEGIN)) {
+				if (this.distanceFromBeginIsSquare == other.distanceFromBeginIsSquare
+				    && this.distanceFromBegin != other.distanceFromBegin) {
+					return false;
+				} else if (this.distanceFromBeginIsSquare && this.GetDistanceFromBegin () != other.distanceFromBegin) {
+					// Get square root of our distanceFromBegin by using GetDistanceFromBegin() ^
+					// HACK this code smells a bit - our Equals() implementation has a side effect
+					return false;
+				} else if (other.GetDistanceFromBegin () != this.distanceFromBegin) {
+					// NOTE: we get the other.distanceFromBegin by using method GetDistanceFromBegin()
+					return false;
+				} 
+			}
+#else
+			if (HasFlag (DISTANCE_FROM_PREVIOUS) && this.distanceFromPrevious != other.distanceFromPrevious) {
+				return false;
+			}
+			if (HasFlag (DISTANCE_FROM_BEGIN) && this.distanceFromBegin != other.distanceFromBegin) {
+				return false;
+			}
+#endif
+
+			return true;
 		}
 		
 
 		public override int GetHashCode ()
 		{
+			// TODO this is calculated wrong, we do have to take distance...IsSquare flags in account
 			// Generated by MonoDevelop
 			unchecked {
 				return position.GetHashCode () ^ distanceFromPrevious.GetHashCode () ^ distanceFromBegin.GetHashCode () ^ direction.GetHashCode () ^ up.GetHashCode () ^ right.GetHashCode () ^ angle.GetHashCode () ^ flags.GetHashCode ();
@@ -168,9 +281,15 @@ namespace Paths
 				}
 				if (!IsDistanceFromPrevious (flags)) {
 					this.distanceFromPrevious = 0.0f;
+#if PATHPOINT_WITH_SQUARE_DISTANCES
+					this.distanceFromPreviousIsSquare = false;
+#endif
 				}
 				if (!IsDistanceFromBegin (flags)) {
 					this.distanceFromBegin = 0.0f;
+#if PATHPOINT_WITH_SQUARE_DISTANCES
+					this.distanceFromBeginIsSquare = false;
+#endif
 				}
 				if (!IsAngle (flags)) {
 					this.angle = 0.0f;
@@ -187,6 +306,12 @@ namespace Paths
 				// TODO should we automatically update flags?
 				this.flags |= POSITION;
 			}
+		}
+
+		// IWithPosition.GetPosition()
+		public Vector3 GetPosition ()
+		{
+			return this.position;
 		}
 
 		public Vector3 Direction {
@@ -236,23 +361,78 @@ namespace Paths
 
 		public float DistanceFromPrevious {
 			get {
-				return this.distanceFromPrevious;
+				return distanceFromPrevious;
 			}
 			set {
 				this.distanceFromPrevious = value;
 				this.flags |= DISTANCE_FROM_PREVIOUS;
 			}
 		}
-
 		public float DistanceFromBegin {
 			get {
-				return this.distanceFromBegin;
+				return distanceFromBegin;
 			}
 			set {
 				this.distanceFromBegin = value;
 				this.flags |= DISTANCE_FROM_BEGIN;
 			}
 		}
+
+
+#if PATHPOINT_WITH_SQUARE_DISTANCES
+		public float DistanceFromPrevious {
+			get {
+				return GetDistanceFromPrevious ();
+			}
+			protected set {
+				this.distanceFromPrevious = value;
+				this.distanceFromPreviousIsSquare = false;
+				this.flags |= DISTANCE_FROM_PREVIOUS;
+			}
+		}
+		public float SquareDistanceFromPrevious {
+			set {
+				this.distanceFromPrevious = value;
+				this.distanceFromPreviousIsSquare = true;
+				this.flags |= DISTANCE_FROM_PREVIOUS;
+			}
+		}
+		protected float GetDistanceFromPrevious ()
+		{
+			if (this.distanceFromPreviousIsSquare) {
+				this.distanceFromPrevious = Mathf.Sqrt (this.distanceFromPrevious);
+				this.distanceFromPreviousIsSquare = false;
+			}
+			return this.distanceFromPrevious;
+		}
+
+		public float DistanceFromBegin {
+			get {
+				return GetDistanceFromBegin ();
+			}
+			protected set {
+				this.distanceFromBegin = value;
+				this.distanceFromBeginIsSquare = false;
+				this.flags |= DISTANCE_FROM_BEGIN;
+			}
+		}
+		public float SquareDistanceFromBegin {
+			set {
+				this.distanceFromBegin = value;
+				this.distanceFromBeginIsSquare = true;
+				this.flags |= DISTANCE_FROM_BEGIN;
+			}
+		}
+
+		protected float GetDistanceFromBegin ()
+		{
+			if (this.distanceFromBeginIsSquare) {
+				this.distanceFromBegin = Mathf.Sqrt (this.distanceFromBegin);
+				this.distanceFromBeginIsSquare = false;
+			}
+			return this.distanceFromBegin;
+		}
+#endif
 
 		public int Flags {
 			get {
@@ -264,6 +444,7 @@ namespace Paths
 				this.flags = value;
 			}
 		}
+
 		public bool SetFlag (int flag, bool value)
 		{
 			bool prevValue = IsFlag (this.flags, flag);
@@ -334,7 +515,7 @@ namespace Paths
 				SetFlag (DISTANCE_FROM_BEGIN, value);
 			}
 		}
-
+	
 		public bool HasFlag (int flag)
 		{
 			return flag == (this.flags & flag);
@@ -377,6 +558,125 @@ namespace Paths
 		{
 			return IsFlag (flags, DISTANCE_FROM_BEGIN);
 		}
+	}
+
+	public class PathNode : IWithPosition
+	{
+		private PathPoint point;
+		private PathNode previous;
+		private PathNode next;
+		private bool isFirst; // Needed for circular paths!
+		private bool isLast; // Needed for circular paths!
+		
+		private PathNode (PathPoint pp)
+		{
+			this.point = pp;
+		}
+		public PathNode[] ToArray ()
+		{
+			List<PathNode> l = new List<PathNode> ();
+			PathNode node = this;
+			l.Add (node);
+			while (null != (node = node.NextIfNotLast)) {
+				l.Add (node);
+			}
+			return l.ToArray ();
+		}
+		public static PathNode BuildLinkedList (IPathData pathData)
+		{
+			return BuildLinkedList (pathData.GetAllPoints (), pathData.GetPathInfo ().IsLoop ());
+		}
+		public static PathNode BuildLinkedList (PathPoint[] pathPoints, bool loop)
+		{
+			return BuildLinkedList ((IList<PathPoint>)pathPoints, loop);
+		}
+		public static PathNode BuildLinkedList (IList<PathPoint> pathPoints, bool loop)
+		{
+			PathNode first;
+			int count = pathPoints.Count;
+			if (count > 0) {
+				first = new PathNode (pathPoints [0]);
+				first.isFirst = true;
+				PathNode prev = first;
+				for (int i = 1; i < count; i++) {
+					PathNode lpp = new PathNode (pathPoints [i]);
+					lpp.previous = prev;
+					prev.next = lpp;
+					prev = lpp;
+				}
+				prev.isLast = true;
+
+				if (loop) {
+					first.previous = prev;
+					prev.next = first;
+				}
+			} else {
+				first = null;
+			}
+			return first;
+		}
+
+		public static implicit operator PathPoint (PathNode node)
+		{
+			return node.point;
+		}
+
+		public Vector3 GetPosition ()
+		{
+			return point.GetPosition ();
+		}
+		
+		public PathPoint Point {
+			get {
+				return point;
+			}
+		}
+		
+		public bool HasNext {
+			get {
+				return null != next;
+			}
+		}
+		
+		public PathNode Next {
+			get {
+				return next;
+			}
+		}
+		
+		public PathNode NextIfNotLast {
+			get {
+				return isLast ? null : next;
+			}
+		}
+		public bool HasPrevious {
+			get {
+				return null != previous;
+			}
+		}
+		public PathNode Previous {
+			get {
+				return previous;
+			}
+		}
+		public PathNode PreviousIfNotFirst {
+			get {
+				return isFirst ? null : previous;
+			}
+		}
+		public bool IsFirst {
+			get {
+				return isFirst;
+			}
+		}
+		public bool IsLast {
+			get {
+				return isLast;
+			}
+		}
+		
+		
+
 	}
 }
 
