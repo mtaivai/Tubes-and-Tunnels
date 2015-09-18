@@ -27,6 +27,8 @@ namespace Paths.MeshGenerator.SliceStrip
 		// TODO is this used?
 		private bool createTangents = false;
 
+		private int splitMeshCount = 1;
+
 		protected AbstractSliceStripGenerator () : base()
 		{
 		}
@@ -78,12 +80,22 @@ namespace Paths.MeshGenerator.SliceStrip
 			}
 		}
 
+		public int SplitMeshCount {
+			get {
+				return splitMeshCount;
+			}
+			set {
+				this.splitMeshCount = Mathf.Max (1, value);
+			}
+		}
 		public override void OnLoadParameters (ParameterStore store)
 		{
 //			sliceRotation = store.GetFloat ("sliceRotation", sliceRotation);
 			facesDir = store.GetEnum ("facesDir", facesDir);
 			perSideSubmeshes = store.GetBool ("perSideSubmeshes", perSideSubmeshes);
 			perSideVertices = store.GetBool ("perSideVertices", perSideVertices);
+			splitMeshCount = store.GetInt ("splitMeshCount", splitMeshCount);
+
 		}
 		
 		public override void OnSaveParameters (ParameterStore store)
@@ -94,15 +106,32 @@ namespace Paths.MeshGenerator.SliceStrip
 			store.SetEnum ("facesDir", facesDir);
 			store.SetBool ("perSideSubmeshes", perSideSubmeshes);
 			store.SetBool ("perSideVertices", perSideVertices);
+			store.SetInt ("splitMeshCount", splitMeshCount);
 		}
 
-		TransformedSlice[] CreateSlices (PathDataSource dataSource)
+
+
+		public override int GetMaterialSlotCount ()
 		{
-			return CreateSlices (dataSource, false);
+			return facesDir == MeshFaceDir.Both ? 2 : 1;
 		}
+		public override string GetMaterialSlotName (int i)
+		{
+			switch (i) {
+			case 0:
+				return "Up- and inward faces";
+			case 1:
+				return "Down- and outward faces";
+			default:
+				return base.GetMaterialSlotName (i);
+			}
+		}
+
 
 		protected abstract  int GetSliceEdgeCount ();
 //		protected abstract  bool IsSliceClosedShape ();
+
+
 
 		/// <summary>
 		/// Called to create a SliceStripSlice for the given PathPoints. Slice points should
@@ -111,8 +140,14 @@ namespace Paths.MeshGenerator.SliceStrip
 		/// <returns>The slice.</returns>
 		/// <param name="pp">Pp.</param>
 		protected abstract SliceStripSlice CreateSlice (PathPoint pp);
-		
-		TransformedSlice[] CreateSlices (PathDataSource dataSource, bool repeatFirstInLoop)
+
+		private TransformedSlice[] CreateSlices (PathDataSource dataSource)
+		{
+			return CreateSlices (dataSource, false);
+		}
+
+
+		private TransformedSlice[] CreateSlices (PathDataSource dataSource, bool repeatFirstInLoop)
 		{
 			TransformedSlice[] slices;
 			long startTime = System.DateTime.Now.Ticks / System.TimeSpan.TicksPerMillisecond;
@@ -198,37 +233,73 @@ namespace Paths.MeshGenerator.SliceStrip
 			
 			return slices;
 		}
-		public override Mesh CreateMesh (PathDataSource dataSource, Mesh mesh)
+		public override int GetMeshCount ()
 		{
-			
-			//      return DoCreateMesh(path, mesh, sliceEdges, true, facesOutwards, facesInwards);
-			
-//			if (facesDir == MeshFaceDir.Both && perSideSubmeshes) {
-//				// Inwards mesh:
-//				//          DoCreateMesh(path, mesh, faceDir, 0, sliceEdges, true, false);
-//				//
-//				//          // Outwards mesh:
-//				//          DoCreateMesh(path, mesh, faceDir, 0, sliceEdges, true, false);
-//				
-//			} else {
-//				
-//			}
-			DoCreateMesh (dataSource, mesh);
-			return mesh;
+			return splitMeshCount;
 		}
 
-		protected void DoCreateMesh (PathDataSource dataSource, Mesh mesh)
+		public override void CreateMeshes (PathDataSource dataSource, Mesh[] meshes)
 		{
-			
+			int meshCount = GetMeshCount ();
+			if (meshCount < 1) {
+				throw new ArgumentException ("meshCount must be greater than zero; currently it's " + meshCount);
+			}
+			if (meshes.Length != meshCount) {
+				throw new ArgumentException ("meshes.Length(" + meshes.Length + ") != meshCount(" + meshCount + ")");
+			}
+
+			TransformedSlice[] slices = CreateSlices (dataSource, true);
+			int sliceCount = slices.Length;
+			if (slices.Length < 2) {
+				return;
+			}
+
+			// actually all meshes but the last have one additional slice
+			int slicesPerMesh = sliceCount / meshCount; 
+			int remainingSlices = sliceCount % meshCount;
+			int firstMeshSlices = slicesPerMesh;
+
+			if (remainingSlices > 0) {
+				// Add to first slice
+				firstMeshSlices += remainingSlices;
+			}
+
+			// meshCount      3   3   3
+			// sliceCount     9   8   2
+			// slicesPerMesh  3   2   0
+			// fistMeshSlices 3   4   2
+
+			// 0 1 2 3 4 5 6 7 8
+			// x     x     x   
+			// x       x   x
+
+			// si  sc   dc
+			// 0   3    4
+			// 3   3    4
+			// 6   3    3
+			//
+			// 0   4    5
+			// 4   2    3
+			// 6   2    2
+
+			int lastMeshIndex = meshCount - 1;
+			int currentFirstSliceIndex = 0;
+			for (int i = 0; i < meshCount; i++) {
+				int thisMeshSliceCount = (i == 0) ? firstMeshSlices : slicesPerMesh;
+				DoCreateMesh (slices, currentFirstSliceIndex, 
+				              i < lastMeshIndex ? thisMeshSliceCount + 1 : thisMeshSliceCount, meshes [i]);
+				currentFirstSliceIndex += thisMeshSliceCount;
+			}
+
+		}
+		protected void DoCreateMesh (TransformedSlice[] slices, int firstSlice, int sliceCount, Mesh mesh)
+		{
 			mesh.Clear (false);
 			mesh.tangents = null;
 			
-			TransformedSlice[] slices = CreateSlices (dataSource, true);
-			if (slices.Length == 0) {
-				return;
-			}
+
 			int sliceEdges = GetSliceEdgeCount ();
-			int sliceCount = slices.Length;
+			//int sliceCount = slices.Length;
 
 			// Parameters:
 			int verticesPerSlice = sliceEdges + 1; // The first point needs to be doubled (first == last)
@@ -255,8 +326,8 @@ namespace Paths.MeshGenerator.SliceStrip
 			//
 			float v = 0.0f; // for uv mapping
 			for (int i = 0; i < sliceCount; i++) { 
-				
-				TransformedSlice slice = slices [i];
+				int sliceIndex = i + firstSlice;
+				TransformedSlice slice = slices [sliceIndex];
 
 				// Circumference of the slice: use this to calculate multiplier
 				// for UV mapping
@@ -264,9 +335,9 @@ namespace Paths.MeshGenerator.SliceStrip
 				bool closedShape = slice.ClosedShape;
 
 				Vector3 sliceCenter = slice.Center;
-				if (i > 0) {
+				if (sliceIndex > 0) {
 					// add distance between slices to "u"
-					float dist = (sliceCenter - slices [i - 1].Center).magnitude;
+					float dist = (sliceCenter - slices [sliceIndex - 1].Center).magnitude;
 					// TODO: precalculate the u/v factor below:
 					v += dist * (1.0f / sliceCircum * 4.0f); // 4.0f here is texture.width / texture.height !
 					//v += dist * (1.0f / 2.80f);
@@ -395,8 +466,9 @@ namespace Paths.MeshGenerator.SliceStrip
 				mesh.SetTriangles (triangles, 0);
 			}
 			
-			mesh.MarkDynamic ();
-			
+//			mesh.MarkDynamic ();
+			mesh.Optimize ();
+
 			Debug.Log ("Created a Mesh with " + vertices.Length + " vertices and " + triangleCount + " triangles in " + mesh.subMeshCount + " submeshes.");
 			
 		}

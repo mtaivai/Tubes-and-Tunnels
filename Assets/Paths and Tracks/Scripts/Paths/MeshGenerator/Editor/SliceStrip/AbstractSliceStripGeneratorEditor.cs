@@ -74,6 +74,12 @@ namespace Paths.MeshGenerator.SliceStrip.Editor
 			}
 			if (meshConfigVisible) {
 				EditorGUI.indentLevel++;
+
+				EditorGUI.BeginChangeCheck ();
+				target.SplitMeshCount = EditorGUILayout.IntSlider ("Split Mesh Count", target.SplitMeshCount, 1, 32);
+				if (EditorGUI.EndChangeCheck ()) {
+					editorContext.TargetModified ();
+				}
 				
 				EditorGUI.BeginChangeCheck ();
 				target.FacesDir = (MeshFaceDir)EditorGUILayout.EnumPopup ("Faces Direction", target.FacesDir);

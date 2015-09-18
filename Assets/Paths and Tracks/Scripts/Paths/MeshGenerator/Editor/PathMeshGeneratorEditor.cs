@@ -358,6 +358,37 @@ namespace Paths.MeshGenerator.Editor
 				MeshGeneratorEditorContext mgeContext = new MeshGeneratorEditorContext (
 					mg, target, this, MeshGeneratorModified, editorPrefs);
 				mge.DrawInspectorGUI (mgeContext);
+				EditorGUILayout.Separator ();
+			}
+
+			DrawMaterialsSelectionGUI ();
+
+//			EditorGUILayout.ObjectField(
+
+			//[SerializeField]
+
+		}
+		void DrawMaterialsSelectionGUI ()
+		{
+			IMeshGenerator mg = target.MeshGeneratorInstance;
+			if (null != mg) {
+				EditorGUILayout.Foldout (true, "Materials");
+				EditorGUI.indentLevel++;
+
+				int matCount = mg.GetMaterialSlotCount ();
+				for (int i = 0; i < matCount; i++) {
+					string matName = mg.GetMaterialSlotName (i);
+					EditorGUI.BeginChangeCheck ();
+					target.ShapeMaterials [i] = EditorGUILayout.ObjectField (matName, 
+						target.ShapeMaterials [i], typeof(Material), true) as Material;
+					if (EditorGUI.EndChangeCheck ()) {
+						EditorUtility.SetDirty (target);
+
+						MeshGeneratorModified ();
+					}
+				}
+
+				EditorGUI.indentLevel--;
 			}
 		}
 
@@ -389,34 +420,8 @@ namespace Paths.MeshGenerator.Editor
 			if (meshComponentsSectionExpanded) {
 				EditorGUI.indentLevel++;
 
-//				EditorGUI.BeginDisabledGroup (null == target.GetComponent<MeshFilter> ());
-				DrawToggle ("Create Mesh Filter", ref target.updateMeshFilter);
-//				EditorGUILayout.PropertyField (updateMeshFilterProperty);
-//				EditorGUI.EndDisabledGroup ();
-
-				EditorGUI.indentLevel++;
-//				EditorGUI.BeginDisabledGroup (null != target.GetComponent<MeshFilter> ());
-				DrawToggle ("Create Mesh Filter", ref target.createMeshFilter);
-//				EditorGUILayout.PropertyField (createMeshFilterProperty);
-//				EditorGUI.EndDisabledGroup ();
-
-//				EditorGUI.BeginDisabledGroup (null != target.GetComponent<MeshRenderer> ());
-				DrawToggle ("Create Mesh Renderer", ref target.createMeshRenderer);
-//				EditorGUILayout.PropertyField (createMeshRenderedProperty);
-//				EditorGUI.EndDisabledGroup ();
-				EditorGUI.indentLevel--;
-
-//				EditorGUI.BeginDisabledGroup (null != target.GetComponent<MeshCollider> ());
-				DrawToggle ("Update Mesh Collider", ref target.updateMeshCollider);
-//				EditorGUILayout.PropertyField (updateMeshColliderProperty);
-//				EditorGUI.EndDisabledGroup ();
-
-				EditorGUI.indentLevel++;
-//				EditorGUI.BeginDisabledGroup (null != target.GetComponent<MeshCollider> ());
-				DrawToggle ("Create Mesh Collider", ref target.createMeshCollider);
-//				EditorGUILayout.PropertyField (createMeshColliderProperty);
-//				EditorGUI.EndDisabledGroup ();
-				EditorGUI.indentLevel--;
+				DrawToggle ("Create Shapes", ref target.createShapes);
+				DrawToggle ("Create Mesh Colliders", ref target.createMeshColliders);
 
 				EditorGUI.indentLevel--;
 			}
@@ -471,6 +476,77 @@ namespace Paths.MeshGenerator.Editor
 			if (EditorGUI.EndChangeCheck ()) {
 				EditorUtility.SetDirty (target);
 			}
+
+			EditorGUILayout.Separator ();
+
+			DrawMeshObjectsVisibilityGUI (target.ShapeObjectsVisibility, "Shape", target.createShapes);
+			DrawMeshObjectsVisibilityGUI (target.ColliderObjectsVisibility, "Collider", target.createMeshColliders);
+
+		}
+
+		void DrawMeshObjectsVisibilityGUI (MeshObjectVisibility visibility, string meshObjectName, bool areGenerated)
+		{
+
+			EditorGUILayout.LabelField (meshObjectName + " Objects Visiblity");
+
+			EditorGUI.indentLevel++;
+
+			if (!areGenerated) {
+				EditorGUILayout.HelpBox ("Note: this Mesh Generator is not currently configured to generate " + meshObjectName + " objects.", MessageType.Info);
+			}
+
+			EditorGUI.BeginDisabledGroup (!areGenerated);
+
+			// Collider Objects Visibility
+			//  Show Container Object
+			//    Container Object Editable
+			//  Show Leaf Objects
+			//    Leaf Objects Editable
+			//
+			EditorGUI.BeginChangeCheck ();
+			bool containerVisible = visibility.ContainerVisibleInHierarchy;
+			containerVisible = EditorGUILayout.Toggle ("Show Container Object", containerVisible);
+			if (EditorGUI.EndChangeCheck ()) {
+				visibility.ContainerVisibleInHierarchy = containerVisible;
+				EditorUtility.SetDirty (target);
+			}
+
+			EditorGUI.BeginDisabledGroup (!containerVisible);
+
+			EditorGUI.indentLevel++;
+			EditorGUI.BeginChangeCheck ();
+			bool containerEditable = visibility.ContainerEditable;
+			containerEditable = EditorGUILayout.Toggle ("Container Object Editable", containerEditable);
+			if (EditorGUI.EndChangeCheck ()) {
+				visibility.ContainerEditable = containerEditable;
+				EditorUtility.SetDirty (target);
+			}
+			EditorGUI.indentLevel--;
+
+			EditorGUI.BeginChangeCheck ();
+			bool leafsVisible = visibility.LeafsVisibleInHierarchy;
+			leafsVisible = EditorGUILayout.Toggle ("Show Leaf Objects", leafsVisible);
+			if (EditorGUI.EndChangeCheck ()) {
+				visibility.LeafsVisibleInHierarchy = leafsVisible;
+				EditorUtility.SetDirty (target);
+			}
+			EditorGUI.BeginDisabledGroup (!leafsVisible);
+			EditorGUI.indentLevel++;
+			EditorGUI.BeginChangeCheck ();
+			bool leafsEditable = visibility.LeafsEditable;
+			leafsEditable = EditorGUILayout.Toggle ("Leaf Objects Editable", leafsEditable);
+			if (EditorGUI.EndChangeCheck ()) {
+				visibility.LeafsEditable = leafsEditable;
+				EditorUtility.SetDirty (target);
+			}
+			EditorGUI.indentLevel--;
+			EditorGUI.EndDisabledGroup (); // !leafsVisible
+			EditorGUI.EndDisabledGroup (); // !containerVisible
+
+			EditorGUI.EndDisabledGroup ();
+
+			EditorGUI.indentLevel--;
+
 		}
 
 		protected void GenerateMesh ()

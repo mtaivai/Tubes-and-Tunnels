@@ -17,30 +17,6 @@ namespace Paths.MeshGenerator
 		Both, // Both
 	}
 
-	public interface IMeshGenerator
-	{
-		void LoadParameters (ParameterStore store);
-
-		void SaveParameters (ParameterStore store);
-
-//		void SetEditorPref (string key, string value);
-//
-//		string GetEditorPref (string key, string defaultValue);
-
-//		PathMeshSlice[] CreateSlices (PathDataSource dataSource);
-//
-//		PathMeshSlice[] CreateSlices (PathDataSource dataSource, bool repeatFirstInLoop);
-
-		Mesh CreateMesh (PathDataSource dataSource);
-
-		Mesh CreateMesh (PathDataSource dataSource, Mesh mesh);
-
-		string GetSavedMeshAssetPath ();
-
-		void SetSavedMeshAssetPath (string path);
-
-
-	}
 
 	// TODO this should be AbstractTubeGenerator?
 	public abstract class AbstractMeshGenerator : IMeshGenerator
@@ -155,13 +131,34 @@ namespace Paths.MeshGenerator
 			this.previousMeshAssetPath = path;
 		}
 
-		public Mesh CreateMesh (PathDataSource dataSource)
+		public Mesh[] CreateMeshes (PathDataSource dataSource)
 		{
-			Mesh mesh = new Mesh ();
-			return CreateMesh (dataSource, mesh);
+			int meshCount = GetMeshCount ();
+			Mesh[] meshes = new Mesh[meshCount];
+			for (int i = 0; i < meshCount; i++) {
+				meshes [i] = new Mesh ();
+			}
+			CreateMeshes (dataSource, meshes);
+			return meshes;
 		}
 
-		public abstract Mesh CreateMesh (PathDataSource dataSource, Mesh mesh);
+		public virtual int GetMeshCount ()
+		{
+			return 1;
+		}
+		public abstract int GetMaterialSlotCount ();
+		public virtual string GetMaterialSlotName (int i)
+		{
+			return "Material " + i;
+		}
+
+		public virtual int GetMaterialSlotSubmeshIndex (int i)
+		{
+			return i;
+		}
+
+
+		public abstract void CreateMeshes (PathDataSource dataSource, Mesh[] existingMeshes);
 
 
 	}

@@ -40,8 +40,8 @@ namespace Paths.MeshGenerator
 			_meshGeneratorInstance;
 				
 		[SerializeField]
-		private Mesh
-			generatedMesh;
+		private Mesh[]
+			generatedMeshes;
 				
 		// nonserialized; only for editor / gizmos drawing!
 		// TODO do we really need this?
@@ -68,22 +68,59 @@ namespace Paths.MeshGenerator
 		private bool
 			autoUpdateMesh = false;
 
-		[SerializeField]
-		public bool
-			updateMeshFilter = true;
-		[SerializeField]
-		public bool
-			createMeshFilter = true;
-		[SerializeField]
-		public bool
-			createMeshRenderer = true;
 
 		[SerializeField]
 		public bool
-			updateMeshCollider = true;
+			createShapes = true;
+
+		[SerializeField]
+		private Material[]
+			shapeMaterials;
+
+
 		[SerializeField]
 		public bool
-			createMeshCollider = true;
+			createMeshColliders = false;
+//
+//		[SerializeField]
+//		public bool
+//			updateMeshFilter = true;
+//		[SerializeField]
+//		public bool
+//			createMeshFilter = true;
+//		[SerializeField]
+//		public bool
+//			createMeshRenderer = true;
+//
+//		[SerializeField]
+//		public bool
+//			updateMeshCollider = true;
+//		[SerializeField]
+//		public bool
+//			createMeshCollider = true;
+
+		[SerializeField]
+		private HierarchicalObjectContainer
+			meshCollidersContainer = new HierarchicalObjectContainer ("_MeshColliders");
+
+		[SerializeField]
+		private HierarchicalObjectContainer
+			shapesContainer = new HierarchicalObjectContainer ("_Shapes");
+
+
+
+//		[SerializeField]
+//		public bool
+//			updateMeshColliders2 = true;
+//		[SerializeField]
+//		public bool
+//			createMeshColliders2 = true;
+//		
+//		[SerializeField]
+//		public int
+//			meshColliderCount = 1;
+//
+//
 
 		
 		// don't serialize!
@@ -140,14 +177,14 @@ namespace Paths.MeshGenerator
 				return _meshGeneratorInstance;
 			}
 		}
-		public Mesh GeneratedMesh {
-			get {
-				return generatedMesh;
-			}
-			set {
-				this.generatedMesh = value;
-			}
-		}
+//		public Mesh GeneratedMesh {
+//			get {
+//				return generatedMesh;
+//			}
+//			set {
+//				this.generatedMesh = value;
+//			}
+//		}
 //		public PathMeshSlice[] GeneratedSlices {
 //			get {
 //				return _generatedSlices;
@@ -157,6 +194,33 @@ namespace Paths.MeshGenerator
 //				this._generatedSlices = value;
 //			}
 //		}
+
+
+		public Material[] ShapeMaterials {
+			get {
+				IMeshGenerator mg = MeshGeneratorInstance;
+				int matCount = (null != mg) ? mg.GetMaterialSlotCount () : 0;
+				if (shapeMaterials == null) {
+					shapeMaterials = new Material[matCount];
+				} else if (matCount != shapeMaterials.Length) {
+					Array.Resize (ref shapeMaterials, matCount);
+				}
+				return shapeMaterials;
+			}
+		}
+
+
+
+		public MeshObjectVisibility ShapeObjectsVisibility {
+			get {
+				return new MeshObjectVisibility (shapesContainer);
+			}
+		}
+		public MeshObjectVisibility ColliderObjectsVisibility {
+			get {
+				return new MeshObjectVisibility (meshCollidersContainer);
+			}
+		}
 
 
 #endregion
@@ -198,16 +262,34 @@ namespace Paths.MeshGenerator
 				}
 			}
 
+			if (null == meshCollidersContainer) {
+				meshCollidersContainer = new HierarchicalObjectContainer ();
+			}
+			meshCollidersContainer.Reset ();
+			meshCollidersContainer.childContainerName = "_MeshColliders";
+			meshCollidersContainer.ContainerHideFlags = (HideFlags.HideInHierarchy | HideFlags.NotEditable);
+			meshCollidersContainer.LeafHideFlags = (HideFlags.HideInHierarchy | HideFlags.NotEditable);
+
+
+			if (null == shapesContainer) {
+				shapesContainer = new HierarchicalObjectContainer ();
+			}
+			shapesContainer.Reset ();
+			shapesContainer.childContainerName = "_Shapes";
+			shapesContainer.ContainerHideFlags = (HideFlags.HideInHierarchy | HideFlags.NotEditable);
+			shapesContainer.LeafHideFlags = (HideFlags.HideInHierarchy | HideFlags.NotEditable);
+
 			autoUpdateWithPath = false;
 			autoUpdateMesh = false;
 			
-			updateMeshFilter = true;
-			createMeshFilter = true;
-			createMeshRenderer = true;
-			
-			updateMeshCollider = true;
-			createMeshCollider = true;
-
+//			updateMeshFilter = true;
+//			createMeshFilter = true;
+//			createMeshRenderer = true;
+//			
+//			updateMeshCollider = true;
+//			createMeshCollider = true;
+			createShapes = true;
+			createMeshColliders = false;
 		}
 		
 		public void OnEnable ()
@@ -678,56 +760,186 @@ namespace Paths.MeshGenerator
 				Debug.LogError ("MeshGenerator is null");
 				return false;
 			} else {
-				if (generatedMesh == null) {
-					Debug.Log ("Creating new Mesh instance");
-					generatedMesh = new Mesh ();
-								
+//				if (generatedMesh == null) {
+//					Debug.Log ("Creating new Mesh instance");
+//					generatedMesh = new Mesh ();
+//								
+//				} else {
+//					Debug.Log ("Updating existing Mesh instance");
+//					generatedMesh.Clear ();
+//				}
+				int meshCount = mg.GetMeshCount ();
+				if (null == generatedMeshes) {
+					generatedMeshes = new Mesh[meshCount];
+				} else if (generatedMeshes.Length != meshCount) {
+					// Trim / resice
+					Array.Resize (ref generatedMeshes, meshCount);
+				}
+				int newMeshesCount = 0;
+				for (int i = 0; i < meshCount; i++) {
+					if (generatedMeshes [i] == null) {
+						generatedMeshes [i] = new Mesh ();
+						newMeshesCount++;
+					} else {
+						generatedMeshes [i].Clear ();
+					}
+
+					// Create initial Mesh name:
+					if (StringUtil.IsEmpty (generatedMeshes [i].name)) {
+						generatedMeshes [i].name = initialMeshName + "_" + i;
+					}
+				}
+				if (newMeshesCount > 0) {
+					Debug.LogFormat ("Creating {0} new and updating {1} existing Mesh instance(s)", 
+					                 newMeshesCount, meshCount - newMeshesCount);
 				} else {
-					Debug.Log ("Updating existing Mesh instance");
-					generatedMesh.Clear ();
+					Debug.LogFormat ("Updating {0} existing Mesh instance(s)", 
+					                 meshCount - newMeshesCount);
 				}
-							
-				// Create initial Mesh name:
-				if (StringUtil.IsEmpty (generatedMesh.name)) {
-					generatedMesh.name = initialMeshName;
-				}
-				generatedMesh = mg.CreateMesh (DataSource, generatedMesh);
+								
 
-				if (updateMeshFilter) {
-					MeshFilter mf = GetComponent<MeshFilter> ();
-					if (null == mf && createMeshFilter) {
-						mf = gameObject.AddComponent<MeshFilter> ();
-					}
-					if (null != mf) {
-						mf.sharedMesh = generatedMesh;
-					}
+				mg.CreateMeshes (DataSource, generatedMeshes);
 
-					MeshRenderer mr = GetComponent<MeshRenderer> ();
-					if (null == mr && createMeshRenderer) {
-						mr = gameObject.AddComponent<MeshRenderer> ();
-					}
+				if (createShapes) {
+					UpdateShapes ();
 				}
 
-
-
-				if (updateMeshCollider) {
-					MeshCollider mc = GetComponent<MeshCollider> ();
-					if (null == mc && createMeshCollider) {
-						mc = gameObject.AddComponent<MeshCollider> ();
-					}
-					if (null != mc) {
-						mc.sharedMesh = generatedMesh;
-						// Force refresh:
-						bool mcWasenabled = mc.enabled;
-						if (mcWasenabled) {
-							mc.enabled = false;
-							mc.enabled = true;
-						}
-					}
+				if (createMeshColliders) {
+					UpdateMeshColliders ();
 				}
 
 				return true;
 			}
 		}
+
+		private static void DoUpdateMeshRenderer (int meshIndex, GameObject childObj, object context)
+		{
+			PathMeshGenerator obj = (PathMeshGenerator)context;
+			MeshFilter mf = childObj.GetComponent<MeshFilter> ();
+			if (null == mf) {
+				mf = childObj.AddComponent<MeshFilter> ();
+			}
+			mf.sharedMesh = obj.generatedMeshes [meshIndex];
+
+			MeshRenderer mr = childObj.GetComponent<MeshRenderer> ();
+			if (null == mr) {
+				mr = childObj.AddComponent<MeshRenderer> ();
+			}
+
+			// Assign materials
+			Material[] materials = obj.ShapeMaterials;
+			int matCount = materials.Length;
+			IMeshGenerator mg = obj.MeshGeneratorInstance;
+			int[] submeshIndex = new int[matCount];
+			int maxSubmeshIndex = 0;
+			for (int i = 0; i < matCount; i++) {
+				submeshIndex [i] = mg.GetMaterialSlotSubmeshIndex (i);
+				if (submeshIndex [i] > maxSubmeshIndex) {
+					maxSubmeshIndex = submeshIndex [i];
+				}
+			}
+			int sharedMatCount = maxSubmeshIndex + 1;
+			Material[] sharedMats = new Material[sharedMatCount];
+			for (int i = 0; i < submeshIndex.Length; i++) {
+				sharedMats [submeshIndex [i]] = materials [i];
+			}
+			mr.sharedMaterials = sharedMats;
+
+		}
+
+		private void UpdateShapes ()
+		{
+			shapesContainer.CreateChildren (
+				gameObject,
+				() => generatedMeshes.Length,
+				DoUpdateMeshRenderer,
+				this);
+
+		}
+
+		private static void DoUpdateMeshCollider (int i, GameObject childObj, object context)
+		{
+			PathMeshGenerator obj = (PathMeshGenerator)context;
+			MeshCollider mc = childObj.GetComponent<MeshCollider> ();
+			if (null == mc) {
+				mc = childObj.AddComponent<MeshCollider> ();
+			}
+			if (null != mc) {
+				mc.sharedMesh = obj.generatedMeshes [i];
+				// Force refresh:
+				bool mcWasenabled = mc.enabled;
+				if (mcWasenabled) {
+					mc.enabled = false;
+					mc.enabled = true;
+				}
+			}
+		}
+		private void UpdateMeshColliders ()
+		{
+			meshCollidersContainer.CreateChildren (
+				gameObject,
+				() => generatedMeshes.Length,
+				DoUpdateMeshCollider,
+				this);
+
+		}
+	}
+	public class MeshObjectVisibility
+	{
+		public HierarchicalObjectContainer container;
+		public MeshObjectVisibility (HierarchicalObjectContainer container)
+		{
+			this.container = container;
+		}
+		private void DoSetLeafHideFlags (HideFlags flags, bool value)
+		{
+			if (value) {
+				container.LeafHideFlags &= ~flags;
+			} else {
+				container.LeafHideFlags |= flags;
+			}
+		}
+		private void DoSetContainerHideFlags (HideFlags flags, bool value)
+		{
+			if (value) {
+				container.ContainerHideFlags &= ~flags;
+			} else {
+				container.ContainerHideFlags |= flags;
+			}
+		}
+		
+		public bool ContainerVisibleInHierarchy {
+			get {
+				return 0 == (container.ContainerHideFlags & HideFlags.HideInHierarchy);
+			}
+			set {
+				DoSetContainerHideFlags (HideFlags.HideInHierarchy, value);
+			}
+		}
+		public bool LeafsVisibleInHierarchy {
+			get {
+				return 0 == (container.LeafHideFlags & HideFlags.HideInHierarchy);
+			}
+			set {
+				DoSetLeafHideFlags (HideFlags.HideInHierarchy, value);
+			}
+		}
+		public bool ContainerEditable {
+			get {
+				return 0 == (container.ContainerHideFlags & HideFlags.NotEditable);
+			}
+			set {
+				DoSetContainerHideFlags (HideFlags.NotEditable, value);
+			}
+		}
+		public bool LeafsEditable {
+			get {
+				return 0 == (container.LeafHideFlags & HideFlags.NotEditable);
+			}
+			set {
+				DoSetLeafHideFlags (HideFlags.NotEditable, value);
+			}
+		}
+		
 	}
 }
