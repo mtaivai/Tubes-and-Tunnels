@@ -10,7 +10,7 @@ namespace Paths
 
 
 
-
+	[CodeQuality.Experimental]
 	// TODO consider implementing OutputType etc options in a common base class
 	[PathModifier(requiredInputFlags=PathPoint.POSITION, 
                   passthroughCaps=PathPoint.POSITION | PathPoint.UP | PathPoint.ANGLE, 

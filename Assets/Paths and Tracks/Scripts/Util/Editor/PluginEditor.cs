@@ -60,6 +60,7 @@ namespace Util.Editor
 		private UnityEngine.Object target;
 		private TargetModifiedFunc targetModifiedFunc;
 		private ContextEditorPrefs editorPrefs;
+		private CodeQuality _codeQuality;
 
 //		public CustomToolEditorContext (object customTool, UnityEngine.Object target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc)
 //			: this(customTool, target, e, targetModifiedFunc, new ContextEditorPrefs(""))
@@ -79,6 +80,13 @@ namespace Util.Editor
 			this.targetModifiedFunc = targetModifiedFunc;
 			this.editorPrefs = editorPrefs;
 
+
+			if (null != plugin) {
+				this._codeQuality = Plugin.GetPluginCodeQuality (plugin.GetType ());
+			}
+			if (null == _codeQuality) {
+				_codeQuality = new CodeQuality.Unknown ();
+			}
 		}
         
 		public object PluginInstance {
@@ -102,6 +110,11 @@ namespace Util.Editor
 		public ContextEditorPrefs ContextEditorPrefs {
 			get {
 				return editorPrefs;
+			}
+		}
+		public CodeQuality PluginCodeQuality {
+			get {
+				return _codeQuality;
 			}
 		}
 

@@ -16,6 +16,7 @@ namespace Paths
 		Remove
 	}
 
+	[CodeQuality.Beta]
 	public abstract class ConfigurableProcessPathModifier : AbstractPathModifier
 	{
 

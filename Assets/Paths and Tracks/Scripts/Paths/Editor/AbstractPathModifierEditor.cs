@@ -199,6 +199,11 @@ namespace Paths.Editor
 				newMessages = false;
 			}
 
+			if (!context.PluginCodeQuality.IsStable) {
+				EditorGUILayout.HelpBox (
+					context.PluginCodeQuality.Name + " quality plugin", MessageType.Warning);
+			}
+
 			EditorGUI.indentLevel++;
 			messagesVisible = EditorGUILayout.Foldout (messagesVisible, messagesLabel);
 			if (messagesVisible) {

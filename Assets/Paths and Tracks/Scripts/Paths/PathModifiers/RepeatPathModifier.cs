@@ -7,6 +7,7 @@ using Paths;
 
 namespace Paths
 {
+	[CodeQuality.Experimental]
 	[PathModifier(requiredInputFlags=PathPoint.POSITION, 
                   passthroughCaps=PathPoint.POSITION | PathPoint.DIRECTION | PathPoint.DISTANCE_FROM_PREVIOUS | PathPoint.UP | PathPoint.ANGLE, 
                   generateCaps=PathPoint.DISTANCE_FROM_BEGIN)]

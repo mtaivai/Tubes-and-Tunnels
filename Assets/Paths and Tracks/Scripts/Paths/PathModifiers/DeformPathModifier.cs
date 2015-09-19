@@ -13,7 +13,7 @@ namespace Paths
 {
 
 
-
+	[CodeQuality.Experimental]
 	[PathModifier(requiredInputFlags=PathPoint.NONE, 
                   processCaps=PathPoint.POSITION,
                   passthroughCaps=PathPoint.ALL, 

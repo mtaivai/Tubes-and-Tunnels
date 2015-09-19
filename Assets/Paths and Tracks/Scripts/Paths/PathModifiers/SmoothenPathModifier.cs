@@ -7,6 +7,7 @@ using Paths;
 
 namespace Paths
 {
+	[CodeQuality.Experimental]
 	// TODO we should have an option to smoothen "Up" vectors as a separate process
 	// TODO we should recalculate directions, angles and distances if they are part of the input (we should have a configuration option)
 	[PathModifier(processCaps=PathPoint.POSITION,passthroughCaps=PathPoint.DIRECTION | PathPoint.UP)]

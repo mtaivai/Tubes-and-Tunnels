@@ -9,6 +9,7 @@ namespace Paths
 {
 
 	//contextParams={"1", "2"}
+	[CodeQuality.Beta]
 	[Plugin]
 	[PathModifier(requiredInputFlags = PathPoint.NONE, 
                   processCaps = PathPoint.NONE,

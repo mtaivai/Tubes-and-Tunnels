@@ -263,7 +263,7 @@ namespace Paths.Editor
 			if (itemVisible) {
 //				EditorGUI.indentLevel++;
 
-
+				context.PathModifierContext.Warnings.Add ("EXPERIMENTAL");
 				IPathModifierEditor pme = GetEditorForPathModifier (pm, context);
 
 

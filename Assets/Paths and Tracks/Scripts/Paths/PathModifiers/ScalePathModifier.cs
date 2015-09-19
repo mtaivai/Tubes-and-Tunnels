@@ -7,7 +7,7 @@ using Paths;
 
 namespace Paths
 {
-
+	[CodeQuality.Experimental]
 	// TODO add scaling of directions and distances!
 	[PathModifier(passthroughCaps=PathPoint.POSITION)]
 	public class ScalePathModifier : AbstractPathModifier

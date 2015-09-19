@@ -12,7 +12,7 @@ using Paths;
 namespace Paths
 {
 
-
+	[CodeQuality.Experimental]
 	[PathModifier(requiredInputFlags=PathPoint.NONE, passthroughCaps=PathPoint.ALL)]
 	public class StoreSnapshotPathModifier : AbstractPathModifier
 	{

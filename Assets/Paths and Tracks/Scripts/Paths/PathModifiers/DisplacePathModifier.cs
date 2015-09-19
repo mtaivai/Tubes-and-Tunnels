@@ -7,6 +7,7 @@ using Paths;
 
 namespace Paths
 {
+	[CodeQuality.Experimental]
 	[PathModifier(displayName="Displace", requiredInputFlags=PathPoint.POSITION, 
 	              processCaps=PathPoint.POSITION, passthroughCaps=PathPoint.ALL & ~PathPoint.POSITION)]
 	public class DisplacePathModifier : AbstractPathModifier
