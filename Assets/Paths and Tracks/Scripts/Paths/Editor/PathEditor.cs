@@ -34,13 +34,18 @@ namespace Paths.Editor
 		public enum ToolbarSheet : int
 		{
 			General,
-			Points,
-			Modifiers,
+			Data, 
+			//Modifiers,
 			DataSets,
 			Settings,
 			Debug,
 		}
-
+		public enum DataToolbarSheet : int
+		{
+			//General,
+			Points,
+			Modifiers,
+		}
 
 //		private static string[] TB_TEXTS = {
 //            "Path",
@@ -96,11 +101,30 @@ namespace Paths.Editor
 		}
 		protected string GetToolbarSheetLabel (ToolbarSheet sheet)
 		{
-			return Enum.GetName (typeof(ToolbarSheet), sheet);
+			switch (sheet) {
+			case ToolbarSheet.Data:
+				return "Data (" + pathData.GetName () + ")";
+			default:
+				return Enum.GetName (typeof(ToolbarSheet), sheet);
+			}
 		}
 		protected string[] GetToolbarSheetLabels ()
 		{
-			return Enum.GetNames (typeof(ToolbarSheet));
+			ToolbarSheet[] values = (ToolbarSheet[])Enum.GetValues (typeof(ToolbarSheet));
+			int count = values.Length;
+			string[] labels = new string[count];
+			for (int i = 0; i < count; i++) {
+				labels [i] = GetToolbarSheetLabel (values [i]);
+			}
+			return labels;
+		}
+		protected string GetDataToolbarSheetLabel (DataToolbarSheet sheet)
+		{
+			return Enum.GetName (typeof(DataToolbarSheet), sheet);
+		}
+		protected string[] GetDataToolbarSheetLabels ()
+		{
+			return Enum.GetNames (typeof(DataToolbarSheet));
 		}
 
 		protected int SelectedControlPointIndex {
@@ -190,14 +214,8 @@ namespace Paths.Editor
 			case ToolbarSheet.General:
 				DrawGeneralInspectorGUI ();
 				break;
-			case ToolbarSheet.Points:
-                // TODO why do we have the "expanded" pref here? Why not in the DrawPathPointsInspector fn itself?
-				bool pointsExpanded = editorParams.GetBool ("PathPointsExpanded", true);
-				DrawPathPointsInspector (ref pointsExpanded);
-				editorParams.SetBool ("PathPointsExpanded", pointsExpanded);
-				break;
-			case ToolbarSheet.Modifiers:
-				DrawPathModifiersInspectorGUI ();
+			case ToolbarSheet.Data:
+				DrawPathDataInspector ();
 				break;
 			case ToolbarSheet.DataSets:
 				DrawDataSetsInspectorGUI ();
@@ -534,12 +552,44 @@ namespace Paths.Editor
 			return pointExpanded.ContainsKey (index) ? pointExpanded [index] : false;
 		}
 
-		protected virtual void DrawPathPointsInspector (ref bool expanded)
+		// Called from AbstractPathEditor.OnInspectorGUI
+		protected virtual void DrawPathDataInspector ()
 		{
-			DrawDefaultPathPointsInspector ();
+			DrawDefaultPathDataInspector ();
 		}
 
-		protected void DrawDefaultPathPointsInspector ()
+		protected void DrawDefaultPathDataInspector ()
+		{
+			DataToolbarSheet tbSheet = (DataToolbarSheet)editorParams.GetInt ("DataToolbarSelection", 0);
+			EditorGUI.BeginChangeCheck ();
+			tbSheet = (DataToolbarSheet)GUILayout.Toolbar ((int)tbSheet, GetDataToolbarSheetLabels ());
+			if (EditorGUI.EndChangeCheck ()) {
+				editorParams.SetInt ("DataToolbarSelection", (int)tbSheet);
+			}
+			
+			switch (tbSheet) {
+			//case DataToolbarSheet.General:
+			//DrawGeneralInspector ();
+			//break;
+			case DataToolbarSheet.Points:
+				DrawPathPointsInspectorGUI ();
+				break;
+			case DataToolbarSheet.Modifiers:
+				DrawPathModifiersInspectorGUI ();
+				break;
+			}
+		}
+
+		protected virtual void DrawPathPointsInspectorGUI ()
+		{
+			DrawDefaultPathPointsInspectorGUI ();
+		}
+
+		/// <summary>
+		/// Draws the default PathData inspector GUI that contains list of generated points
+		/// (i.e. this merely calls method DrawGeneratedPathPointsInspector)
+		/// </summary>
+		protected void DrawDefaultPathPointsInspectorGUI ()
 		{
 			DrawGeneratedPathPointsInspector ();
 		}

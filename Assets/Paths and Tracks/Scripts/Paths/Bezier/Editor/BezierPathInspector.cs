@@ -18,6 +18,8 @@ namespace Paths.Bezier.Editor
 		int selectedControlPointIndex = -1;
 		//int stepsPerSegment = 10;
 
+		private bool controlPointsVisible = true;
+
 		void OnSceneGUI ()
 		{
 			Tools.hidden = false;
@@ -103,7 +105,7 @@ namespace Paths.Bezier.Editor
 			base.DrawDebugInspectorGUI ();
 		}
         
-		protected override void DrawPathPointsInspector (ref bool expanded)
+		protected override void DrawPathPointsInspectorGUI ()
 		{
             
 			BezierPath path = (BezierPath)target;
@@ -125,8 +127,8 @@ namespace Paths.Bezier.Editor
 
 
 			int cpCount = path.ControlPointCount;
-			expanded = EditorGUILayout.Foldout (expanded, "Control Points (" + cpCount + ")");
-			if (expanded) {
+			controlPointsVisible = EditorGUILayout.Foldout (controlPointsVisible, "Control Points (" + cpCount + ")");
+			if (controlPointsVisible) {
                 
 				for (int i = 0; i < cpCount; i++) {
                     
@@ -175,7 +177,7 @@ namespace Paths.Bezier.Editor
 //                InsertControlPoint(cpCount);
 			}
             
-			DrawDefaultPathPointsInspector ();
+			DrawDefaultPathDataInspector ();
 		}
         
 		private void DrawSelectedPointInspector ()

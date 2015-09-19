@@ -48,6 +48,8 @@ namespace Paths.Polyline.Editor
 
 //      private DictionaryEditorItemPrefs pathModifierPrefs = new DictionaryEditorItemPrefs();
 
+		private bool controlPointsVisible = true;
+
 		public PolylinePathEditor ()
 		{
 			// TODO we should have common / shared styles!
@@ -72,8 +74,12 @@ namespace Paths.Polyline.Editor
 		protected override void DrawGeneralInspectorGUI ()
 		{
 			DrawDefaultGeneralInspectorGUI ();
+		}
 
-			PolylinePath path = target as PolylinePath;
+		protected override void DrawPathPointsInspectorGUI ()
+		{
+        
+//			EditorGUILayout.HelpBox ("Control Points are shared by all data sets having Input Source set to 'Self'.", MessageType.Info);
 
 			EditorGUI.BeginChangeCheck ();
 			pathData.SetLoop (EditorGUILayout.Toggle ("Loop", pathData.IsLoop ()));
@@ -81,18 +87,11 @@ namespace Paths.Polyline.Editor
 				Undo.RecordObject (path, "Toggle Path Loop Mode");
 				EditorUtility.SetDirty (path);
 			}
-		}
 
-		protected override void DrawPathPointsInspector (ref bool expanded)
-		{
-        
-			EditorGUILayout.HelpBox ("Control Points are shared by all data sets having Input Source set to 'Self'.", MessageType.Info);
-
-//			PolylinePath path = (PolylinePath)target;
 
 			int cpCount = pathData.GetControlPointCount ();
-			expanded = EditorGUILayout.Foldout (expanded, "Control Points (" + cpCount + ")");
-			if (expanded) {
+			controlPointsVisible = EditorGUILayout.Foldout (controlPointsVisible, "Control Points (" + cpCount + ")");
+			if (controlPointsVisible) {
 
 				EditorGUILayout.BeginHorizontal ();
 				EditorGUILayout.LabelField (" ", "Insert new point to the beginning -->");
@@ -148,7 +147,7 @@ namespace Paths.Polyline.Editor
 
 
 
-			DrawDefaultPathPointsInspector ();
+			DrawDefaultPathPointsInspectorGUI ();
 		}
 
 		void SetControlPoint (int index, Vector3 pt)
