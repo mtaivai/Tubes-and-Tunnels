@@ -202,10 +202,16 @@ namespace Paths.MeshGenerator
 				int matCount = (null != mg) ? mg.GetMaterialSlotCount () : 0;
 				if (shapeMaterials == null) {
 					shapeMaterials = new Material[matCount];
-				} else if (matCount != shapeMaterials.Length) {
+				} else if (matCount > shapeMaterials.Length) {
+					// TODO should we also shrink the array? In that case the user would
+					// lose any assigned materials
 					Array.Resize (ref shapeMaterials, matCount);
 				}
 				return shapeMaterials;
+			}
+			set {
+				// TODO should this be public?
+				this.shapeMaterials = value;
 			}
 		}
 

@@ -368,27 +368,87 @@ namespace Paths.MeshGenerator.Editor
 			//[SerializeField]
 
 		}
+
+		bool materialsExpanded = true;
+		bool allMaterialsExpanded = false;
+
 		void DrawMaterialsSelectionGUI ()
 		{
 			IMeshGenerator mg = target.MeshGeneratorInstance;
 			if (null != mg) {
-				EditorGUILayout.Foldout (true, "Materials");
-				EditorGUI.indentLevel++;
+				materialsExpanded = EditorGUILayout.Foldout (materialsExpanded, "Materials");
+				if (materialsExpanded) {
+					EditorGUI.indentLevel++;
 
-				int matCount = mg.GetMaterialSlotCount ();
-				for (int i = 0; i < matCount; i++) {
-					string matName = mg.GetMaterialSlotName (i);
-					EditorGUI.BeginChangeCheck ();
-					target.ShapeMaterials [i] = EditorGUILayout.ObjectField (matName, 
-						target.ShapeMaterials [i], typeof(Material), true) as Material;
-					if (EditorGUI.EndChangeCheck ()) {
-						EditorUtility.SetDirty (target);
+					Material[] shapeMaterials = target.ShapeMaterials;
 
-						MeshGeneratorModified ();
+					List<int> usedSubmeshIndices = new List<int> ();
+
+					int lastUsedSubmeshIndex = -1;
+					int matCount = mg.GetMaterialSlotCount ();
+					for (int i = 0; i < matCount; i++) {
+
+						int submeshIndex = mg.GetMaterialSlotSubmeshIndex (i);
+						if (submeshIndex > lastUsedSubmeshIndex) {
+							lastUsedSubmeshIndex = submeshIndex;
+						}
+						usedSubmeshIndices.Add (submeshIndex);
+
+						string matName = mg.GetMaterialSlotName (i);
+						matName += " (#" + submeshIndex + ")";
+
+						EditorGUI.BeginChangeCheck ();
+						shapeMaterials [i] = EditorGUILayout.ObjectField (
+							matName, shapeMaterials [i], typeof(Material), true) as Material;
+						if (EditorGUI.EndChangeCheck ()) {
+							EditorUtility.SetDirty (target);
+
+							MeshGeneratorModified ();
+						}
 					}
-				}
 
-				EditorGUI.indentLevel--;
+					allMaterialsExpanded = EditorGUILayout.Foldout (allMaterialsExpanded, "All Material Slots");
+					if (allMaterialsExpanded) {
+						EditorGUI.indentLevel++;
+
+						for (int i = 0; i < shapeMaterials.Length; i++) {
+							EditorGUI.BeginChangeCheck ();
+
+							string matName = "Materials[" + i + "]";
+							if (!usedSubmeshIndices.Contains (i)) {
+								matName += " <unused>";
+							}
+							shapeMaterials [i] = EditorGUILayout.ObjectField (
+								matName, shapeMaterials [i], typeof(Material), true) as Material;
+
+							if (EditorGUI.EndChangeCheck ()) {
+								EditorUtility.SetDirty (target);
+								
+								MeshGeneratorModified ();
+							}
+						}
+
+						EditorGUI.BeginDisabledGroup (matCount >= shapeMaterials.Length);
+						EditorGUILayout.BeginHorizontal ();
+						EditorGUILayout.LabelField ("");
+						if (GUILayout.Button ("Remove Unused Material Slots", EditorStyles.miniButton, GUILayout.ExpandWidth (false))) {
+							if (lastUsedSubmeshIndex >= 0) {
+								Array.Resize (ref shapeMaterials, lastUsedSubmeshIndex + 1);
+								target.ShapeMaterials = shapeMaterials;
+								EditorUtility.SetDirty (target);
+								
+								MeshGeneratorModified ();
+							}
+						}
+						EditorGUILayout.EndHorizontal ();
+						EditorGUI.EndDisabledGroup ();
+
+
+
+						EditorGUI.indentLevel--;
+					}
+					EditorGUI.indentLevel--;
+				}
 			}
 		}
 
