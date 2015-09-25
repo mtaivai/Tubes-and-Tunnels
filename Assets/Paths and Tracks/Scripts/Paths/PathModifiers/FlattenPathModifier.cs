@@ -7,6 +7,8 @@ using Paths;
 
 namespace Paths
 {
+
+
 	[CodeQuality.Experimental]
 	[PathModifier(requiredInputFlags=PathPoint.POSITION, passthroughCaps=PathPoint.UP, processCaps=PathPoint.POSITION)]
 	public class FlattenPathModifier : AbstractPathModifier

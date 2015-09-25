@@ -24,12 +24,16 @@ namespace Paths.MeshGenerator
 		private object source;
 		private PathDataSource dataSource;
 		private PathDataStage stage;
+		private bool dataChanged;
+		private bool metadataChanged;
 		
-		public PathDataChangedEventArgs (object source, PathDataSource dataSource, PathDataStage stage)
+		public PathDataChangedEventArgs (object source, PathDataSource dataSource, PathDataStage stage, bool dataChanged, bool metadataChanged)
 		{
 			this.source = source;
 			this.dataSource = dataSource;
 			this.stage = stage;
+			this.dataChanged = dataChanged;
+			this.metadataChanged = metadataChanged;
 		}
 		public object Source {
 			get {
@@ -46,6 +50,16 @@ namespace Paths.MeshGenerator
 				return stage;
 			}
 		}
+		public bool DataChanged {
+			get {
+				return dataChanged;
+			}
+		}
+		public bool MetadataChanged {
+			get {
+				return metadataChanged;
+			}
+		}
 		public override string ToString ()
 		{
 			return string.Format ("[PathDataChangedEventArgs: source={0}, dataSource={1}, stage={2}, Source={3}, DataSource={4}, Stage={5}]", source, dataSource, stage, Source, DataSource, Stage);
@@ -59,6 +73,12 @@ namespace Paths.MeshGenerator
 		ParameterStore GetParameterStore (PathDataSource ds);
 	}
 
+
+
+	// TODO this should be refactored to core of Path?
+	// - processedData is the data after path modifiers
+	// - unprocessedData is the control data (control points)
+	// -- we need to have an option to disable caching of unprocessedData!
 	[Serializable]
 	public class PathDataSource : ISerializationCallbackReceiver
 	{
@@ -90,6 +110,12 @@ namespace Paths.MeshGenerator
 		PathDataCache
 			unprocessedDataCache = new PathDataCache ();
 
+//		[SerializeField]
+//		private DefaultPathMetadata
+//			processedMetadata ;
+
+//		private ProcessedPathDataImpl
+//			processedPathData;
 
 		// Don't serialize:
 //		private Func<IPathModifierContainer> getPathModifierContainerFunc;
@@ -108,6 +134,10 @@ namespace Paths.MeshGenerator
 		public PathDataSource (int id)
 		{
 			this.id = id;
+//			this.processedPathData = new ProcessedPathDataImpl (this);
+//			this.processedMetadata = new DefaultPathMetadata ();
+//			this.processedMetadata.AttachToPathData (processedPathData);
+
 		}
 
 		public void Dispose ()
@@ -150,6 +180,14 @@ namespace Paths.MeshGenerator
 			if (null == unprocessedDataCache) {
 				unprocessedDataCache = new PathDataCache ();
 			}
+//			if (null == processedMetadata) {
+//				processedMetadata = new DefaultPathMetadata ();
+//			}
+//			if (null == processedPathData) {
+//				processedPathData = new ProcessedPathDataImpl (this);
+//			}
+//			processedMetadata.AttachToPathData (processedPathData);
+
 			if (null != pathModifierContainer) {
 				this.pathModifierContainer.LoadConfiguration ();
 			}
@@ -248,8 +286,9 @@ namespace Paths.MeshGenerator
 				
 				DoRegisterPathChangedListeners ();
 				
-				DoInvalidateData (PathDataStage.Unprocessed);
-				DoInvalidateData (PathDataStage.Processed);
+				DoInvalidateData (PathDataStage.Unprocessed, true, true);
+				DoInvalidateData (PathDataStage.Processed, true, true);
+
 			}
 		}
 
@@ -260,21 +299,26 @@ namespace Paths.MeshGenerator
 		public PathPoint[] UnprocessedPoints {
 			get {
 				UpdatePathSelectorState ();
-				return unprocessedDataCache.GetPointsAndValidate (true, pathSelector.GetPathPoints);
+				return unprocessedDataCache.GetPointsAndValidate (true, pathSelector.GetPathPoints, GetPathInfo);
+			}
+		}
+		public int UnprocessedPointCount {
+			get {
+				return UnprocessedPoints.Length;
 			}
 		}
 		public int UnprocessedFlags {
 			get {
 				UpdatePathSelectorState ();
-				return unprocessedDataCache.GetFlagsAndValidate (pathSelector.GetPathPoints);
+				return unprocessedDataCache.GetFlagsAndValidate (pathSelector.GetPathPoints, GetPathInfo);
 			}
 		}
 		public PathPoint[] GetUnprocessedPoints (out int flags)
 		{
 			UpdatePathSelectorState ();
-			PathPoint[] points = unprocessedDataCache.GetPointsAndValidate (pathSelector.GetPathPoints);
+			PathPoint[] points = unprocessedDataCache.GetPointsAndValidate (pathSelector.GetPathPoints, GetPathInfo);
 			flags = unprocessedDataCache.Flags;
-			return (unprocessedDataCache.Valid) ? points : null;
+			return (unprocessedDataCache.DataValid) ? points : null;
 		}
 
 		private PathPoint[] ProcessPoints (out int flags)
@@ -297,14 +341,18 @@ namespace Paths.MeshGenerator
 					flags = unprocessedFlags;
 
 				} else {
+					// TODO we should not call pathSelector in this phase!
 					IPathData data = pathSelector.PathData;
 					if (null == data) {
 						// TODO should we log an error?
 						processedPoints = null;
 						flags = 0;
 					} else {
+						// TODO we shuold use cached pathinfo!
 						IPathInfo pathInfo = data.GetPathInfo ();
-						PathModifierContext context = new PathModifierContext (pathInfo, pmc, unprocessedFlags);
+
+						IPathMetadata md = GetUnprocessedPathMetadata ();
+						PathModifierContext context = new PathModifierContext (pathInfo, pmc, md, unprocessedFlags);
 
 						flags = unprocessedFlags;
 						// We need to create a deep clone of unprocessedPoints because PathPoints are mutable:
@@ -324,15 +372,20 @@ namespace Paths.MeshGenerator
 		public PathPoint[] GetProcessedPoints (out int flags)
 		{
 			UpdatePathSelectorState ();
-			PathPoint[] points = processedDataCache.GetPointsAndValidate (ProcessPoints);
+			PathPoint[] points = processedDataCache.GetPointsAndValidate (ProcessPoints, GetPathInfo);
 			flags = processedDataCache.Flags;
-			return (processedDataCache.Valid) ? points : null;
+			return (processedDataCache.DataValid) ? points : null;
 		}
 
 		public PathPoint[] ProcessedPoints {
 			get {
 				int flags = 0;
 				return GetProcessedPoints (out flags);
+			}
+		}
+		public int ProcessedPointCount {
+			get {
+				return ProcessedPoints.Length;
 			}
 		}
 		public int ProcessedFlags {
@@ -342,38 +395,71 @@ namespace Paths.MeshGenerator
 				return flags;
 			}
 		}
-//
 
-		public void InvalidateProcessedData (bool fireEvents = true)
+//		public IPathMetadata ProcessedPathMetadata {
+//			get {
+//				IPathMetadata md = processedDataCache.GetPathMetadataAndValidate (DoGetSourcePathMetadata);
+//				return (processedDataCache.MetadataValid) ? md : UnsupportedPathMetadata.Instance;
+//			}
+//		}
+
+		public IPathMetadata GetUnprocessedPathMetadata ()
 		{
 			UpdatePathSelectorState ();
-			DoInvalidateData (PathDataStage.Processed);
+			IPathMetadata md = unprocessedDataCache.GetPathMetadataAndValidate (DoGetSourcePathMetadata);
+			return (unprocessedDataCache.MetadataValid) ? md : UnsupportedPathMetadata.Instance;
 		}
 
-		public void InvalidateUnprocessedData (bool fireEvents = true)
+
+//		public IPathData ProcessedPathData {
+//			get {
+//				return processedPathData;
+//			}
+////			throw new NotImplementedException ();
+//		}
+		private IPathMetadata DoGetSourcePathMetadata ()
+		{
+			IPathData pathData = PathSelector.PathData;
+			return pathData.IsPathMetadataSupported () ? pathData.GetPathMetadata () : UnsupportedPathMetadata.Instance;
+		}
+		public void InvalidateProcessedData (bool invalidateMetadata, bool fireEvents)
 		{
 			UpdatePathSelectorState ();
-			DoInvalidateData (PathDataStage.Unprocessed);
+			DoInvalidateData (PathDataStage.Processed, invalidateMetadata, fireEvents);
+		}
+
+		public void InvalidateUnprocessedData (bool invalidateMetadata, bool fireEvents)
+		{
+			UpdatePathSelectorState ();
+			DoInvalidateData (PathDataStage.Unprocessed, invalidateMetadata, fireEvents);
 		}
 		
-		private void DoInvalidateData (PathDataStage stage, bool fireEvents = true)
+		private void DoInvalidateData (PathDataStage stage, bool invalidateMetadata, bool fireEvents)
 		{
 			bool wasValid;
 			switch (stage) {
 			case PathDataStage.Processed:
-				wasValid = processedDataCache.Valid;
-				processedDataCache.Invalidate ();
+				wasValid = processedDataCache.DataValid;
+				processedDataCache.InvalidateData ();
+				if (invalidateMetadata) {
+					processedDataCache.InvalidateMetadata ();
+				}
+//				processedMetadata.PathDataChanged (PathDataScope.FinalData);
 				break;
 			case PathDataStage.Unprocessed:
-				wasValid = unprocessedDataCache.Valid;
-				unprocessedDataCache.Invalidate ();
+				wasValid = unprocessedDataCache.DataValid;
+				unprocessedDataCache.InvalidateData ();
+				if (invalidateMetadata) {
+					unprocessedDataCache.InvalidateMetadata ();
+				}
+//				processedMetadata.PathDataChanged (PathDataScope.ControlPoints);
 				break;
 			default:
 				wasValid = false;
 				break;
 			}
 			if (fireEvents && wasValid) {
-				FireEvent (new PathDataChangedEventArgs (this, this, stage));
+				FireEvent (new PathDataChangedEventArgs (this, this, stage, true, invalidateMetadata));
 			}
 		}
 
@@ -387,8 +473,8 @@ namespace Paths.MeshGenerator
 
 		public void InvalidateAll (bool fireEvents = true)
 		{
-			InvalidateUnprocessedData (fireEvents);
-			InvalidateProcessedData (fireEvents);
+			InvalidateUnprocessedData (true, fireEvents);
+			InvalidateProcessedData (true, fireEvents);
 		}
 		private void DoRegisterPathChangedListeners ()
 		{
@@ -421,15 +507,20 @@ namespace Paths.MeshGenerator
 		private void PathChanged (object sender, PathChangedEvent e)
 		{
 //			Debug.LogFormat ("{0} received PathChangedEvent from {1}: {2}", this, sender, e);
+
 			// Ignore snapshot specifications in comparision:
 			if (pathSelector.WithoutSnapshot () == e.ChangedData.WithoutSnapshot ()) {
 				// Our data has changed
-//				Debug.LogFormat ("{0}: my path data has changed: {1}", this, e.ChangedData);
+				//				Debug.LogFormat ("{0}: my path data has changed: {1}", this, e.ChangedData);
+				if (e.Reason == PathChangedEvent.EventReason.MetadataChanged) {
+					InvalidateUnprocessedData (true, true);
+				} else {
 
-				InvalidateUnprocessedData (true);
-//				InvalidateProcessedData(true);
+					InvalidateUnprocessedData (false, true);
+					//				InvalidateProcessedData(true);
 
-			}        
+				}
+			}
 			
 		}
 
@@ -437,7 +528,7 @@ namespace Paths.MeshGenerator
 		private void PathModifiersChanged (PathModifierContainerEvent e)
 		{
 			//			Debug.LogFormat ("PathModifiersChanged: {0}", e);
-			InvalidateProcessedData ();
+			InvalidateProcessedData (false, true);
 			
 		}
 
@@ -450,8 +541,10 @@ namespace Paths.MeshGenerator
 		}
 
 
+
 		public IPathInfo GetPathInfo ()
 		{
+			// TODO we want to cache the path info!
 			IPathData pathData = this.PathSelector.PathData;
 			return (null != pathData) ? pathData.GetPathInfo () : EmptyPathInfo.Instance;
 		}
@@ -460,6 +553,7 @@ namespace Paths.MeshGenerator
 		{
 			DefaultPathModifierContainer pmc = new DefaultPathModifierContainer (
 				GetPathInfo,
+				GetUnprocessedPathMetadata,
 				GetUnprocessedPoints,
 				null,
 				() => referenceContainer, 
@@ -473,6 +567,141 @@ namespace Paths.MeshGenerator
 			return pmc;
 		}
 
+
+//		private class ProcessedPathDataImpl : IPathData
+//		{
+//			private class PathInfoWrapper : IPathInfo
+//			{
+//				ProcessedPathDataImpl parent;
+//				public PathInfoWrapper (ProcessedPathDataImpl parent)
+//				{
+//					this.parent = parent;
+//				}
+//				public bool IsLoop ()
+//				{
+//					return parent.dataSource.processedDataCache.Loop;
+//				}
+//			}
+//			private PathDataSource dataSource;
+//			private PathInfoWrapper pathInfo;
+//
+//			public ProcessedPathDataImpl (PathDataSource dataSource)
+//			{
+//				this.dataSource = dataSource;
+//			}
+//			public int GetId ()
+//			{
+//				return 0;
+//			}
+//			
+//			public string GetName ()
+//			{
+//				return dataSource.Name + ".ProcessedData";
+//			}
+//			
+//			public Color GetColor ()
+//			{
+//				throw new NotImplementedException ();
+//			}
+//			
+//			public void SetColor (Color value)
+//			{
+//				throw new NotImplementedException ();
+//			}
+//			
+//			public bool IsDrawGizmos ()
+//			{
+//				throw new NotImplementedException ();
+//			}
+//			
+//			public void SetDrawGizmos (bool value)
+//			{
+//				throw new NotImplementedException ();
+//			}
+//
+//			public IPathInfo GetPathInfo ()
+//			{
+//				if (null == pathInfo) {
+//					pathInfo = new PathInfoWrapper (this);
+//				}
+//				return pathInfo;
+//			}
+//			
+//			public IPathSnapshotManager GetPathSnapshotManager ()
+//			{
+//				throw new NotImplementedException ();
+//			}
+//			
+//			public IPathModifierContainer GetPathModifierContainer ()
+//			{
+//				return dataSource.GetPathModifierContainer ();
+//			}
+//			
+//			public int GetControlPointCount ()
+//			{
+//				return dataSource.UnprocessedPointCount;
+//			}
+//			
+//			public PathPoint GetControlPointAtIndex (int index)
+//			{
+//				return dataSource.UnprocessedPoints [index];
+//			}
+//			
+//			public void SetControlPointAtIndex (int index, PathPoint pt)
+//			{
+//				throw new NotImplementedException ();
+//			}
+//			
+//			public PathPoint[] GetAllPoints ()
+//			{
+//				return dataSource.ProcessedPoints;
+//			}
+//			
+//			public int GetPointCount ()
+//			{
+//				return dataSource.ProcessedPointCount;
+//			}
+//			
+//			public PathPoint GetPointAtIndex (int index)
+//			{
+//				return dataSource.ProcessedPoints [index];
+//			}
+//			
+//			public int GetOutputFlags ()
+//			{
+//				return dataSource.ProcessedFlags;
+//			}
+//			
+//			public int GetOutputFlagsBeforeModifiers ()
+//			{
+//				return dataSource.UnprocessedFlags;
+//			}
+//			
+//			public float GetTotalDistance ()
+//			{
+//				throw new NotImplementedException ();
+//			}
+//			
+//			public bool IsPathMetadataSupported ()
+//			{
+//				return true;
+//			}
+//			
+//			public IPathMetadata GetPathMetadata ()
+//			{
+//				return dataSource.processedMetadata; 
+//			}
+//			
+//			public bool IsUpToDate ()
+//			{
+//				return dataSource.processedDataCache.Valid;
+//			}
+//			
+//			public long GetStatusToken ()
+//			{
+//				return dataSource.processedDataCache.StatusToken;
+//			}
+//		}
 	}
 
 

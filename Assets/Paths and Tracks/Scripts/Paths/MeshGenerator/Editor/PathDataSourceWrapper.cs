@@ -15,7 +15,6 @@ using Paths.Editor;
 namespace Paths.MeshGenerator.Editor
 {
 
-	// TODO move this class outside this class!
 	// This is for PathModifierEditor drawing only, wraps the TrackDataSource's unprocessed data
 	internal class PathDataSourceWrapper : IPathData
 	{
@@ -112,12 +111,12 @@ namespace Paths.MeshGenerator.Editor
 			return 0;
 		}
 		
-		public Vector3 GetControlPointAtIndex (int index)
+		public PathPoint GetControlPointAtIndex (int index)
 		{
 			throw new NotSupportedException ();
 		}
 		
-		public void SetControlPointAtIndex (int index, Vector3 pt)
+		public void SetControlPointAtIndex (int index, PathPoint pt)
 		{
 			throw new NotSupportedException ();
 		}

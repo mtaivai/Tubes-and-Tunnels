@@ -180,6 +180,7 @@ namespace Paths
 		//public delegate void SetPathPointsDelegate (PathPoint[] points);
 
 		// TODO maybe we should replace these delegates with an interface? (not SetPathPointsDelegate?)
+		private Func<IPathMetadata> GetPathMetadata;
 		private Func<IPathInfo> GetPathInfo;
 		private DoGetPathPointsDelegate DoGetPathPoints;
 		private Action<PathPoint[]> SetPathPoints;
@@ -192,6 +193,7 @@ namespace Paths
 
 
 		public DefaultPathModifierContainer (Func<IPathInfo> getPathInfoFunc,
+		                                     Func<IPathMetadata> getPathMetadataFunc,
                                             DoGetPathPointsDelegate doGetPathPointsFunc,
                                             Action<PathPoint[]> setPathPointsFunc,
 		                                     Func<IReferenceContainer> getReferenceContainerFunc,
@@ -199,6 +201,7 @@ namespace Paths
 		                                     Func<ParameterStore> getParameterStoreFunc)
 		{
 			this.GetPathInfo = getPathInfoFunc;
+			this.GetPathMetadata = getPathMetadataFunc;
 			this.DoGetPathPoints = doGetPathPointsFunc;
 			this.SetPathPoints = setPathPointsFunc;
 			this.getReferenceContainer = getReferenceContainerFunc;
@@ -406,7 +409,7 @@ namespace Paths
 				}
 				IPathInfo pathInfo = GetPathInfo ();
 
-				PathModifierContext pmc = new PathModifierContext (pathInfo, this, flags, parameters);
+				PathModifierContext pmc = new PathModifierContext (pathInfo, this, GetPathMetadata (), flags, parameters);
 				
 				// Timing:
 				

@@ -12,24 +12,41 @@ using Paths;
 namespace Paths.MeshGenerator
 {
 
+
 	[Serializable]
 	public class PathDataCache
 	{
 		[SerializeField]
 		private PathPoint[]
 			points;
+
+		[SerializeField]
+		private bool
+			loop;
 		
 		[SerializeField]
 		private int
 			flags;
 
 		[SerializeField]
+		private PathMetadataCache
+			metadata;
+
+		[SerializeField]
+		private bool
+			metadataValid;
+
+		[SerializeField]
 		private bool
 			pointsValid;
 
+//		[SerializeField]
+//		private long
+//			statusToken;
+
+
 		public PathDataCache ()
 		{
-			
 		}
 		
 		public PathPoint[] Points {
@@ -38,7 +55,7 @@ namespace Paths.MeshGenerator
 			}
 			set {
 				this.points = value;
-				Valid = true;
+				DataValid = true;
 			}
 		}
 		
@@ -50,67 +67,120 @@ namespace Paths.MeshGenerator
 				this.flags = value;
 			}
 		}
+
+		public bool Loop {
+			get {
+				return this.loop;
+			}
+			set {
+				this.loop = value;
+			}
+		}
 		
-		public bool Valid {
+		public bool DataValid {
 			get {
 				return pointsValid;
 			}
 			set {
 				if (value == false) {
-					Invalidate ();
+					InvalidateData ();
 				} else {
 					this.pointsValid = true;
 				}
 			}
 		}
-		
-		public void Invalidate ()
+		public bool MetadataValid {
+			get {
+				return metadataValid;
+			}
+			set {
+				if (value == false) {
+					InvalidateMetadata ();
+				} else {
+					this.metadataValid = true;
+				}
+			}
+		}
+
+//		public long StatusToken {
+//			get {
+//				return statusToken;
+//			}
+//		}
+
+		public void InvalidateData ()
 		{
 			this.points = null;
 			this.flags = 0;
+			this.loop = false;
 			this.pointsValid = false;
+//			this.statusToken = System.DateTime.Now.Ticks;
 		}
-		
+		public void InvalidateMetadata ()
+		{
+			this.metadataValid = false;
+			this.metadata = null;
+		}
 		public delegate PathPoint[] GetPointsAndFlagsDelegate (out int flags);
 
-		public PathPoint[] GetPointsAndValidate (GetPointsAndFlagsDelegate getPointsAndFlagsFunc)
+		public PathPoint[] GetPointsAndValidate (GetPointsAndFlagsDelegate getPointsAndFlagsFunc, Func<IPathInfo> getPathInfoFunc)
 		{
-			return GetPointsAndValidate (true, getPointsAndFlagsFunc);
+			return GetPointsAndValidate (true, getPointsAndFlagsFunc, getPathInfoFunc);
 		}
-		public PathPoint[] GetPointsAndValidate (bool validateOnNullPoints, GetPointsAndFlagsDelegate getPointsAndFlagsFunc)
+		public PathPoint[] GetPointsAndValidate (bool validateOnNullPoints, GetPointsAndFlagsDelegate getPointsAndFlagsFunc, Func<IPathInfo> getPathInfoFunc)
 		{
-			if (!Valid) {
+			if (!DataValid) {
 				points = getPointsAndFlagsFunc (out flags);
-				Valid = validateOnNullPoints || (null != points);
+				ProcessPathInfo (getPathInfoFunc);
+				DataValid = validateOnNullPoints || (null != points);
+
 			}
 			return points;
 		}
-
-		public PathPoint[] GetPointsAndValidate (Func<PathPoint[]> getPointsFunc)
+		private void ProcessPathInfo (Func<IPathInfo> getPathInfoFunc)
 		{
-			return GetPointsAndValidate (true, getPointsFunc);
+			if (null != getPathInfoFunc) {
+				IPathInfo pathInfo = getPathInfoFunc ();
+				this.loop = (null != pathInfo) ? pathInfo.IsLoop () : false;
+			}
 		}
-		public PathPoint[] GetPointsAndValidate (bool validateOnNullPoints, Func<PathPoint[]> getPointsFunc)
+		public PathPoint[] GetPointsAndValidate (Func<PathPoint[]> getPointsFunc, Func<IPathInfo> getPathInfoFunc)
 		{
-			if (!Valid) {
+			return GetPointsAndValidate (true, getPointsFunc, getPathInfoFunc);
+		}
+		public PathPoint[] GetPointsAndValidate (bool validateOnNullPoints, Func<PathPoint[]> getPointsFunc, Func<IPathInfo> getPathInfoFunc)
+		{
+			if (!DataValid) {
 				// Our GetPointsAndValidate function also fetches flags
 				// TODO we don't fetch flags, i.e. flags are NOT valid after this call!
 				points = getPointsFunc ();
-				Valid = validateOnNullPoints || (null != points);
+				ProcessPathInfo (getPathInfoFunc);
+				DataValid = validateOnNullPoints || (null != points);
 			}
 			return points;
 		}
-		public int GetFlagsAndValidate (GetPointsAndFlagsDelegate getPointsAndFlagsFunc)
+		public int GetFlagsAndValidate (GetPointsAndFlagsDelegate getPointsAndFlagsFunc, Func<IPathInfo> getPathInfoFunc)
 		{
-			return GetFlagsAndValidate (true, getPointsAndFlagsFunc);
+			return GetFlagsAndValidate (true, getPointsAndFlagsFunc, getPathInfoFunc);
 		}
-		public int GetFlagsAndValidate (bool validateOnNullPoints, GetPointsAndFlagsDelegate getPointsAndFlagsFunc)
+		public int GetFlagsAndValidate (bool validateOnNullPoints, GetPointsAndFlagsDelegate getPointsAndFlagsFunc, Func<IPathInfo> getPathInfoFunc)
 		{
-			if (!Valid) {
+			if (!DataValid) {
 				// GetPointsAndFlagsDelegate function also fetches flags:
-				GetPointsAndValidate (validateOnNullPoints, getPointsAndFlagsFunc);
+				GetPointsAndValidate (validateOnNullPoints, getPointsAndFlagsFunc, getPathInfoFunc);
 			}
 			return flags;
+		}
+
+		public IPathMetadata GetPathMetadataAndValidate (Func<IPathMetadata> getPathMetadataFunc)
+		{
+			if (!MetadataValid) {
+				IPathMetadata md = getPathMetadataFunc ();
+				this.metadata = new PathMetadataCache ();
+				this.metadata.CopyFrom (md);
+				this.metadataValid = true;
+			}
+			return this.metadata;
 		}
 
 //		public int GetFlagsAndValidate (Func<int> getFlagsFunc)
@@ -140,6 +210,14 @@ namespace Paths.MeshGenerator
 //		//			return flags;
 //		//		}
 		
+	}
+
+	public class PathMetadataCache : DefaultPathMetadata
+	{
+		public PathMetadataCache ()
+		{
+		}
+
 	}
 
 }

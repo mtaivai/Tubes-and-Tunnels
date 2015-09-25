@@ -139,7 +139,7 @@ namespace Paths.MeshGenerator.SliceStrip
 		/// </summary>
 		/// <returns>The slice.</returns>
 		/// <param name="pp">Pp.</param>
-		protected abstract SliceStripSlice CreateSlice (PathPoint pp);
+		protected abstract SliceStripSlice CreateSlice (PathDataSource dataSource, int pointIndex, PathPoint pp);
 
 		private TransformedSlice[] CreateSlices (PathDataSource dataSource)
 		{
@@ -176,7 +176,9 @@ namespace Paths.MeshGenerator.SliceStrip
 			if (null == points) {
 				throw new Exception ("No data available in data source: " + dataSource.PathSelector);
 			}
-			
+		
+			IPathData pathData = dataSource.PathSelector.PathData;
+
 			//Debug.Log ("dirs: " + directions.Length + "; pts: " + points.Length);
 			int sliceCount = points.Length;
 			bool isLoop = false; // TODO IMPLEMENT THIS FOR REAL?
@@ -220,12 +222,13 @@ namespace Paths.MeshGenerator.SliceStrip
 				Quaternion sliceRot = Quaternion.LookRotation (dir, up);
 				//Quaternion sliceRot = Quaternion.FromToRotation(Vector3.forward, dir);
 
-				SliceStripSlice slice = CreateSlice (points [i]);
+
+				SliceStripSlice slice = CreateSlice (dataSource, i, points [i]);
 				TransformedSlice transformedSlice = new TransformedSlice (slice, pt0, sliceRot);
 				slices [i] = transformedSlice;
 			}
 			if (usingGeneratedDirections) {
-				Debug.LogWarning ("Using calculated directions while generating Track; expect some inaccurancy!");
+				Debug.LogWarning ("Using calculated directions while generating Track; expect some inaccuracy!");
 			}
 			if (isLoop && repeatFirstInLoop) {
 				slices [sliceCount - 1] = slices [0];

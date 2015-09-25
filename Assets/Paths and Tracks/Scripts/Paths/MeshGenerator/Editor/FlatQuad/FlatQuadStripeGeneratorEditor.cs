@@ -11,6 +11,7 @@ using UnityEditor;
 using Util;
 using Util.Editor;
 using Paths;
+using Paths.Editor;
 
 using Paths.MeshGenerator.SliceStrip.Editor;
 using Paths.MeshGenerator.Editor;
@@ -25,12 +26,24 @@ namespace Paths.MeshGenerator.FlatQuad.Editor
 		
 		protected override void DrawCustomSliceConfigurationGUI ()
 		{
-//			EditorGUI.BeginChangeCheck ();
-			target.Width = EditorGUILayout.FloatField ("Slice Width", target.Width);
-//			if (EditorGUI.EndChangeCheck ()) {
-//				//EditorUtility.SetDirty(trackInspector.target);
-//				editorContext.TargetModified ();
+
+			if (PathEditorUtil.DynParamField ("Width", target.Width)) {
+				Debug.Log ("Changed: " + target.Width);
+				editorContext.TargetModified ();
+			}
+
+//			target.Width = EditorGUILayout.FloatField ("Slice Width", target.Width);
+//			EditorGUILayout.BeginHorizontal ();
+//			EditorGUILayout.EnumPopup ("Width", target.Width.ValueSource, GUILayout.ExpandWidth (false));
+//			switch (target.Width.ValueSource) {
+//			case DynParamSource.Constant:
+//				EditorGUILayout.FloatField (target.Width.Value);
+//				break;
+//			case DynParamSource.WeightParam:
+//				EditorGUILayout.TextField ("");
+//				break;
 //			}
+//			EditorGUILayout.EndHorizontal ();
 		}
 		
 		public override void DrawSceneGUI ()

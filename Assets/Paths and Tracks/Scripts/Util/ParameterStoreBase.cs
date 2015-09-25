@@ -109,11 +109,16 @@ namespace Util
 				return prefix;
 			}
 		}
+
+		public override string ToString ()
+		{
+			return string.Format ("prefix={0}; parent={1}", prefix, parent);
+		}
 		
 		public void OnBeforeSerialize ()
 		{
 			if (null != parent) {
-				throw new NotSupportedException ("Child ParameterStores can't be serialized");
+				throw new NotSupportedException ("Child ParameterStores can't be serialized: " + ToString ());
 			} else {
 				
 				if (_modificationCount > 0) {

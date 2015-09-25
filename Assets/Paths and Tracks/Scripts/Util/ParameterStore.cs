@@ -28,9 +28,10 @@ namespace Util
 			return DoGetParameterValue (name, defaultValue);
 		}
 
-		public void SetString (string name, string value)
+		public string SetString (string name, string value)
 		{
 			DoSetParameterValue (name, value);
+			return value;
 		}
 
 		public int GetInt (string name, int defaultValue = 0)
@@ -39,9 +40,10 @@ namespace Util
 			return (null == val) ? defaultValue : int.Parse (val);
 		}
 
-		public void SetInt (string name, int value)
+		public int SetInt (string name, int value)
 		{
 			SetString (name, value.ToString ());
+			return value;
 		}
 
 		public bool GetBool (string name, bool defaultValue = false)
@@ -50,9 +52,10 @@ namespace Util
 			return (null == val) ? defaultValue : bool.Parse (val);
 		}
 
-		public void SetBool (string name, bool value)
+		public bool SetBool (string name, bool value)
 		{
 			SetString (name, value.ToString ());
+			return value;
 		}
 
 		private static float ParseFloat (string s, float defaultValue = 0.0f)
@@ -77,9 +80,10 @@ namespace Util
 			return (null == val) ? defaultValue : ParseFloat (val, defaultValue);
 		}
 
-		public void SetFloat (string name, float value)
+		public float SetFloat (string name, float value)
 		{
 			SetString (name, value.ToString ());
+			return value;
 		}
 
 		public T GetEnum<T> (string name, T defaultValue)
@@ -97,10 +101,11 @@ namespace Util
 			}
 		}
 
-		public void SetEnum<T> (string name, T value)
+		public T SetEnum<T> (string name, T value)
 		{
 			string s = (null != value) ? value.ToString () : null;
 			SetString (name, s);
+			return value;
 		}
 
 		private static Vector2 ParseVector2 (string s, Vector2 defaultValue)
@@ -172,6 +177,22 @@ namespace Util
 		public void SetVector3 (string name, Vector3 value)
 		{
 			DoSetParameterValue (name, Vector3ToString (value));
+		}
+
+		public Paths.DynParam GetDynParam (string name, Paths.DynParam defaultValue)
+		{
+			return Paths.DynParam.Load (this, name, defaultValue);
+		}
+		public void SetDynParam (string name, Paths.DynParam value)
+		{
+			if (null == value) {
+				string[] dynParamFields = FindParametersStartingWith (name + ".");
+				foreach (string f in dynParamFields) {
+					RemoveParameter (f);
+				}
+			} else {
+				value.Save (this, name);
+			}
 		}
 
 		public string[] GetStringArray (string name, string[] defaultValue)

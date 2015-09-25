@@ -1,3 +1,5 @@
+
+using System;
 using UnityEngine;
 using UnityEditor;
 using Util;
@@ -7,9 +9,11 @@ using Paths.MeshGenerator.SliceStrip;
 
 namespace Paths.MeshGenerator.FlatQuad
 {
+
+
 	public class FlatQuadStripeGenerator : AbstractSliceStripGenerator
 	{
-		private float width = 2.0f;
+		private DynParam width = new DynParam (2.0f);
 
 
 
@@ -17,12 +21,12 @@ namespace Paths.MeshGenerator.FlatQuad
 		{
 			FacesDir = MeshFaceDir.Up;
 		}
-		public float Width {
+		public DynParam Width {
 			get {
 				return this.width;
 			}
 			set {
-				this.width = Mathf.Max (0f, value);
+				this.width = value;
 			}
 		}
 		public override string DisplayName {
@@ -43,13 +47,17 @@ namespace Paths.MeshGenerator.FlatQuad
 		public override void OnLoadParameters (ParameterStore store)
 		{
 			base.OnLoadParameters (store);
-			width = store.GetFloat ("width", width);
+			// TODO add DynParam support to ParameterStore!
+
+			width = DynParam.Load (store, "width");
+			//width = store.GetFloat ("width", width);
 		}
 
 		public override void OnSaveParameters (ParameterStore store)
 		{
 			base.OnSaveParameters (store);
-			store.SetFloat ("width", width);
+			width.Save (store, "width");
+			//store.SetFloat ("width", width);
 
 		}
 		/*
@@ -64,11 +72,15 @@ namespace Paths.MeshGenerator.FlatQuad
         }
     }*/
 
-
-	
-		protected override SliceStripSlice CreateSlice (PathPoint pp)
+		protected override SliceStripSlice CreateSlice (PathDataSource dataSource, int pointIndex, PathPoint pp)
 		{
-			return new FlatQuadStripeSlice (width);
+//			IPathData data = dataSource.ProcessedPathData;
+			// TODO do we have metadata?
+			float? widthValue = width.GetValue (pp, UnsupportedPathMetadata.Instance);
+			if (null == widthValue) {
+				throw new Exception ("No width value available for point at index " + pointIndex + ": " + widthValue);
+			}
+			return new FlatQuadStripeSlice ((float)widthValue);
 		}
 
 //		public override Mesh CreateMesh (PathDataSource dataSource, Mesh mesh)
@@ -90,4 +102,3 @@ namespace Paths.MeshGenerator.FlatQuad
     
 	}
 }
-

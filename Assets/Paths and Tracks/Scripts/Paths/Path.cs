@@ -19,8 +19,20 @@ namespace Paths
 	{
 		public enum EventReason
 		{
+			/// <summary>
+			/// Path data has changed.
+			/// </summary>
 			DataChanged,
+
+			/// <summary>
+			/// The default dataset has changed.
+			/// </summary>
 			DefaultDataSetChanged,
+
+			/// <summary>
+			/// Path metadata has changed
+			/// </summary>
+			MetadataChanged,
 		}
 		private EventReason reason;
 	
@@ -280,7 +292,7 @@ namespace Paths
 			// Notify our dependent target data sets about the modified data set:
 			foreach (IPathData targetData in targetDataSets) {
 //				Debug.Log ("Marking data '" + targetData.GetName () + "' dirty");
-				MarkPathDataDirty (targetData);
+				MarkPathDataDirty (targetData, false);
 			}
 
 			if (ReferenceEquals (ev.ChangedData.Path, this)) {
@@ -558,7 +570,7 @@ namespace Paths
 			if (/*data.GetPath () != this ||*/ !(data is AbstractPathData)) {
 				throw new ArgumentException ("Can't update foreign PathData: " + data);
 			}
-			((AbstractPathData)data).PathPointsChanged ();
+			((AbstractPathData)data).PathPointsChanged (true);
 		}
 
 		public IReferenceContainer GetReferenceContainer ()
@@ -572,9 +584,9 @@ namespace Paths
 
 
 		// Override this if the IPathData provided by the Path is not extending AbstractPathData:
-		protected void MarkPathDataDirty (IPathData data)
+		protected void MarkPathDataDirty (IPathData data, bool markControlPointsDirty)
 		{
-			((AbstractPathData)data).PathPointsChanged ();
+			((AbstractPathData)data).PathPointsChanged (markControlPointsDirty);
 		}
 
 

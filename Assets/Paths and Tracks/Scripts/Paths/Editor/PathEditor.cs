@@ -43,8 +43,9 @@ namespace Paths.Editor
 		public enum DataToolbarSheet : int
 		{
 			//General,
-			Points,
+			Data,
 			Modifiers,
+			Metadata,
 		}
 
 //		private static string[] TB_TEXTS = {
@@ -63,17 +64,54 @@ namespace Paths.Editor
 		protected TPathData pathData;
 		protected ParameterStore editorParams;
 
+		private bool initInspectorGUICalled = false;
+		private bool initSceneGUICalled = false;
+
+		private PathEditorMetadataPart<TPath, TPathData> metadataPart;
+
 		protected AbstractPathEditor ()
 		{
-
+			metadataPart = new PathEditorMetadataPart<TPath, TPathData> (this);
 		}
 
-		protected void InitGUI ()
+		public TPath Path {
+			get {
+				return path;
+			}
+		}
+		public TPathData PathData {
+			get {
+				return pathData;
+			}
+		}
+		private void InitCommonGUI ()
 		{
 			this.path = target as TPath;
 			this.editorParams = path.EditorParameters;
 			UpdateDataSetSelection ();
 		}
+		private void InitInspectorGUI ()
+		{
+			InitCommonGUI ();
+			OnInitInspectorGUI (false == initInspectorGUICalled);
+			initInspectorGUICalled = true;
+		}
+		private void InitSceneGUI ()
+		{
+			InitCommonGUI ();
+			OnInitSceneGUI (false == initSceneGUICalled);
+			initSceneGUICalled = true;
+		}
+
+		protected virtual void OnInitInspectorGUI (bool firstTime)
+		{
+
+		}
+		protected virtual void OnInitSceneGUI (bool firstTime)
+		{
+			
+		}
+
 		public void SetEditorFor (object pluginInstance, IPluginEditor editor)
 		{
 			if (null == editor) {
@@ -148,17 +186,21 @@ namespace Paths.Editor
 
 		public override sealed void OnInspectorGUI ()
 		{
-			InitGUI ();
+			InitInspectorGUI ();
+			DrawInspectorGUI ();
+		}
 
-//          bool disableEditing = path.FrozenStatus == Path.PathStatus.Frozen;
-
-
+		protected void DrawInspectorGUI ()
+		{
+			//          bool disableEditing = path.FrozenStatus == Path.PathStatus.Frozen;
+			
+			
 			EditorGUILayout.BeginHorizontal ();
 			if (path.GetDataSetCount () > 1) {
 				DrawDataSetSelection ();
-//				DrawSceneViewDataSetSelection ();
+				//				DrawSceneViewDataSetSelection ();
 			}
-
+			
 			//EditorGUI.BeginDisabledGroup(path.PointsDirty == false);
 			if (GUILayout.Button ("Refresh" + (pathData.IsUpToDate () ? "" : " *"))) {
 				path.ForceUpdatePathData (pathData);
@@ -166,11 +208,11 @@ namespace Paths.Editor
 			}
 			//EditorGUI.EndDisabledGroup();
 			EditorGUILayout.EndHorizontal ();
-
+			
 			string sceneViewDsName = "";
 			GUIStyle sceneViewDsNameStyle;
 			string sceneViewDsNameTooltip = "Data set edited in the Scene View.";
-
+			
 			if (path.IsEditorSceneViewDataSetLocked ()) {
 				sceneViewDsName = path.GetEditorSceneViewDataSet ().GetName ();
 				sceneViewDsNameStyle = EditorStyles.boldLabel;
@@ -179,37 +221,37 @@ namespace Paths.Editor
 				sceneViewDsName = pathData.GetName ();
 				sceneViewDsNameStyle = EditorStyles.label;
 			}
-
+			
 			EditorGUILayout.LabelField (new GUIContent ("Scene View Data", sceneViewDsNameTooltip), 
 			                            new GUIContent (sceneViewDsName, sceneViewDsNameTooltip), sceneViewDsNameStyle);
-
+			
 			if (path.IsEditorSceneViewDataSetLocked ()) {
-
+				
 			}
-
+			
 			int pointCount = pathData.GetPointCount ();
-
+			
 			string dataSetNameSuffix;
 			if (path.GetDataSetCount () > 1) {
 				dataSetNameSuffix = " (" + pathData.GetName () + ")";
 			} else {
 				dataSetNameSuffix = "";
 			}
-
+			
 			EditorGUILayout.LabelField ("Points" + dataSetNameSuffix, pointCount.ToString ());
-
+			
 			string totalDistance = "";
 			totalDistance = pathData.GetTotalDistance ().ToString ("f1");
 			EditorGUILayout.LabelField ("Total Length" + dataSetNameSuffix, totalDistance);
-
-
+			
+			
 			ToolbarSheet tbSheet = (ToolbarSheet)editorParams.GetInt ("ToolbarSelection", 0);
 			EditorGUI.BeginChangeCheck ();
 			tbSheet = (ToolbarSheet)GUILayout.Toolbar ((int)tbSheet, GetToolbarSheetLabels ());
 			if (EditorGUI.EndChangeCheck ()) {
 				editorParams.SetInt ("ToolbarSelection", (int)tbSheet);
 			}
-
+			
 			switch (tbSheet) {
 			case ToolbarSheet.General:
 				DrawGeneralInspectorGUI ();
@@ -227,9 +269,9 @@ namespace Paths.Editor
 				DrawDebugInspectorGUI ();
 				break;
 			}
-
+			
 			EditorGUILayout.Separator ();
-
+			
 			//DrawDefaultInspector();
 		}
 
@@ -333,67 +375,9 @@ namespace Paths.Editor
 		{
 
 			int count = path.GetDataSetCount ();
-
-//			PathDataTreeNode root = null;// = new PathDataTreeNode();
-//
-//			Dictionary
-//			
-//			for (int i = 0; i < count; i++) {
-//				
-//				IPathData ds = path.GetDataSetAtIndex (i);
-//				List<IPathData> children = ((AbstractPathData)ds).FindDataTargets (path);
-//				PathDataTreeNode node = new PathDataTreeNode();
-//				node.data = ds;
-//				if (null == root) {
-//					root = node;
-//				} else {
-//					if (root.children.Contains(node)) {
-//						node.parent = root;
-//					} else {
-//						// To orphans....
-//					}
-//				}
-//				foreach (IPathData childData in children) {
-//					// Find existing....
-//					PathDataTreeNode childNode = new PathDataTreeNode();
-//					childNode.data = childData;
-//					childNode.parent = node;
-//					node.children.Add(childNode);
-//				}
-//
-//			}
-//
-//			EditorGUILayout.HelpBox ("Data Sets are used to generate variations of the path, for example different resolution versions. The default path data is selected by ticking a check box below.", MessageType.Info);
-//
-//
-//
-//			editorParams.SetBool ("ds[0].expanded", EditorGUILayout.Foldout (editorParams.GetBool ("ds[0].expanded"), "FooBar"));
-//
-//
-//			EditorGUI.indentLevel++;
-//			EditorGUILayout.Foldout (false, "Xsrew3");
-//			EditorGUI.indentLevel++;
-//			EditorGUILayout.Foldout (true, "Foobar of child");
-//
-//			EditorGUI.indentLevel -= 2;
-//			EditorGUILayout.Foldout (true, "XXX");
-//
-
-		
-
-			///////////// BEGIN REAL IMPL ////////////
-
-//			int count = path.GetDataSetCount ();
 			for (int i = 0; i < count; i++) {
 
 				IPathData ds = path.GetDataSetAtIndex (i);
-
-				/////////////// EXPERIMENTAL BEGIN ///////////////////////
-
-			
-
-
-				/////////////// EXPERIMENTAL END   ///////////////////////
 
 				bool isDefault = path.IsDefaultDataSet (ds);
 
@@ -571,11 +555,14 @@ namespace Paths.Editor
 			//case DataToolbarSheet.General:
 			//DrawGeneralInspector ();
 			//break;
-			case DataToolbarSheet.Points:
+			case DataToolbarSheet.Data:
 				DrawPathPointsInspectorGUI ();
 				break;
 			case DataToolbarSheet.Modifiers:
 				DrawPathModifiersInspectorGUI ();
+				break;
+			case DataToolbarSheet.Metadata:
+				metadataPart.DrawInspectorGUI ();
 				break;
 			}
 		}
@@ -608,12 +595,21 @@ namespace Paths.Editor
 				EditorGUI.indentLevel++;
 				DrawPathPointMask ("Caps", pathData.GetOutputFlags ());
 
+//				EditorGUIUtility.labelWidth = 10f;
 				for (int i = 0; i < points.Length; i++) {
-					EditorGUILayout.BeginHorizontal ();
-					pointExpanded [i] = EditorGUILayout.Foldout (IsPointExpanded (i), "[" + i + "]");
+//					EditorGUILayout.BeginHorizontal ();
+
+					string label = string.Format (
+						"[{0}] - {1}; {2}; {3:f1}; {4:f1}", i, points [i].Position, points [i].Direction, 
+						points [i].DistanceFromPrevious, points [i].DistanceFromBegin);
+					pointExpanded [i] = EditorGUILayout.Foldout (IsPointExpanded (i), label);
 					//              EditorGUILayout.Vector3Field("", points[i].Position);
-					EditorGUILayout.LabelField ("", points [i].Position.ToString () + "; " + points [i].Direction.ToString () + "; " + points [i].DistanceFromPrevious.ToString () + "; " + points [i].DistanceFromBegin.ToString ());
-					EditorGUILayout.EndHorizontal ();
+
+//					EditorGUILayout.LabelField ("", points [i].Position.ToString () + "; " + 
+//						points [i].Direction.ToString () + "; " + 
+//						points [i].DistanceFromPrevious.ToString () + "; " + 
+//						points [i].DistanceFromBegin.ToString ());
+//					EditorGUILayout.EndHorizontal ();
 					if (pointExpanded [i]) {
 						EditorGUI.indentLevel++;
 						DrawPathPointMask ("Flags", points [i].Flags);
@@ -639,6 +635,8 @@ namespace Paths.Editor
 				EditorGUI.indentLevel--;
 			}
 		}
+
+
 
 		public static void DrawPathPointMask (string label, int flags)
 		{
@@ -673,7 +671,7 @@ namespace Paths.Editor
 
 		protected void OnSceneGUI ()
 		{
-			InitGUI ();
+			InitSceneGUI ();
 
 			if (path.IsEditorSceneViewDataSetLocked ()) {
 				pathData = (TPathData)path.GetEditorSceneViewDataSet ();
@@ -705,7 +703,7 @@ namespace Paths.Editor
 			Vector3[] transformedPoints = new Vector3[cpCount];
             
 			for (int i = 0; i < cpCount; i++) {
-				transformedPoints [i] = transform.TransformPoint (pathData.GetControlPointAtIndex (i));
+				transformedPoints [i] = transform.TransformPoint (pathData.GetControlPointAtIndex (i).Position);
 			}
 			Handles.color = PathEditorPrefs.ControlPointConnectionLineColor;
 			Handles.DrawPolyLine (transformedPoints);
@@ -775,10 +773,10 @@ namespace Paths.Editor
             
 			int cpCount = pathData.GetControlPointCount ();
 			for (int i = 0; i < cpCount; i++) {
-				Vector3 pt = pathData.GetControlPointAtIndex (i);
-				pt = transform.TransformPoint (pt);
+				PathPoint pp = pathData.GetControlPointAtIndex (i);
+				Vector3 pos = transform.TransformPoint (pp.Position);
                 
-				float worldHandleSize = HandleUtility.GetHandleSize (pt);
+				float worldHandleSize = HandleUtility.GetHandleSize (pos);
 				float handleSize, pickSize;
 				if (i == 0) {
 					handleSize = firstControlPointHandleSize * worldHandleSize;
@@ -790,7 +788,7 @@ namespace Paths.Editor
                 
 				// Selection button:
 				Handles.color = jointHandleColor;
-				if (Handles.Button (pt, rot, 
+				if (Handles.Button (pos, rot, 
                                    handleSize, pickSize, 
                                    Handles.DotCap)) {
 					SelectedControlPointIndex = i;
@@ -802,16 +800,19 @@ namespace Paths.Editor
 				// Move handle for selected:
 				if (i == SelectedControlPointIndex) {
 					EditorGUI.BeginChangeCheck ();
-					pt = Handles.DoPositionHandle (pt, rot);
+					pos = Handles.DoPositionHandle (pos, rot);
 					if (EditorGUI.EndChangeCheck ()) {
 						Undo.RecordObject (path, "Move Control Point");
 						EditorUtility.SetDirty (path);
-						pathData.SetControlPointAtIndex (i, transform.InverseTransformPoint (pt));
+						pp.Position = transform.InverseTransformPoint (pos);
+
+						pathData.SetControlPointAtIndex (i, pp);
 					}
 				}
                 
 			}
 		}
 	}
+
     
 }

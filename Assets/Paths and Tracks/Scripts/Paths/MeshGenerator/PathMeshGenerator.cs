@@ -409,7 +409,7 @@ namespace Paths.MeshGenerator
 				// Source data has changed
 				if (autoUpdateWithPath) {
 					// Invalidate our processed data to trigger its reprocessing
-					e.DataSource.InvalidateProcessedData ();
+					e.DataSource.InvalidateProcessedData (e.MetadataChanged, true);
 				}
 			} else if (e.Stage == PathDataStage.Processed) {
 				MarkSlicesDirty ();

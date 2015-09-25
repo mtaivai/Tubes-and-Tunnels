@@ -66,8 +66,9 @@ namespace Util
 		}
 	}
 
-	public class MiscUtil
+	public static class MiscUtil
 	{
+
 		public static string[] GetFolderAndFileName (string path)
 		{
 

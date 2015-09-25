@@ -17,6 +17,7 @@ namespace Paths
 		private IPathModifierContainer pathModifierContainer;
 		private int inputFlags;
 		private IPathInfo pathInfo;
+		private IPathMetadata pathMetadata;
 
 		private Dictionary<string, object> parameters = new Dictionary<string, object> ();
 
@@ -25,16 +26,22 @@ namespace Paths
 		private List<string> warnings = new List<string> ();
 //		private ParameterStore parameters;
 
-		public PathModifierContext (IPathInfo pathInfo, IPathModifierContainer pathModifierContainer, int inputFlags, Dictionary<string, object> parameters)
+		public PathModifierContext (IPathInfo pathInfo, IPathModifierContainer pathModifierContainer, IPathMetadata pathMetadata, int inputFlags, Dictionary<string, object> parameters)
 		{
 			this.pathInfo = pathInfo;
+			this.pathMetadata = pathMetadata;
 			this.pathModifierContainer = pathModifierContainer;
 			this.inputFlags = inputFlags;
 			this.parameters = parameters;
 		}
-		public PathModifierContext (IPathInfo pathInfo, IPathModifierContainer pathModifierContainer, int inputFlags)
-		: this(pathInfo, pathModifierContainer, inputFlags, new Dictionary<string, object>())
+		public PathModifierContext (IPathInfo pathInfo, IPathModifierContainer pathModifierContainer, IPathMetadata pathMetadata, int inputFlags)
+		: this(pathInfo, pathModifierContainer, pathMetadata, inputFlags, new Dictionary<string, object>())
 		{
+		}
+
+		public static PathModifierContext ForPathData (IPathData pathData, int inputFlags)
+		{
+			return new PathModifierContext (pathData.GetPathInfo (), pathData.GetPathModifierContainer (), pathData.GetPathMetadata (), inputFlags);
 		}
 
 		public IPathInfo PathInfo {
@@ -46,6 +53,11 @@ namespace Paths
 		public IPathModifierContainer PathModifierContainer {
 			get {
 				return pathModifierContainer;
+			}
+		}
+		public IPathMetadata PathMetadata {
+			get {
+				return pathMetadata;
 			}
 		}
 

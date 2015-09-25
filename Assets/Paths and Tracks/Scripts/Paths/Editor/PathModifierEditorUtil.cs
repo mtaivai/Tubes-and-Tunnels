@@ -156,7 +156,7 @@ namespace Paths.Editor
 					IPathInfo pathInfo = pathData.GetPathInfo ();
 
 					PathModifierContext pmc = 
-						new PathModifierContext (pathInfo, container, currentInputFlags, pmParams);
+						new PathModifierContext (pathInfo, container, pathData.GetPathMetadata (), currentInputFlags, pmParams);
 
 					pmc.Errors.AddRange (container.GetCurrentMessages (PathModifierMessageType.Error, pm));
 					pmc.Warnings.AddRange (container.GetCurrentMessages (PathModifierMessageType.Warning, pm));
@@ -232,7 +232,7 @@ namespace Paths.Editor
 				//int inputCaps, passthroughCaps, generateCaps;
 				IPathInfo pathInfo = pathData.GetPathInfo ();
 				PathModifierContext pmc = 
-					new PathModifierContext (pathInfo, container, combinedOutputFlags, pmParams);
+					new PathModifierContext (pathInfo, container, pathData.GetPathMetadata (), combinedOutputFlags, pmParams);
 				// TODO could we use pm.GetOutputFlags(pmc) in here?
 				combinedOutputFlags = ((pm.GetProcessFlags (pmc) | pm.GetPassthroughFlags (pmc)) & combinedOutputFlags) | pm.GetGenerateFlags (pmc);
 			}

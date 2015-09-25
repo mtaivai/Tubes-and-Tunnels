@@ -51,7 +51,10 @@ namespace Paths.MeshGenerator.Tube
 			normals = new Vector3[pointCount];
 
 			// Rotate to keep ceiling up and floor down:
-			float fixRotation = (180.0f + 45f) * Mathf.Deg2Rad;
+			// * 270 = first point is on the top
+			// * 225 = first point is on the top left corner (useful for quads to keep the floor down)
+
+			float fixRotation = 270f * Mathf.Deg2Rad;
 
 			float tStart = startAngle / 360f;
 			float tRange = arcLength / 360f;

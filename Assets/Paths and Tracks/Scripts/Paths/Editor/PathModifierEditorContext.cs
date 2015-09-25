@@ -34,7 +34,7 @@ namespace Paths.Editor
 			this.pathModifierContext = pmContext;
 			if (null == pmContext && null != customTool) {
 				pmContext =
-					new PathModifierContext (data.GetPathInfo (), data.GetPathModifierContainer (), data.GetOutputFlagsBeforeModifiers ());
+					new PathModifierContext (data.GetPathInfo (), data.GetPathModifierContainer (), data.GetPathMetadata (), data.GetOutputFlagsBeforeModifiers ());
 			}
 		}
 		public PathModifierEditorContext (IPathData data, Path target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc, ContextEditorPrefs prefs)

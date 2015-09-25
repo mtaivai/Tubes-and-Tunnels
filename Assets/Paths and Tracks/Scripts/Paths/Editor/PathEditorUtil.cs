@@ -16,44 +16,6 @@ using Util;
 namespace Paths.Editor
 {
 
-	[CustomPropertyDrawer(typeof(PathSelector))]
-	public class PathWithDataIdPropertyDrawer : PropertyDrawer
-	{
-		private string snapshotNameFromList = null;
-		
-		public override float GetPropertyHeight (SerializedProperty property, GUIContent label)
-		{
-			float singleLineHeight = base.GetPropertyHeight (property, label);
-			return singleLineHeight * 3f;
-		}
-		
-		public override void OnGUI (Rect position, SerializedProperty property, GUIContent label)
-		{
-			// Using BeginProperty / EndProperty on the parent property means that
-			// prefab override logic works on the entire property.
-			EditorGUI.BeginProperty (position, label, property);
-			
-			float singleHeight = base.GetPropertyHeight (property, label);
-			
-			SerializedProperty pathProperty = property.FindPropertyRelative ("path");
-			SerializedProperty dataSetIdProperty = property.FindPropertyRelative ("dataSetId");
-			SerializedProperty useSnapshotProperty = property.FindPropertyRelative ("useSnapshot");
-			SerializedProperty snapshotNameProperty = property.FindPropertyRelative ("snapshotName");
-			
-			
-			PathEditorUtil.DoDrawPathSelector (position, singleHeight, label, pathProperty, dataSetIdProperty, useSnapshotProperty, snapshotNameProperty, 
-			                                   (snapshotName) => snapshotNameFromList = snapshotName);
-			
-			if (null != snapshotNameFromList) {
-				snapshotNameProperty.stringValue = snapshotNameFromList;
-				snapshotNameFromList = null;
-			}
-			
-			
-			EditorGUI.EndProperty ();
-			
-		}
-	}
 
 	public sealed class PathEditorUtil
 	{
@@ -165,7 +127,7 @@ namespace Paths.Editor
 		}
 		public static bool DrawPathDataSelection (GUIContent label, ref PathSelector dataId, bool showPathSelection, Action<string> setSnapshotNameCallback, params int[] excludedDataSetIds)
 		{
-			float singleLineHeight = 16f;
+			float singleLineHeight = EditorGUIUtility.singleLineHeight;
 
 			Rect position = EditorGUILayout.GetControlRect (true, singleLineHeight * 3.0f);
 
@@ -353,8 +315,216 @@ namespace Paths.Editor
 			EditorGUI.indentLevel = indent;
 		}
 
+		public static bool DynParamField (string label, DynParam dp, float minValue = float.NegativeInfinity, float maxValue = float.PositiveInfinity)
+		{
+			return DynParamField (new GUIContent (label), dp, minValue, maxValue);
+		}
+		public static bool DynParamField (GUIContent label, DynParam dp, float minValue = float.NegativeInfinity, float maxValue = float.PositiveInfinity)
+		{
+			float singleLineHeight = EditorGUIUtility.singleLineHeight;
+			float height;
+			if (dp.ValueSource == DynParamSource.Constant) {
+				height = singleLineHeight;
+			} else {
+				int exprCount = dp.Expressions.Length;
+
+				height = singleLineHeight + exprCount * (singleLineHeight + EditorGUIUtility.standardVerticalSpacing);
+			}
+			Rect position = EditorGUILayout.GetControlRect (true, height);
+			return DynParamField (position, label, dp, minValue, maxValue);
+
+		}
+		public static bool DynParamField (Rect rect, string label, DynParam dp, float minValue = float.NegativeInfinity, float maxValue = float.PositiveInfinity)
+		{
+			return DynParamField (rect, new GUIContent (label), dp, minValue, maxValue);
+		}
+		public static bool DynParamField (Rect rect, GUIContent label, DynParam dp, float minValue = float.NegativeInfinity, float maxValue = float.PositiveInfinity)
+		{
+//			float xOffset = 0f;
+//			Rect snapshotLabelRect = new Rect (snapshotRect.x, snapshotRect.y, 60f, snapshotRect.height);
+//			xOffset += snapshotLabelRect.width;
+//			
+//			Rect snapshotToggleRect = new Rect (snapshotRect.x + xOffset, snapshotRect.y, 20f, snapshotRect.height);
+//			xOffset += snapshotToggleRect.width;
+//			
+//			Rect snapshotPopupRect = new Rect (snapshotRect.x + xOffset, snapshotRect.y, snapshotRect.width - xOffset, snapshotRect.height);
+//			//			xOffset += snapshotPopupRect.width;
+//			
+//			Rect snapshotNameRect = new Rect (snapshotPopupRect.x, snapshotPopupRect.y, snapshotPopupRect.width - 20, snapshotPopupRect.height);
+//			Rect snapshotBrowseButtonRect = new Rect (snapshotNameRect.x + snapshotNameRect.width, snapshotNameRect.y, 20, snapshotNa
+
+			//EditorGUILayout.EnumPopup ("Width", target.Width.ValueSource, GUILayout.ExpandWidth (false));
+			//			switch (target.Width.ValueSource) {
+			//			case DynParamSource.Constant:
+			//				EditorGUILayout.FloatField (target.Width.Value);
+			//				break;
+			//			case DynParamSource.WeightParam:
+			//				EditorGUILayout.TextField ("");
+			//				break;
+			//			}
+			bool changed = false;
+
+			Rect indentedRect = EditorGUI.IndentedRect (rect);
+			float indentX = indentedRect.x - rect.x;
+
+			//
+			// <label>   <source> <value>
+			//           <op> <rhs>
+			//
+			//
+			//
+
+			float lblWidth = EditorGUIUtility.labelWidth - indentX;
+			float lineHeight = EditorGUIUtility.singleLineHeight;
+
+			float yOffs = indentedRect.y;
 
 
+			Rect labelRect = new Rect (indentedRect.x, yOffs, lblWidth, lineHeight);
+
+			float remainingWidth = indentedRect.width - labelRect.width;
+
+			float sourceSelectorWidth = Mathf.Clamp (remainingWidth * 0.3f, 50f, 90f);
+
+			Rect sourceSelectorRect = new Rect (indentedRect.x + lblWidth, yOffs, sourceSelectorWidth, lineHeight);
+			remainingWidth -= sourceSelectorRect.width;
+
+			bool hasAddExprButton = dp.ValueSource != DynParamSource.Constant;
+
+			float addExprButtonWidth = hasAddExprButton ? 30f : 0f;
+			float removeExprButtonWidth = 20;
+
+			float valueFieldWidth = remainingWidth - addExprButtonWidth;
+			Rect valueFieldRect = new Rect (sourceSelectorRect.x + sourceSelectorRect.width, yOffs, valueFieldWidth, lineHeight);
+			remainingWidth -= valueFieldRect.width;
+
+			Rect addFirstExprButtonRect = new Rect (valueFieldRect.x + valueFieldRect.width, yOffs, addExprButtonWidth, lineHeight);
+
+
+			int prevIndentLevel = EditorGUI.indentLevel;
+			EditorGUI.indentLevel = 0;
+
+			EditorGUI.PrefixLabel (labelRect, label);
+
+			switch (dp.ValueSource) {
+			case DynParamSource.Constant:
+				EditorGUI.BeginChangeCheck ();
+				if (minValue > float.NegativeInfinity && maxValue < float.PositiveInfinity) {
+					// Draw as slider
+					dp.ConstantValue = EditorGUI.Slider (valueFieldRect, dp.ConstantValue, minValue, maxValue);
+				} else {
+					// Minimum or maximum not known, draw regular float field
+					dp.ConstantValue = EditorGUI.FloatField (valueFieldRect, dp.ConstantValue);
+				}
+				if (EditorGUI.EndChangeCheck ()) {
+					changed = true;
+				}
+				break;
+			case DynParamSource.WeightParam:
+				EditorGUI.BeginChangeCheck ();
+				dp.WeightId = EditorGUI.TextField (valueFieldRect, dp.WeightId);
+				if (EditorGUI.EndChangeCheck ()) {
+					changed = true;
+				}
+
+				// Expressions rows:
+				DynParamExpr[] exprs = dp.Expressions;
+				int exprCount = exprs.Length;
+
+				if (exprCount == 0) {
+
+				} else {
+					for (int i = 0; i < exprCount; i++) {
+						DynParamExpr expr = exprs [i];
+						yOffs += lineHeight + EditorGUIUtility.standardVerticalSpacing;
+						remainingWidth = indentedRect.width - labelRect.width;
+						Rect exprOpFieldRect = new Rect (indentedRect.x + lblWidth, yOffs, 30f, lineHeight);
+						remainingWidth -= exprOpFieldRect.width;
+
+						float rhsFieldWidth = remainingWidth - addExprButtonWidth - removeExprButtonWidth;
+						Rect exprRhsFieldRect = new Rect (exprOpFieldRect.x + exprOpFieldRect.width, yOffs, rhsFieldWidth, lineHeight);
+
+						Rect removeExprButtonRect = new Rect (exprRhsFieldRect.x + exprRhsFieldRect.width, yOffs, removeExprButtonWidth, lineHeight);
+						Rect addExprButtonRect = new Rect (removeExprButtonRect.x + removeExprButtonRect.width, yOffs, addExprButtonWidth, lineHeight);
+
+						if (DrawDynParamExpr (exprOpFieldRect, exprRhsFieldRect, expr)) {
+							changed = true;
+						}
+
+						if (GUI.Button (removeExprButtonRect, "-", EditorStyles.miniButtonLeft)) {
+							//dp.AddExpression (new DynParamExpr ());
+							dp.RemoveExpressionAt (i);
+							changed = true;
+						}
+						if (GUI.Button (addExprButtonRect, "Fn+", EditorStyles.miniButtonRight)) {
+							dp.InsertExpression (i + 1);
+							changed = true;
+						}
+					}
+				}
+				bool hasExpressions = exprs.Length > 0;
+//				EditorGUI.BeginDisabledGroup (hasExpressions);
+//				EditorGUI.BeginChangeCheck ();
+//				hasExpressions = GUI.Toggle (addFirstExprButtonRect, hasExpressions, "Fn", EditorStyles.miniButton);
+//				if (EditorGUI.EndChangeCheck () && hasExpressions) {
+//					dp.AddExpression ();
+//					changed = true;
+//				}
+//				EditorGUI.EndDisabledGroup ();
+
+				string addFirstExprLabel = hasExpressions ? "Fn+" : "Fn";
+				if (GUI.Button (addFirstExprButtonRect, addFirstExprLabel, EditorStyles.miniButtonRight)) {
+					dp.InsertExpression (0);
+					changed = true;
+				}
+
+
+				break;
+			}
+			EditorGUI.BeginChangeCheck ();
+			dp.ValueSource = (DynParamSource)EditorGUI.EnumPopup (sourceSelectorRect, dp.ValueSource);
+			if (EditorGUI.EndChangeCheck ()) {
+				changed = true;
+			}
+
+			EditorGUI.indentLevel = prevIndentLevel;
+
+			return changed;
+		}
+
+		private static bool DrawDynParamExpr (Rect opRect, Rect rhsRect, DynParamExpr expr)
+		{
+			bool changed = false;
+
+			string[] symbols = DynParamExpr.Symbols.AllAlt;
+			string currentSymbol = expr.OpSymbol;
+			if (currentSymbol == "/") {
+				// Use alternative, menu-friendly version of slash!
+				currentSymbol = "\u2215";
+			}
+			int selSymbolIndex = Array.IndexOf (symbols, currentSymbol);
+			if (selSymbolIndex < 0) {
+				selSymbolIndex = 0;
+			}
+			EditorGUI.BeginChangeCheck ();
+			selSymbolIndex = EditorGUI.Popup (opRect, selSymbolIndex, symbols, EditorStyles.miniButton);
+			expr.OpSymbol = symbols [selSymbolIndex];
+			if (EditorGUI.EndChangeCheck ()) {
+				changed = true;
+			}
+			
+			EditorGUI.BeginDisabledGroup (expr.Op == DynParamExprOp.Nop);
+			EditorGUI.BeginChangeCheck ();
+			float prevLabelWidth = EditorGUIUtility.labelWidth;
+			EditorGUIUtility.labelWidth = 20f;
+			expr.Rhs = EditorGUI.FloatField (rhsRect, "   ", expr.Rhs);
+			EditorGUIUtility.labelWidth = prevLabelWidth;
+			if (EditorGUI.EndChangeCheck ()) {
+				changed = true;
+			}
+			EditorGUI.EndDisabledGroup ();
+			return changed;
+		}
 	}
     
 }

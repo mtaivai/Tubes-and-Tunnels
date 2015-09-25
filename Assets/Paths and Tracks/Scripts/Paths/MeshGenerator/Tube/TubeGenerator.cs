@@ -1,3 +1,5 @@
+
+using System;
 using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
@@ -9,11 +11,14 @@ using Paths.MeshGenerator.SliceStrip;
 
 namespace Paths.MeshGenerator.Tube
 {
+
+
 	public class TubeGenerator : AbstractSliceStripGenerator
 	{
 		private int sliceEdges = 16;
-		private float startAngle = 0f;
-		private float arcLength = 360.0f;
+
+		private DynParam startAngle = new DynParam (0f);
+		private DynParam arcLength = new DynParam (360f);
 
 		private Vector2 sliceSize = new Vector2 (2f, 2f);
 
@@ -36,7 +41,7 @@ namespace Paths.MeshGenerator.Tube
 			}
 		}
 
-		public float StartAngle {
+		public DynParam StartAngle {
 			get {
 				return this.startAngle;
 			}
@@ -45,12 +50,13 @@ namespace Paths.MeshGenerator.Tube
 			}
 		}
 
-		public float ArcLength {
+		public DynParam ArcLength {
 			get {
 				return this.arcLength;
 			}
 			set {
-				this.arcLength = Mathf.Clamp (value, 0f, 360f);
+//				this.arcLength = Mathf.Clamp (value, 0f, 360f);
+				this.arcLength = value;
 			}
 		}
 
@@ -67,8 +73,11 @@ namespace Paths.MeshGenerator.Tube
 		{
 			base.OnLoadParameters (store);
 			sliceEdges = store.GetInt ("sliceEdges", sliceEdges);
-			startAngle = store.GetFloat ("startAngle", startAngle);
-			arcLength = store.GetFloat ("arcLength", arcLength);
+//			startAngle = store.GetFloat ("startAngle", startAngle);
+//			arcLength = store.GetFloat ("arcLength", arcLength);
+			startAngle = store.GetDynParam ("startAngle", startAngle);
+			arcLength = store.GetDynParam ("arcLength", arcLength);
+
 			sliceSize = store.GetVector2 ("sliceSize", sliceSize);
 		}
 
@@ -76,8 +85,11 @@ namespace Paths.MeshGenerator.Tube
 		{
 			base.OnSaveParameters (store);
 			store.SetInt ("sliceEdges", sliceEdges);
-			store.SetFloat ("startAngle", startAngle);
-			store.SetFloat ("arcLength", arcLength);
+//			store.SetFloat ("startAngle", startAngle);
+//			store.SetFloat ("arcLength", arcLength);
+			store.SetDynParam ("startAngle", startAngle);
+			store.SetDynParam ("arcLength", arcLength);
+
 			store.SetVector2 ("sliceSize", sliceSize);
 		}
 
@@ -91,10 +103,17 @@ namespace Paths.MeshGenerator.Tube
 //		}
 
 
-		protected override SliceStripSlice CreateSlice (PathPoint pp)
+		protected override SliceStripSlice CreateSlice (PathDataSource dataSource, int pointIndex, PathPoint pp)
 		{
-			return new TubeSlice (SliceEdges, startAngle, arcLength, sliceSize);
+//			IPathData pathData = dataSource.ProcessedPathData;
+
+			IPathMetadata metadata = dataSource.GetUnprocessedPathMetadata ();
+
+			float startAngleValue = startAngle.GetRequiredValue (pp, metadata);
+			float arcLengthValue = arcLength.GetRequiredValue (pp, metadata);
+			return new TubeSlice (SliceEdges, startAngleValue, arcLengthValue, sliceSize);
 		}
+
 
 
 	}
