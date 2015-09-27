@@ -79,18 +79,7 @@ namespace Paths
 			}
 		}
 
-		public void CopyFrom (IPathMetadata source)
-		{
-			int wdCount = source.GetWeightDefinitionCount ();
-			for (int i = 0; i < wdCount; i++) {
-				WeightDefinition sourceWd = source.GetWeightDefinitionAtIndex (i);
-				string weightId = sourceWd.WeightId;
-				if (!this.ContainsWeightDefinition (weightId)) {
-					this.AddWeightDefinition (weightId);
-					this.ModifyWeightDefinition (sourceWd);
-				}
-			}
-		}
+
 //		// TODO do we need this?
 //		public void AttachToPathData (IPathData pathData)
 //		{
@@ -284,6 +273,23 @@ namespace Paths
 			FireChangedEvent ();
 
 			return wd;
+		}
+
+		// IEditablePathMetadata
+		public void Import (IPathMetadata source, bool overwrite)
+		{
+			int wdCount = source.GetWeightDefinitionCount ();
+			for (int i = 0; i < wdCount; i++) {
+				WeightDefinition sourceWd = source.GetWeightDefinitionAtIndex (i);
+				string weightId = sourceWd.WeightId;
+				bool alreadyExists = this.ContainsWeightDefinition (weightId);
+				if (!alreadyExists) {
+					this.AddWeightDefinition (weightId);
+				}
+				if (!alreadyExists || overwrite) {
+					this.ModifyWeightDefinition (sourceWd);
+				}
+			}
 		}
 	}
 }

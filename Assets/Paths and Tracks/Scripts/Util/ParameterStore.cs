@@ -10,6 +10,13 @@ namespace Util
 	[Serializable]
 	public class ParameterStore : ParameterStoreBase
 	{
+//		// TODO per-type caches is an experimental feature!
+//		private Dictionary<string, bool> _boolCache = new Dictionary<string, bool> ();
+//		private Dictionary<string, int> _intCache = new Dictionary<string, int> ();
+//		private Dictionary<string, float> _floatCache = new Dictionary<string, float> ();
+
+		// TODO implement other type caches (VectorN, ..)
+
 		public ParameterStore () : base()
 		{
 		}
@@ -22,6 +29,26 @@ namespace Util
 		{
 			return new ParameterStore (this, prefix);
 		}
+
+//		protected virtual void OnInvalidateCaches ()
+//		{
+//			_boolCache.Clear ();
+//			_intCache.Clear ();
+//			_floatCache.Clear ();
+//		}
+//		protected virtual void OnRemoveParameter (string name)
+//		{
+//			if (_boolCache.ContainsKey (name)) {
+//				_boolCache.Remove (name);
+//			}
+//			if (_intCache.ContainsKey (name)) {
+//				_intCache.Remove (name);
+//			}
+//			if (_floatCache.ContainsKey (name)) {
+//				_floatCache.Remove (name);
+//			}
+//		}
+
 
 		public string GetString (string name, string defaultValue = null)
 		{
@@ -36,53 +63,92 @@ namespace Util
 
 		public int GetInt (string name, int defaultValue = 0)
 		{
+//			if (_boolCache.ContainsKey (name)) {
+//				return _intCache [name];
+//			} else {
 			string val = GetString (name);
-			return (null == val) ? defaultValue : int.Parse (val);
+			int parsedVal;
+			if (null != val) {
+				if (!int.TryParse (val, out parsedVal)) {
+					parsedVal = defaultValue;
+				}
+//					_intCache [name] = parsedVal;
+			} else {
+				parsedVal = defaultValue;
+			}
+			return parsedVal;
+//			}
 		}
 
 		public int SetInt (string name, int value)
 		{
 			SetString (name, value.ToString ());
+//			_intCache [name] = value;
 			return value;
 		}
 
 		public bool GetBool (string name, bool defaultValue = false)
 		{
+//			if (_boolCache.ContainsKey (name)) {
+//				return _boolCache [name];
+//			} else {
 			string val = GetString (name);
-			return (null == val) ? defaultValue : bool.Parse (val);
+			bool parsedVal;
+			if (null != val) {
+				if (!bool.TryParse (val, out parsedVal)) {
+					parsedVal = defaultValue;
+				}
+//					_boolCache [name] = parsedVal;
+			} else {
+				parsedVal = defaultValue;
+			}
+			return parsedVal;
+//			}
 		}
 
 		public bool SetBool (string name, bool value)
 		{
 			SetString (name, value.ToString ());
+//			_boolCache [name] = value;
 			return value;
 		}
 
-		private static float ParseFloat (string s, float defaultValue = 0.0f)
+		private static float ParseFloat (string val, float defaultValue = 0f)
 		{
-			if (null == s) {
-				return defaultValue;
-			} else {
-				s = s.Trim ();
-				try {
-					return (s.Length > 0) ? float.Parse (s) : defaultValue;
-				} catch (FormatException e) {
-					Debug.LogWarning ("Failed to Parse float: " + e.Message);
-					return defaultValue;
+			float parsedVal;
+			if (null != val) {
+				if (!float.TryParse (val, out parsedVal)) {
+					parsedVal = defaultValue;
 				}
+			} else {
+				parsedVal = defaultValue;
 			}
-
+			return parsedVal;
 		}
 
 		public float GetFloat (string name, float defaultValue = 0.0f)
 		{
+//			if (_floatCache.ContainsKey (name)) {
+//				return _floatCache [name];
+//			} else {
 			string val = GetString (name);
-			return (null == val) ? defaultValue : ParseFloat (val, defaultValue);
+			float parsedVal;
+			if (null != val) {
+				if (!float.TryParse (val, out parsedVal)) {
+					parsedVal = defaultValue;
+				}
+//					_floatCache [name] = parsedVal;
+			} else {
+				parsedVal = defaultValue;
+			}
+			return parsedVal;
+//			}
 		}
 
 		public float SetFloat (string name, float value)
 		{
 			SetString (name, value.ToString ());
+//			_floatCache [name] = value;
 			return value;
 		}
 

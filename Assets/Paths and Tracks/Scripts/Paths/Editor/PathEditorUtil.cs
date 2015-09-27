@@ -81,8 +81,9 @@ namespace Paths.Editor
 			}
 		}
 
-		public static IPathData GetSelectedDataSet (Path path, ParameterStore editorParams, bool fallbackToDefault)
+		public static IPathData GetSelectedDataSet (Path path, bool fallbackToDefault)
 		{
+			ParameterStore editorParams = path.EditorParameters;
 			int pathDefaultDataSetId = path.GetDefaultDataSetId ();
 			int dataSetId = editorParams.GetInt ("currentDataSetId", pathDefaultDataSetId);
 			IPathData ds = path.FindDataSetById (dataSetId);
@@ -91,17 +92,17 @@ namespace Paths.Editor
 			}
 			return ds;
 		}
-		public static void SetSelectedDataSet (IPathData data, ParameterStore editorParams)
+		public static void SetSelectedDataSet (Path path, IPathData data)
 		{
 			if (null == data) {
-				editorParams.RemoveParameter ("currentDataSetId");
+				path.EditorParameters.RemoveParameter ("currentDataSetId");
 			} else {
-				SetSelectedDataSet (data.GetId (), editorParams);
+				SetSelectedDataSet (path, data.GetId ());
 			}
 		}
-		public static void SetSelectedDataSet (int dataSetId, ParameterStore editorParams)
+		public static void SetSelectedDataSet (Path path, int dataSetId)
 		{
-			editorParams.SetInt ("currentDataSetId", dataSetId);
+			path.EditorParameters.SetInt ("currentDataSetId", dataSetId);
 		}
 
 		public static bool DrawPathDataSelection (ref PathSelector dataId, Action<string> setSnapshotNameCallback, params int[] excludedDataSetIds)

@@ -39,6 +39,8 @@ namespace Paths
 		public bool breakLoop; // if the included path is looped, break the loop, i.e. remove last point of the included path
 		public bool alignFirstPoint; // align first point of the included path with the point in "includePositino"
 		public Vector3 includedPathPosOffset;
+		public bool importMetadata;
+		public bool overwriteMetadata;
 
 		private int _includedPointCount;
 		private int _includedIndexOffset;
@@ -87,6 +89,8 @@ namespace Paths
 			breakLoop = true;
 			alignFirstPoint = false;
 			includedPathPosOffset = Vector3.zero;
+			importMetadata = true;
+			overwriteMetadata = true;
 			_currentIncludedPathPosOffset = includedPathPosOffset;
 
 		}
@@ -105,6 +109,9 @@ namespace Paths
 			store.Property ("breakLoop", ref breakLoop);
 			store.Property ("alignFirstPoint", ref alignFirstPoint);
 			store.Property ("includedPathPosOffset", ref includedPathPosOffset);
+
+			store.Property ("importMetadata", ref importMetadata);
+			store.Property ("overwriteMetadata", ref overwriteMetadata);
 		}
 
 		protected override void OnDetach ()
@@ -187,6 +194,13 @@ namespace Paths
 			PathPoint[] includedPoints;
 			IPathData includedData = GetIncludedPathData (context.PathModifierContainer.GetReferenceContainer ());
 			if (null != includedData) {
+
+				if (importMetadata) {
+					if (includedData.IsPathMetadataSupported () && context.PathMetadata is IEditablePathMetadata) {
+						((IEditablePathMetadata)context.PathMetadata).Import (includedData.GetPathMetadata (), overwriteMetadata);
+					}
+				}
+
 				// TODO what about other than default path data sets?
 				if (includedPathFromSnapshot) {
 					IPathSnapshotManager sm = includedData.GetPathSnapshotManager ();

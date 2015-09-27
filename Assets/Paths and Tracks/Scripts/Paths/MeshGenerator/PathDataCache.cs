@@ -177,7 +177,7 @@ namespace Paths.MeshGenerator
 			if (!MetadataValid) {
 				IPathMetadata md = getPathMetadataFunc ();
 				this.metadata = new PathMetadataCache ();
-				this.metadata.CopyFrom (md);
+				this.metadata.Import (md, false);
 				this.metadataValid = true;
 			}
 			return this.metadata;

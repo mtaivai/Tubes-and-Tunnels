@@ -13,15 +13,16 @@ namespace Paths.Polyline
 	[System.Serializable]
 	public class PolylinePathData : AbstractPathData
 	{
-		[SerializeField]
-		[UnityEngine.Serialization.FormerlySerializedAs("controlPoints")]
-		private List<Vector3>
-			_controlPoints = new List<Vector3> ();
+//		[SerializeField]
+//		[UnityEngine.Serialization.FormerlySerializedAs("controlPoints")]
+//		private List<Vector3>
+//			_controlPoints = new List<Vector3> ();
 
 		// TODO rename to controlPoints after everything is migrated!
 		[SerializeField]
+		//		[UnityEngine.Serialization.FormerlySerializedAs("controlPathPoints")]
 		private List<PathPoint>
-			controlPathPoints = new List<PathPoint> ();
+			controlPoints = new List<PathPoint> ();
 
 		[SerializeField]
 		private bool
@@ -37,14 +38,14 @@ namespace Paths.Polyline
 		protected override void HandleOnAfterDeserialize ()
 		{
 			// Don't serialize controlPoints (migrate to pathpoints)
-			if (null != _controlPoints && _controlPoints.Count > 0) {
-				// Migrate to PathPoints
-				controlPathPoints = new List<PathPoint> ();
-				foreach (Vector3 p in _controlPoints) {
-					controlPathPoints.Add (new PathPoint (p));
-				}
-				_controlPoints = null;
-			}
+//			if (null != _controlPoints && _controlPoints.Count > 0) {
+//				// Migrate to PathPoints
+//				controlPathPoints = new List<PathPoint> ();
+//				foreach (Vector3 p in _controlPoints) {
+//					controlPathPoints.Add (new PathPoint (p));
+//				}
+//				_controlPoints = null;
+//			}
 		}
 
 		public override bool IsLoop ()
@@ -69,7 +70,7 @@ namespace Paths.Polyline
 		
 		protected override List<PathPoint> DoGetPathPoints (out int outputFlags)
 		{
-			int cpCount = (null != controlPathPoints) ? controlPathPoints.Count : 0;
+			int cpCount = (null != controlPoints) ? controlPoints.Count : 0;
 			List<PathPoint> pp = new List<PathPoint> ();
 			for (int i = 0; i < cpCount; i++) {
 				pp.Add (DoGetPathPointAtIndex (i));
@@ -81,9 +82,9 @@ namespace Paths.Polyline
 		
 		protected PathPoint DoGetPathPointAtIndex (int index)
 		{
-			PathPoint pp = controlPathPoints [index];
+			PathPoint pp = controlPoints [index];
 			if (!pp.HasDirection) {
-				int lastIndex = controlPathPoints.Count - 1;
+				int lastIndex = controlPoints.Count - 1;
 				Vector3 dir;
 				if (index == 0) {
 					// First point; direction is from this to next
@@ -91,15 +92,15 @@ namespace Paths.Polyline
 						//...but this is the only point so we use "forward" as direction
 						dir = Vector3.forward;
 					} else {
-						dir = (controlPathPoints [index + 1].Position - controlPathPoints [index].Position).normalized;
+						dir = (controlPoints [index + 1].Position - controlPoints [index].Position).normalized;
 					}
 				} else if (index == lastIndex) {
 					// Last point; direction is from previous to this
-					dir = (controlPathPoints [index].Position - controlPathPoints [index - 1].Position).normalized;
+					dir = (controlPoints [index].Position - controlPoints [index - 1].Position).normalized;
 				} else {
 					// Average direction from previous to next
-					Vector3 prevDir = (controlPathPoints [index].Position - controlPathPoints [index - 1].Position).normalized;
-					Vector3 nextDir = (controlPathPoints [index + 1].Position - controlPathPoints [index].Position).normalized;
+					Vector3 prevDir = (controlPoints [index].Position - controlPoints [index - 1].Position).normalized;
+					Vector3 nextDir = (controlPoints [index + 1].Position - controlPoints [index].Position).normalized;
 					dir = ((nextDir + prevDir) / 2.0f).normalized;
 				}
 				pp.Direction = dir;
@@ -109,13 +110,13 @@ namespace Paths.Polyline
 		
 		public override int GetControlPointCount ()
 		{
-			return controlPathPoints != null ? controlPathPoints.Count : 0;
+			return controlPoints != null ? controlPoints.Count : 0;
 		}
 		
 		public override PathPoint GetControlPointAtIndex (int index)
 		{
 			// TODO is it okay to return mutable instance? Maybe not!
-			return controlPathPoints [index];
+			return controlPoints [index];
 		}
 		
 		public override void SetControlPointAtIndex (int index, PathPoint pt)
@@ -138,26 +139,26 @@ namespace Paths.Polyline
 			// TODO fire an event!
 //				PathPointsChanged ();
 //			}
-			if (!pp.Equals (controlPathPoints [index])) {
-				controlPathPoints [index] = pp;
+			if (!pp.Equals (controlPoints [index])) {
+				controlPoints [index] = pp;
 				PathPointsChanged (true);
 			}
 		}
 		
 		public void AddControlPoint (PathPoint pt)
 		{
-			InsertControlPoint (controlPathPoints.Count, pt);
+			InsertControlPoint (controlPoints.Count, pt);
 		}
 		
 		public override void InsertControlPoint (int index, PathPoint pt)
 		{
-			controlPathPoints.Insert (index, new PathPoint (pt));
+			controlPoints.Insert (index, new PathPoint (pt));
 			PathPointsChanged (true);
 		}
 		
 		public override void RemoveControlPointAtIndex (int index)
 		{
-			controlPathPoints.RemoveAt (index);
+			controlPoints.RemoveAt (index);
 			PathPointsChanged (true);
 		}
 		//			public override void RemoveAllControlPoints() {

@@ -268,20 +268,7 @@ namespace Paths.Editor
 //
 
 
-			// TODO this is not up-to-date when we first draw the inspector!
-			int inputPointCount = pm.CurrentInputPointCount;
-			int sliderPos = pm.includePosition;
-			if (sliderPos < 0) {
-				sliderPos = inputPointCount;
-			}
-			EditorGUI.BeginChangeCheck ();
-			//sliderPos = EditorGUILayout.IntSlider ("Insert At Index", sliderPos, 0, inputPointCount);
-			sliderPos = EditorGUILayout.IntField ("Insert at Index", sliderPos);
-			if (EditorGUI.EndChangeCheck ()) {
-				// TODO record UNDO!
-				pm.includePosition = sliderPos;
-				context.TargetModified ();
-			}
+
 
 			EditorGUI.BeginChangeCheck ();
 			pm.removeDuplicates = EditorGUILayout.Toggle ("Smart Include", pm.removeDuplicates);
@@ -297,6 +284,20 @@ namespace Paths.Editor
 				context.TargetModified ();
 			}
 
+			// TODO this is not up-to-date when we first draw the inspector!
+			int inputPointCount = pm.CurrentInputPointCount;
+			int sliderPos = pm.includePosition;
+			if (sliderPos < 0) {
+				sliderPos = inputPointCount;
+			}
+			EditorGUI.BeginChangeCheck ();
+			//sliderPos = EditorGUILayout.IntSlider ("Insert At Index", sliderPos, 0, inputPointCount);
+			sliderPos = EditorGUILayout.IntField ("Insert at Index", sliderPos);
+			if (EditorGUI.EndChangeCheck ()) {
+				// TODO record UNDO!
+				pm.includePosition = sliderPos;
+				context.TargetModified ();
+			}
 
 			EditorGUI.BeginChangeCheck ();
 			EditorGUI.BeginDisabledGroup (pm.includePosition == 0);
@@ -322,6 +323,24 @@ namespace Paths.Editor
 					context.TargetModified ();
 				}
 			}
+
+			EditorGUILayout.HelpBox ("Metadata defined in imported points is always imported. If 'Import all Metadata' is selected," +
+				" all metadata of the source data will be imported, including metadata settings (such as default weight values).", MessageType.Info);
+			EditorGUI.BeginChangeCheck ();
+			pm.importMetadata = EditorGUILayout.Toggle ("Import all Metadata", pm.importMetadata);
+			if (EditorGUI.EndChangeCheck ()) {
+				context.TargetModified ();
+			}
+			EditorGUI.BeginDisabledGroup (!pm.importMetadata);
+			EditorGUI.indentLevel++;
+			EditorGUI.BeginChangeCheck ();
+			pm.overwriteMetadata = EditorGUILayout.Toggle ("Overwrite current Metadata", pm.overwriteMetadata);
+			if (EditorGUI.EndChangeCheck ()) {
+				context.TargetModified ();
+			}
+			EditorGUI.indentLevel--;
+			EditorGUI.EndDisabledGroup ();
+
 			// TODO these are not up-to-date when we first draw the inspector!
 //			EditorGUILayout.LabelField ("Included Index Offs", "" + pm.GetCurrentIncludedIndexOffset ());
 //			EditorGUILayout.LabelField ("Included Point Count", "" + pm.GetCurrentIncludedPointCount ());

@@ -27,6 +27,7 @@ namespace Paths.Editor
 	}
 
 
+
 	// TODO refactor this class; it's getting too complex
 	public class AbstractPathEditor<TPath, TPathData> : UnityEditor.Editor, IPluginEditorHost where TPath: Path where TPathData: IPathData
 	{
@@ -48,6 +49,19 @@ namespace Paths.Editor
 			Metadata,
 		}
 
+		private class EditorState
+		{
+			public ToolbarSheet toolbarSelection;
+			public DataToolbarSheet dataToolbarSelection;
+
+			public void Serialize (Serializer ser)
+			{
+				ser.EnumProperty ("toolbarSelection", ref toolbarSelection);
+				ser.EnumProperty ("dataToolbarSelection", ref dataToolbarSelection);
+
+			}
+		}
+
 //		private static string[] TB_TEXTS = {
 //            "Path",
 //            "Points",
@@ -62,12 +76,11 @@ namespace Paths.Editor
 
 		protected TPath path;
 		protected TPathData pathData;
-		protected ParameterStore editorParams;
-
-		private bool initInspectorGUICalled = false;
-		private bool initSceneGUICalled = false;
+//		private ParameterStore editorParams;
 
 		private PathEditorMetadataPart<TPath, TPathData> metadataPart;
+
+		private EditorState editorState = new EditorState ();
 
 		protected AbstractPathEditor ()
 		{
@@ -84,32 +97,66 @@ namespace Paths.Editor
 				return pathData;
 			}
 		}
-		private void InitCommonGUI ()
+
+//		protected ParameterStore EditorParams {
+//			get {
+//				return editorParams;
+//			}
+//		}
+
+
+#region UnityEditor.Editor Messages
+		protected virtual void OnEnable ()
 		{
+			Debug.Log ("OnEnable");
 			this.path = target as TPath;
-			this.editorParams = path.EditorParameters;
+			Serializer ser = new Serializer (path.EditorParameters, false);
+			DoSerializeEditorStates (ser);
 			UpdateDataSetSelection ();
+//			OnInit (true);
 		}
+		protected virtual void OnDisable ()
+		{
+			Debug.Log ("OnDisable");
+			Serializer ser = new Serializer (path.EditorParameters, true);
+			DoSerializeEditorStates (ser);
+
+		}
+		protected virtual void OnDestroy ()
+		{
+			Debug.Log ("OnDestroy");
+			// Destroy resources!
+		}
+#endregion
+
+
 		private void InitInspectorGUI ()
 		{
-			InitCommonGUI ();
-			OnInitInspectorGUI (false == initInspectorGUICalled);
-			initInspectorGUICalled = true;
+			OnInitInspectorGUI ();
 		}
 		private void InitSceneGUI ()
 		{
-			InitCommonGUI ();
-			OnInitSceneGUI (false == initSceneGUICalled);
-			initSceneGUICalled = true;
+			OnInitSceneGUI ();
 		}
 
-		protected virtual void OnInitInspectorGUI (bool firstTime)
-		{
 
-		}
-		protected virtual void OnInitSceneGUI (bool firstTime)
+
+		protected virtual void OnInitInspectorGUI ()
 		{
-			
+		}
+
+		protected virtual void OnInitSceneGUI ()
+		{
+		}
+
+
+		private void DoSerializeEditorStates (Serializer ser)
+		{
+			editorState.Serialize (ser);
+			SerializeEditorState (ser);
+		}
+		protected virtual void SerializeEditorState (Serializer ser)
+		{
 		}
 
 		public void SetEditorFor (object pluginInstance, IPluginEditor editor)
@@ -135,7 +182,7 @@ namespace Paths.Editor
 
 		private void UpdateDataSetSelection ()
 		{
-			pathData = (TPathData)PathEditorUtil.GetSelectedDataSet (path, editorParams, true);
+			pathData = (TPathData)PathEditorUtil.GetSelectedDataSet (path, true);
 		}
 		protected string GetToolbarSheetLabel (ToolbarSheet sheet)
 		{
@@ -188,6 +235,17 @@ namespace Paths.Editor
 		{
 			InitInspectorGUI ();
 			DrawInspectorGUI ();
+		}
+
+		protected void OnSceneGUI ()
+		{
+			InitSceneGUI ();
+			
+			if (path.IsEditorSceneViewDataSetLocked ()) {
+				pathData = (TPathData)path.GetEditorSceneViewDataSet ();
+			} 
+			
+			DrawDefaultSceneGUI ();
 		}
 
 		protected void DrawInspectorGUI ()
@@ -245,14 +303,9 @@ namespace Paths.Editor
 			EditorGUILayout.LabelField ("Total Length" + dataSetNameSuffix, totalDistance);
 			
 			
-			ToolbarSheet tbSheet = (ToolbarSheet)editorParams.GetInt ("ToolbarSelection", 0);
-			EditorGUI.BeginChangeCheck ();
-			tbSheet = (ToolbarSheet)GUILayout.Toolbar ((int)tbSheet, GetToolbarSheetLabels ());
-			if (EditorGUI.EndChangeCheck ()) {
-				editorParams.SetInt ("ToolbarSelection", (int)tbSheet);
-			}
-			
-			switch (tbSheet) {
+			editorState.toolbarSelection = (ToolbarSheet)GUILayout.Toolbar ((int)editorState.toolbarSelection, GetToolbarSheetLabels ());
+
+			switch (editorState.toolbarSelection) {
 			case ToolbarSheet.General:
 				DrawGeneralInspectorGUI ();
 				break;
@@ -277,7 +330,7 @@ namespace Paths.Editor
 
 		protected void DrawDataSetSelection ()
 		{
-			IPathData ds = PathEditorUtil.GetSelectedDataSet (path, editorParams, true);
+			IPathData ds = PathEditorUtil.GetSelectedDataSet (path, true);
 			
 			int dataSetIndex = path.IndexOfDataSet (ds);
 			
@@ -291,7 +344,7 @@ namespace Paths.Editor
 			dataSetIndex = EditorGUILayout.Popup ("Data Set", dataSetIndex, dataSetNames.ToArray ());
 			if (EditorGUI.EndChangeCheck ()) {
 				int dataSetId = dataSetIds [dataSetIndex];
-				PathEditorUtil.SetSelectedDataSet (dataSetId, editorParams);
+				PathEditorUtil.SetSelectedDataSet (path, dataSetId);
 				ds = path.FindDataSetById (dataSetId);
 			}
 			
@@ -544,14 +597,10 @@ namespace Paths.Editor
 
 		protected void DrawDefaultPathDataInspector ()
 		{
-			DataToolbarSheet tbSheet = (DataToolbarSheet)editorParams.GetInt ("DataToolbarSelection", 0);
-			EditorGUI.BeginChangeCheck ();
-			tbSheet = (DataToolbarSheet)GUILayout.Toolbar ((int)tbSheet, GetDataToolbarSheetLabels ());
-			if (EditorGUI.EndChangeCheck ()) {
-				editorParams.SetInt ("DataToolbarSelection", (int)tbSheet);
-			}
-			
-			switch (tbSheet) {
+			editorState.dataToolbarSelection = (DataToolbarSheet)GUILayout.Toolbar (
+				(int)editorState.dataToolbarSelection, GetDataToolbarSheetLabels ());
+
+			switch (editorState.dataToolbarSelection) {
 			//case DataToolbarSheet.General:
 			//DrawGeneralInspector ();
 			//break;
@@ -669,17 +718,7 @@ namespace Paths.Editor
 			EditorGUILayout.EndHorizontal ();
 		}
 
-		protected void OnSceneGUI ()
-		{
-			InitSceneGUI ();
 
-			if (path.IsEditorSceneViewDataSetLocked ()) {
-				pathData = (TPathData)path.GetEditorSceneViewDataSet ();
-			} 
-
-			DrawDefaultSceneGUI ();
-
-		}
 
 		protected void DrawDefaultSceneGUI ()
 		{

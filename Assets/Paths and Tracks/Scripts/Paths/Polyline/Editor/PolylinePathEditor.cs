@@ -8,6 +8,7 @@ using System;
 using Paths;
 using Paths.Editor;
 using Util.Editor;
+using Util;
 
 namespace Paths.Polyline.Editor
 {
@@ -44,13 +45,35 @@ namespace Paths.Polyline.Editor
 	public class PolylinePathEditor : AbstractPathEditor<PolylinePath, PolylinePathData>
 	{
 
+		class EditorState
+		{
+			public bool controlPointsVisible = true;
+			public bool currentPointVisible = true;
+			public bool currentPointWeightsVisible = false;
+
+			public bool showInterpolatedWeightsForMissing = false;
+			public bool showDefaultWeightsForMissing = false;
+
+			public int pathPointsToolbarSelection = 0;
+			public int selectedWeightEditingIndex = -1;
+
+			public void Serialize (Serializer ser)
+			{
+				ser.Property ("controlPointsVisible", ref controlPointsVisible);
+				ser.Property ("currentPointVisible", ref currentPointVisible);
+				ser.Property ("currentPointWeightsVisible", ref currentPointWeightsVisible);
+				ser.Property ("showInterpolatedWeightsForMissing", ref showInterpolatedWeightsForMissing);
+				ser.Property ("showDefaultWeightsForMissing", ref showDefaultWeightsForMissing);
+				ser.Property ("pathPointsToolbarSelection", ref pathPointsToolbarSelection);
+				ser.Property ("selectedWeightEditingIndex", ref selectedWeightEditingIndex);
+			}
+		}
+
 //		private GUIStyle labelStyle;
 
 //      private DictionaryEditorItemPrefs pathModifierPrefs = new DictionaryEditorItemPrefs();
 
-		private bool controlPointsVisible = true;
-		private bool currentPointVisible = true;
-		private bool currentPointWeightsVisible = false;
+
 
 		private int selectedNewWeightIndex = -1;
 //		private int selectedControlPointEditView = 0;
@@ -60,6 +83,8 @@ namespace Paths.Polyline.Editor
 		private GUIStyle normalPointRowStyle = null;
 
 		private int previousSelectedPointIndex = -1;
+
+		private EditorState editorState = new EditorState ();
 
 		public PolylinePathEditor ()
 		{
@@ -74,24 +99,39 @@ namespace Paths.Polyline.Editor
 //			labelStyle.normal.background = labelBgTexture;
 //			labelStyle.normal.textColor = Color.white;
 		}
+		// TODO we should subclass ParameterStore for editors!
 
-		protected override void OnInitInspectorGUI (bool firstTime)
+	
+		protected override void SerializeEditorState (Serializer ser)
 		{
-			if (firstTime) {
-				normalPointRowStyle = GUIStyle.none;
+			editorState.Serialize (ser);
+		}
+
+		protected override void OnEnable ()
+		{
+			base.OnEnable ();
+
+			normalPointRowStyle = GUIStyle.none;
 //				normalPointRowStyle.border = new RectOffset ();
 
-				selectedPointRowStyle = new GUIStyle (GUIStyle.none);
-				Texture2D bgTexture = new Texture2D (1, 1, TextureFormat.RGBA32, false);
+			selectedPointRowStyle = new GUIStyle (GUIStyle.none);
+			Texture2D bgTexture = new Texture2D (1, 1, TextureFormat.RGBA32, false);
+			// Bluish background
+			bgTexture.SetPixel (0, 0, new Color (0.0f, 0.0f, 1.0f, 0.2f));
+			bgTexture.Apply ();
+			selectedPointRowStyle.normal = new GUIStyleState ();
+			selectedPointRowStyle.normal.background = bgTexture;
 
-				// Bluish background
-				bgTexture.SetPixel (0, 0, new Color (0.0f, 0.0f, 1.0f, 0.2f));
-				bgTexture.Apply ();
-				selectedPointRowStyle.normal = new GUIStyleState ();
-				selectedPointRowStyle.normal.background = bgTexture;
-
-			}
 		}
+
+		protected override void OnDisable ()
+		{
+			base.OnDisable ();
+
+			// TODO free resources
+		}
+
+
 
 		PolylinePathData GetPathData ()
 		{
@@ -125,8 +165,8 @@ namespace Paths.Polyline.Editor
 
 
 			// Currently selected point
-			currentPointVisible = EditorGUILayout.Foldout (currentPointVisible, "Selected Point");
-			if (currentPointVisible) {
+			editorState.currentPointVisible = EditorGUILayout.Foldout (editorState.currentPointVisible, "Selected Point");
+			if (editorState.currentPointVisible) {
 				if (SelectedControlPointIndex >= 0) {
 					EditorGUI.indentLevel++;
 
@@ -156,8 +196,8 @@ namespace Paths.Polyline.Editor
 //						}
 //					}
 //					pathData.GetPathMetadata ();
-					currentPointWeightsVisible = EditorGUILayout.Foldout (currentPointWeightsVisible, "Weights");
-					if (currentPointWeightsVisible) {
+					editorState.currentPointWeightsVisible = EditorGUILayout.Foldout (editorState.currentPointWeightsVisible, "Weights");
+					if (editorState.currentPointWeightsVisible) {
 						EditorGUI.indentLevel++;
 						string[] weightIds = pp.GetWeightIds ();
 						// TODO Sort by defined weights
@@ -218,22 +258,19 @@ namespace Paths.Polyline.Editor
 
 
 			int cpCount = pathData.GetControlPointCount ();
-			controlPointsVisible = EditorGUILayout.Foldout (controlPointsVisible, "Control Points (" + cpCount + ")");
-			if (controlPointsVisible) {
+			editorState.controlPointsVisible = EditorGUILayout.Foldout (
+				editorState.controlPointsVisible, "Control Points (" + cpCount + ")");
+			if (editorState.controlPointsVisible) {
 
 
-				int selectedControlPointEditView = editorParams.GetInt ("PathPointsToolbarSelection", 0);
-				EditorGUI.BeginChangeCheck ();
-				selectedControlPointEditView = GUILayout.Toolbar (selectedControlPointEditView, new string[] {"Position", "Weight"});
-				if (EditorGUI.EndChangeCheck ()) {
-					editorParams.SetInt ("PathPointsToolbarSelection", selectedControlPointEditView);
-				}
+				editorState.pathPointsToolbarSelection = GUILayout.Toolbar (
+					editorState.pathPointsToolbarSelection, new string[] {"Position", "Weight"});
 
-				bool showInterpolatedWeightsForMissing = false;
-				bool showDefaultWeightsForMissing = true;
+//				bool showInterpolatedWeightsForMissing = false;
+//				bool showDefaultWeightsForMissing = true;
 				WeightDefinition selectedWeightDefinition = null;
 
-				switch (selectedControlPointEditView) {
+				switch (editorState.pathPointsToolbarSelection) {
 				case 0:
 					// Points editor
 					EditorGUILayout.BeginHorizontal (normalPointRowStyle);
@@ -249,30 +286,22 @@ namespace Paths.Polyline.Editor
 					// Weights editor
 					// Weight selector
 
-					int selectedWeightEditingIndex = editorParams.GetInt ("PathPointsSelectedWeightEditingIndex", 0);
-					EditorGUI.BeginChangeCheck ();
-					selectedWeightEditingIndex = EditorGUILayout.Popup (
-						"Weight Param", selectedWeightEditingIndex, 
+					editorState.selectedWeightEditingIndex = EditorGUILayout.Popup (
+						"Weight Param", editorState.selectedWeightEditingIndex, 
 						definedWeightIds, 
 						GUILayout.ExpandWidth (true));
-					if (EditorGUI.EndChangeCheck ()) {
-						editorParams.SetInt ("PathPointsSelectedWeightEditingIndex", selectedWeightEditingIndex);
-					}
-					if (selectedWeightEditingIndex >= 0 && selectedWeightEditingIndex < definedWeightIds.Length) {
-						string weightId = definedWeightIds [selectedWeightEditingIndex];
+					if (editorState.selectedWeightEditingIndex >= 0 && editorState.selectedWeightEditingIndex < definedWeightIds.Length) {
+						string weightId = definedWeightIds [editorState.selectedWeightEditingIndex];
 						selectedWeightDefinition = WeightEditorUtil.GetWeightDefinition (pathData, weightId);
 					} else {
 						selectedWeightDefinition = null;
 					}
-					showInterpolatedWeightsForMissing = editorParams.SetBool ("showInterpolatedWeightsForMissing", 
-					                                                          EditorGUILayout.Toggle ("Show interpolated values for missing", 
-					                        editorParams.GetBool ("showInterpolatedWeightsForMissing", false)));
 
-					showDefaultWeightsForMissing = editorParams.SetBool (
-						"showDefaultWeightsForMissing", 
-						EditorGUILayout.Toggle (
-							"Show default values for missing", 
-							editorParams.GetBool ("showDefaultWeightsForMissing", true)));
+					editorState.showInterpolatedWeightsForMissing = EditorGUILayout.Toggle (
+						"Show interpolated values for missing", editorState.showInterpolatedWeightsForMissing);
+
+					editorState.showDefaultWeightsForMissing = EditorGUILayout.Toggle (
+						"Show default values for missing", editorState.showDefaultWeightsForMissing);
 
 
 					// TODO interpolation settings!
@@ -284,10 +313,10 @@ namespace Paths.Polyline.Editor
 
 //				cpCount = 0;
 
-				// Calculate interpolated values; 
+				// Calculate interpolated values
 				PathPoint[] interpolatedWeightPoints;
 
-				if (showInterpolatedWeightsForMissing) {
+				if (editorState.showInterpolatedWeightsForMissing && selectedWeightDefinition != null) {
 					interpolatedWeightPoints = new PathPoint[cpCount];
 					for (int i = 0; i < cpCount; i++) {
 						interpolatedWeightPoints [i] = new PathPoint (pathData.GetControlPointAtIndex (i));
@@ -313,7 +342,7 @@ namespace Paths.Polyline.Editor
 
 
 
-					if (selectedControlPointEditView == 0) {
+					if (editorState.pathPointsToolbarSelection == 0) {
 						// Position editing mode
 						EditorGUI.BeginChangeCheck ();
 						pp.Position = DrawCustomVector3Field (label, pointRowLabelWidth, pp.Position);
@@ -331,68 +360,11 @@ namespace Paths.Polyline.Editor
 							cpCount = pathData.GetControlPointCount ();
 						}
 
-					} else if (selectedControlPointEditView == 1) {
+					} else if (editorState.pathPointsToolbarSelection == 1) {
 						// Weight editing mode
-
 						float prevLabelWidth = EditorGUIUtility.labelWidth;
 						EditorGUIUtility.labelWidth = pointRowLabelWidth;
-
-						if (null != selectedWeightDefinition) {
-							// Draw the weight editor
-							EditorGUILayout.BeginHorizontal ();
-							if (pp.HasWeight (selectedWeightDefinition.WeightId)) {
-								// We have the weight defined for this point
-								float value = pp.GetWeight (selectedWeightDefinition.WeightId);
-								EditorGUI.BeginChangeCheck ();
-								value = WeightEditorUtil.WeightEditField (selectedWeightDefinition, value, label);
-								if (EditorGUI.EndChangeCheck ()) {
-									WeightEditorUtil.SetControlPointWeight (pathData, i, selectedWeightDefinition.WeightId, value);
-									EditorUtility.SetDirty (target);
-								}
-								if (GUILayout.Button ("Del", EditorStyles.miniButtonRight, GUILayout.Width (30f))) {
-									pp.RemoveWeight (selectedWeightDefinition.WeightId);
-									pathData.SetControlPointAtIndex (i, pp);
-									EditorUtility.SetDirty (target);
-								}
-							} else {
-								// No weight defined for this point... use interpolated value
-								float value;
-
-								if (showInterpolatedWeightsForMissing && interpolatedWeightPoints [i].HasWeight (selectedWeightDefinition.WeightId)) {
-									value = interpolatedWeightPoints [i].GetWeight (selectedWeightDefinition.WeightId);
-								} else if (showDefaultWeightsForMissing && selectedWeightDefinition.HasDefaultValue) {
-									value = selectedWeightDefinition.DefaultValue;
-								} else {
-									value = float.NaN;
-								}
-
-								//float value = WeightEditorUtil.GetInterpolatedWeightValue (pathData, selectedWeightDefinition, i);
-								EditorGUI.BeginDisabledGroup (true);
-								WeightEditorUtil.WeightEditField (selectedWeightDefinition, value, label);
-								EditorGUI.EndDisabledGroup ();
-//								string addLabel = "Add '" + selectedWeightDefinition.WeightId + "'";
-								if (GUILayout.Button (
-									"Add", 
-									EditorStyles.miniButton, GUILayout.Width (30f))) {
-									const float NaN = float.NaN;
-									if (NaN == value) {
-										value = selectedWeightDefinition.DefaultValue;
-										if (NaN == value) {
-											value = 0f;
-										}
-									}
-									WeightEditorUtil.SetControlPointWeight (
-										pathData, i, selectedWeightDefinition.WeightId, value);
-									EditorUtility.SetDirty (target);
-								}
-
-							}
-
-							EditorGUILayout.EndHorizontal ();
-						} else {
-							EditorGUILayout.LabelField (label, "");
-						}
-
+						DrawWeightRow (label, i, selectedWeightDefinition, interpolatedWeightPoints);
 						EditorGUIUtility.labelWidth = prevLabelWidth;
 					}
 
@@ -423,6 +395,74 @@ namespace Paths.Polyline.Editor
 			} 
 
 			DrawDefaultPathPointsInspectorGUI ();
+		}
+
+		private void DrawWeightRow (string label, int pointIndex, WeightDefinition weightDef, PathPoint[] interpolatedWeightPoints)
+		{
+
+			if (null != weightDef) {
+				PathPoint pp = pathData.GetControlPointAtIndex (pointIndex);
+				string weightId = weightDef.WeightId;
+
+				bool showInterpolatedForMissing = editorState.showInterpolatedWeightsForMissing;
+				bool showDefaultForMissing = editorState.showDefaultWeightsForMissing;
+
+				// Draw the weight editor
+				EditorGUILayout.BeginHorizontal ();
+				if (pp.HasWeight (weightDef.WeightId)) {
+					// We have the weight defined for this point
+					float value = pp.GetWeight (weightDef.WeightId);
+					EditorGUI.BeginChangeCheck ();
+					value = WeightEditorUtil.WeightEditField (weightDef, value, label);
+					if (EditorGUI.EndChangeCheck ()) {
+						WeightEditorUtil.SetControlPointWeight (pathData, pointIndex, weightId, value);
+						EditorUtility.SetDirty (target);
+					}
+					if (GUILayout.Button ("Del", EditorStyles.miniButtonRight, GUILayout.Width (30f))) {
+						pp.RemoveWeight (weightId);
+						pathData.SetControlPointAtIndex (pointIndex, pp);
+						EditorUtility.SetDirty (target);
+					}
+				} else {
+					// No weight defined for this point... use interpolated value
+					float value;
+					
+					if (showInterpolatedForMissing && interpolatedWeightPoints [pointIndex].HasWeight (weightId)) {
+						value = interpolatedWeightPoints [pointIndex].GetWeight (weightId);
+					} else if (showDefaultForMissing && weightDef.HasDefaultValue) {
+						value = weightDef.DefaultValue;
+					} else {
+						value = float.NaN;
+					}
+					
+					//float value = WeightEditorUtil.GetInterpolatedWeightValue (pathData, selectedWeightDefinition, i);
+					EditorGUI.BeginDisabledGroup (true);
+					WeightEditorUtil.WeightEditField (weightDef, value, label);
+					EditorGUI.EndDisabledGroup ();
+					//								string addLabel = "Add '" + selectedWeightDefinition.WeightId + "'";
+					if (GUILayout.Button (
+						"Add", 
+						EditorStyles.miniButton, GUILayout.Width (30f))) {
+						const float NaN = float.NaN;
+						if (NaN == value) {
+							value = weightDef.DefaultValue;
+							if (NaN == value) {
+								value = 0f;
+							}
+						}
+						WeightEditorUtil.SetControlPointWeight (
+							pathData, pointIndex, weightId, value);
+						EditorUtility.SetDirty (target);
+					}
+					
+				}
+				
+				EditorGUILayout.EndHorizontal ();
+			} else {
+				EditorGUILayout.LabelField (label, "");
+			}
+			
+
 		}
 
 		Vector3 DrawCustomVector3Field (string label, float labelWidth, Vector3 pt)
@@ -543,15 +583,15 @@ namespace Paths.Polyline.Editor
 			EditorUtility.SetDirty (path);
 		}
 
-		void OnEnable ()
-		{
-			Tools.hidden = false;
-		}
-
-		void OnDisable ()
-		{
-			Tools.hidden = false;
-		}
+//		void OnEnable ()
+//		{
+//			Tools.hidden = false;
+//		}
+//
+//		void OnDisable ()
+//		{
+//			Tools.hidden = false;
+//		}
 
 	
 

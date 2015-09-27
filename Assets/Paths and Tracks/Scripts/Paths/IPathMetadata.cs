@@ -63,6 +63,8 @@ namespace Paths
 		void SetWeightDefinitionListIndex (string weightId, int newListIndex);
 		
 		WeightDefinition ModifyWeightDefinition (WeightDefinition wd);
+
+		void Import (IPathMetadata src, bool overwrite);
 	}
 
 	public sealed class UnsupportedPathMetadata : IPathMetadata

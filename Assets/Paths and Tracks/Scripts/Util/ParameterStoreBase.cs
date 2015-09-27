@@ -159,6 +159,7 @@ namespace Util
 				// Populate dictionaries from the list
 				this._values.Clear ();
 				this._arrays.Clear ();
+				OnInvalidateCaches ();
 				
 				// First pass populates an arrays building dictionary
 				// and the second pass creates actual arrays
@@ -201,7 +202,13 @@ namespace Util
 				}
 			}
 		}
-		
+		protected virtual void OnInvalidateCaches ()
+		{
+		}
+		protected virtual void OnRemoveParameter (string name)
+		{
+		}
+
 		private void Modified ()
 		{
 			_modificationCount++;
@@ -241,6 +248,9 @@ namespace Util
 			name = AddNamePrefix (name);
 			if (null != parent) {
 				parent.DoSetParameterValue (name, value);
+				if (null == value) {
+					OnRemoveParameter (name);
+				}
 			} else if (null != value) {
 				if (_values.ContainsKey (name)) {
 					string prevValue = _values [name];
@@ -255,6 +265,7 @@ namespace Util
 				}
 			} else if (_values.ContainsKey (name)) {
 				_values.Remove (name);
+				OnRemoveParameter (name);
 				Modified ();
 			}
 			
@@ -279,6 +290,9 @@ namespace Util
 			name = AddNamePrefix (name);
 			if (null != parent) {
 				parent.DoSetArrayParameterValue (name, value);
+				if (null == value) {
+					OnRemoveParameter (name);
+				}
 			} else {
 				bool changed = false;
 				if (null != value) {
@@ -311,6 +325,7 @@ namespace Util
 					// Null value, remove
 					_arrays.Remove (name);
 					changed = true;
+					OnRemoveParameter (name);
 				}
 				if (changed) {
 					Modified ();
@@ -331,6 +346,7 @@ namespace Util
 		{
 			if (null != parent) {
 				parent.RemoveParameter (name);
+				OnRemoveParameter (name);
 			} else {
 				DoSetParameterValue (name, null);
 				DoSetArrayParameterValue (name, null);
