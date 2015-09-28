@@ -13,7 +13,7 @@ using Paths;
 namespace Paths.Editor
 {
 	[PluginEditor(typeof(NewPathModifier))]
-	internal class NewPathModifierEditor : AbstractPathModifierEditor
+	internal class NewPathModifierEditor : AbstractPathModifierEditor<NewPathModifier>
 	{
 
 

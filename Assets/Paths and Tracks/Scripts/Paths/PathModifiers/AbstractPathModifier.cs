@@ -311,7 +311,7 @@ namespace Paths
 			ser.Property ("enabled", ref enabled);
 			ser.Property ("instanceName", ref instanceName);
 			ser.Property ("instanceDescription", ref instanceDescription);
-			SerializeInputFilters (ser.WithPrefix ("inputFilters"));
+			SerializeInputFilters (ser.ChildWithPrefix ("inputFilters"));
 			OnSerialize (ser);
 		}
 
@@ -345,7 +345,7 @@ namespace Paths
 				}
 			}
 			if (count > 0) {
-				inputFilter = SerializeInputFilter (inputFilter, ser.WithPrefix ("Items[0]"));
+				inputFilter = SerializeInputFilter (inputFilter, ser.ChildWithPrefix ("Items[0]"));
 			}
 		}
 		private PathModifierInputFilter SerializeInputFilter (PathModifierInputFilter f, Serializer ser)

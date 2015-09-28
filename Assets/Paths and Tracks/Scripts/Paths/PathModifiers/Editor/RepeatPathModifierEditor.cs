@@ -13,7 +13,7 @@ using Paths;
 namespace Paths.Editor
 {
 	[PluginEditor(typeof(RepeatPathModifier))]
-	public class RepeatPathModifierEditor : AbstractPathModifierEditor
+	public class RepeatPathModifierEditor : AbstractPathModifierEditor<RepeatPathModifier>
 	{
         
 		protected override void OnDrawConfigurationGUI ()

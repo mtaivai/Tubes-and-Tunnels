@@ -25,7 +25,7 @@ namespace Paths.Editor
 		private PathModifierEditorContext pathModifierEditorContext;
 
 		public PathModifierInputFilterEditorContext (PathModifierInputFilter customTool, PathModifierEditorContext pmec)
-		: base(customTool, pmec.Target, pmec.EditorHost, pmec.TargetModified, pmec.ContextEditorPrefs)
+		: base(customTool, pmec.Target, pmec.EditorHost, pmec.TargetModified, pmec.EditorParameters)
 		{
 			this.pathModifierEditorContext = pmec;
 		}
@@ -210,7 +210,7 @@ namespace Paths.Editor
 		}
 	}
 	[PluginEditor(typeof(IncludePathModifier))]
-	public class IncludePathModifierEditor : AbstractPathModifierEditor
+	public class IncludePathModifierEditor : AbstractPathModifierEditor<IncludePathModifier>
 	{
 		private string snapshotNameFromList = null;
 

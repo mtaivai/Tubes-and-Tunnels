@@ -59,7 +59,7 @@ namespace Util.Editor
 		private UnityEditor.Editor editorHost;
 		private UnityEngine.Object target;
 		private TargetModifiedFunc targetModifiedFunc;
-		private ContextEditorPrefs editorPrefs;
+		private ParameterStore editorParams;
 		private CodeQuality _codeQuality;
 
 //		public CustomToolEditorContext (object customTool, UnityEngine.Object target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc)
@@ -67,18 +67,18 @@ namespace Util.Editor
 //		{
 //
 //		}
-		public PluginEditorContext (object plugin, UnityEngine.Object target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc, string editorPrefsPrefix)
-			: this(plugin, target, e, targetModifiedFunc, new ContextEditorPrefs(editorPrefsPrefix))
-		{
-		}
-		public PluginEditorContext (object plugin, UnityEngine.Object target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc, ContextEditorPrefs editorPrefs)
+//		public PluginEditorContext (object plugin, UnityEngine.Object target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc, string editorPrefsPrefix)
+//			: this(plugin, target, e, targetModifiedFunc, new ContextEditorPrefs(editorPrefsPrefix))
+//		{
+//		}
+		public PluginEditorContext (object plugin, UnityEngine.Object target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc, ParameterStore editorParams)
 		{
 			this.plugin = plugin;
 			this.target = target;
 			this.editorHost = e;
 			//          this.toolResolver = toolResolver;
 			this.targetModifiedFunc = targetModifiedFunc;
-			this.editorPrefs = editorPrefs;
+			this.editorParams = editorParams;
 
 
 			if (null != plugin) {
@@ -107,9 +107,9 @@ namespace Util.Editor
 			}
 		}
 
-		public ContextEditorPrefs ContextEditorPrefs {
+		public ParameterStore EditorParameters {
 			get {
-				return editorPrefs;
+				return editorParams;
 			}
 		}
 		public CodeQuality PluginCodeQuality {

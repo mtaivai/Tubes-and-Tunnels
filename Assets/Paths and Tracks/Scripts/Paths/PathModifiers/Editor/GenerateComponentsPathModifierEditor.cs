@@ -13,7 +13,7 @@ using Paths;
 namespace Paths.Editor
 {
 	[PluginEditor(typeof(GenerateComponentsPathModifier))]
-	public class GenerateComponentsPathModifierEditor : ConfigurableProcessPathModifierEditor
+	public class GenerateComponentsPathModifierEditor : ConfigurableProcessPathModifierEditor<GenerateComponentsPathModifier>
 	{
 		protected override void DrawAngleFunctionGUI (PathModifierEditorContext context)
 		{

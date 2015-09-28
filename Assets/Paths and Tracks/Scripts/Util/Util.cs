@@ -5,6 +5,28 @@ using System.Collections.Generic;
 
 namespace Util
 {
+	[Serializable]
+	public class Range
+	{
+		private static readonly Range _zero = new Range (0f, 0f);
+
+		public static Range zero {
+			get {
+				return _zero;
+			}
+		}
+		public float from;
+		public float to;
+		public Range ()
+		{
+
+		}
+		public Range (float from, float to)
+		{
+			this.from = from;
+			this.to = to;
+		}
+	}
 	public enum CoordinatePlane
 	{
 		XYZ,

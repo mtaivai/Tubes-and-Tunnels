@@ -28,7 +28,9 @@ namespace Paths.MeshGenerator.Editor
 
 		private IMeshGeneratorEditor meshGeneratorEditor;
 
-		ContextEditorPrefs editorPrefs;
+		// TODO WE NEED A PERSISTENT PARAMETERSTORE
+		ParameterStore editorState = new ParameterStore ();
+
 
 //		private SerializedProperty meshGeneratorTypeProperty;
 //
@@ -47,11 +49,10 @@ namespace Paths.MeshGenerator.Editor
 		void OnEnable ()
 		{
 			this.target = base.target as PathMeshGenerator;
-
 			// TODO should we share editor preferences between instances? Maybe not!
-			this.editorPrefs = 
-				new ContextEditorPrefs ("PathMeshGenerator[" + target.GetInstanceID () + "]");
-
+//			this.editorPrefs = 
+//				new ContextEditorPrefs ("PathMeshGenerator[" + target.GetInstanceID () + "]");
+//
 //			meshGeneratorTypeProperty = serializedObject.FindProperty ("meshGeneratorType");
 //
 //			updateMeshFilterProperty = serializedObject.FindProperty ("updateMeshFilter");
@@ -243,7 +244,7 @@ namespace Paths.MeshGenerator.Editor
 		public void DrawDefaultInspectorGUI ()
 		{
 
-			ToolbarSheet selectedSheet = (ToolbarSheet)editorPrefs.GetInt ("selectedSheet", (int)ToolbarSheet.General);
+			ToolbarSheet selectedSheet = editorState.GetEnum ("selectedSheet", ToolbarSheet.General);
 			selectedSheet = (ToolbarSheet)GUILayout.Toolbar ((int)selectedSheet, ToolbarContents);
 
 
@@ -252,7 +253,7 @@ namespace Paths.MeshGenerator.Editor
 				// Revert to first:
 				selectedSheet = (int)0;
 			}
-			editorPrefs.SetInt ("selectedSheet", (int)selectedSheet);
+			editorState.SetEnum ("selectedSheet", selectedSheet);
 
 
 			// DRAW COMMON HEADER
@@ -305,8 +306,8 @@ namespace Paths.MeshGenerator.Editor
 			Path path = pathSelector.Path;
 			PathDataSourceWrapper pathDataWrapper = new PathDataSourceWrapper (ds);
 			PathModifierEditorContext context = new PathModifierEditorContext (
-						pathDataWrapper, path, this, PathModifiersChanged, editorPrefs.WithPrefix ("PathModifiers"));
-			PathModifierEditorUtil.DrawPathModifiersInspector (context, target, 
+						pathDataWrapper, path, this, PathModifiersChanged, editorState.ChildWithPrefix ("PathModifiers"));
+			PathModifierEditorUtil.DrawPathModifiersInspector (false, context, target, 
 				() => EditorGUILayout.HelpBox ("Track's Path Modifiers can be used to modify the path before it's feed to the Track Generator. Modifiers will not modify the original Path.", MessageType.Info));
 		}
 
@@ -356,7 +357,7 @@ namespace Paths.MeshGenerator.Editor
 			IMeshGeneratorEditor mge = GetMeshGeneratorEditor ();
 			if (null != mge) {
 				MeshGeneratorEditorContext mgeContext = new MeshGeneratorEditorContext (
-					mg, target, this, MeshGeneratorModified, editorPrefs);
+					mg, target, this, MeshGeneratorModified, editorState);
 				mge.DrawInspectorGUI (mgeContext);
 				EditorGUILayout.Separator ();
 			}

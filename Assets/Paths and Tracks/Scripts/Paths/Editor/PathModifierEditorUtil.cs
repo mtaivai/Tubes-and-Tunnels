@@ -21,6 +21,7 @@ namespace Paths.Editor
 
 
 		public static void DrawPathModifiersInspector (
+			bool inFoldout,
 			Path path, IPathData pathData, 
 			UnityEditor.Editor editor, UnityEngine.Object dirtyObject, 
 			PluginEditorContext.TargetModifiedFunc modifiedCallback)
@@ -29,19 +30,21 @@ namespace Paths.Editor
 			IPathModifierContainer pmc = pathData.GetPathModifierContainer ();
 			ParameterStore pmcParams = pmc.GetParameterStore ();
 
-			ContextEditorPrefs prefs = new ContextEditorPrefs (pmcParams.Prefix);
+			ParameterStore editorParams = pmcParams.ChildWithPrefix ("EditorState");
 			// Path Modifiers
 			PathModifierEditorContext context = new PathModifierEditorContext (
-				pathData, path, editor, modifiedCallback, prefs);
+				pathData, path, editor, modifiedCallback, editorParams);
             
 //			if (pmc.HasErrors()) {
 //				context.
 //			}
 
-			DrawPathModifiersInspector (context, dirtyObject);
+			DrawPathModifiersInspector (inFoldout, context, dirtyObject);
 		}
 
-		public static void DrawPathModifiersInspector (PathModifierEditorContext context, UnityEngine.Object dirtyObject, Action headerAction = null)
+
+		// TODO what's headerAction?
+		public static void DrawPathModifiersInspector (bool inFoldout, PathModifierEditorContext context, UnityEngine.Object dirtyObject, Action headerAction = null)
 		{
 			IPathModifierContainer container = context.PathModifierContainer;
 			IPathModifier[] pathModifiers = container.GetPathModifiers ();
@@ -89,19 +92,30 @@ namespace Paths.Editor
 				}
 
 			}
-			ContextEditorPrefs editorPrefs = context.ContextEditorPrefs;
+			ParameterStore editorState = context.EditorParameters;
 
-			bool pathModifiersVisible = EditorGUILayout.Foldout (
-				editorPrefs.GetBool (".Visible", true), "Path Modifiers (" + enabledPathModifierCount + "/" + totalPathModifierCount + ")" + (haveErrors ? " *** ERRORS ***" : ""));
-			if (EditorGUI.EndChangeCheck ()) {
-				editorPrefs.SetBool (".Visible", pathModifiersVisible);
-                
+
+
+			bool pathModifiersVisible;
+			int mainIndent;
+
+			if (inFoldout) {
+				mainIndent = 1;
+				pathModifiersVisible = EditorGUILayout.Foldout (
+					editorState.GetBool (".Visible", true), "Path Modifiers (" + enabledPathModifierCount + "/" + totalPathModifierCount + ")" + (haveErrors ? " *** ERRORS ***" : ""));
+				if (EditorGUI.EndChangeCheck ()) {
+					editorState.SetBool (".Visible", pathModifiersVisible);
+	                
+				}
+			} else {
+				mainIndent = 0;
+				pathModifiersVisible = true;
 			}
-
 
 			Dictionary<string, object> pmParams = new Dictionary<string,object> ();
 			if (pathModifiersVisible) {
-				EditorGUI.indentLevel++;
+
+				EditorGUI.indentLevel += mainIndent;
 
 				if (null != headerAction) {
 					headerAction ();
@@ -168,10 +182,9 @@ namespace Paths.Editor
 						currentInputFlags = ((pm.GetPassthroughFlags (pmc) | pm.GetProcessFlags (pmc)) & currentInputFlags) | pm.GetGenerateFlags (pmc);
 					}
 
-					ContextEditorPrefs pmEditorPrefs = new ContextEditorPrefs (editorPrefs.Prefix + "[" + i + "]");
-
+					ParameterStore pmEditorState = context.EditorParameters.ChildWithPrefix ("EditorState[" + i + "]");
 					PathModifierEditorContext pmec = new PathModifierEditorContext (
-						context.PathData, pmc, pm, context.Path, context.EditorHost, context.TargetModified, pmEditorPrefs);
+						context.PathData, pmc, pm, context.Path, context.EditorHost, context.TargetModified, pmEditorState);
 
 					DoDrawPathModifierInspector (pmec, hasPreviousErrors);
 					if (thisHasErrors) {
@@ -186,7 +199,7 @@ namespace Paths.Editor
 						}
 					}
 				}
-				EditorGUI.indentLevel--;
+				EditorGUI.indentLevel -= mainIndent;
 
 				
 				if (!hasNewPathModifier) {
@@ -205,7 +218,7 @@ namespace Paths.Editor
 					}
 					EditorGUILayout.EndHorizontal ();
 				}
-				
+
 
 			}
 
@@ -242,10 +255,10 @@ namespace Paths.Editor
 		static void DoDrawPathModifierInspector (PathModifierEditorContext context, bool skippedDueToErrors)
 		{
 			IPathModifier pm = context.PathModifier;
-			ContextEditorPrefs prefs = context.ContextEditorPrefs;
+			ParameterStore state = context.EditorParameters;
 
-			if (!prefs.HasKey ("Visible")) {
-				prefs.SetBool ("Visible", true);
+			if (!state.ContainsParameter ("Visible")) {
+				state.SetBool ("Visible", true);
 			}
 			string pmTitle = PathModifierUtil.GetDisplayName (pm);
 			if (!pm.IsEnabled ()) {
@@ -258,8 +271,8 @@ namespace Paths.Editor
 				pmTitle += " [*** skipped due to previous errors ***]";
 			}
 
-			bool itemVisible = EditorGUILayout.Foldout (prefs.GetBool ("Visible"), pmTitle);
-			prefs.SetBool ("Visible", itemVisible);
+			bool itemVisible = EditorGUILayout.Foldout (state.GetBool ("Visible"), pmTitle);
+			state.SetBool ("Visible", itemVisible);
 			if (itemVisible) {
 //				EditorGUI.indentLevel++;
 

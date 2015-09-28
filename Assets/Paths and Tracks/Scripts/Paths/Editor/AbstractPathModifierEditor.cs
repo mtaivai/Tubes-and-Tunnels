@@ -17,13 +17,19 @@ using Paths;
 namespace Paths.Editor
 {
 	[PluginEditor(typeof(IPathModifier))]
-	public class FallbackPathModifierEditor : AbstractPathModifierEditor
+	public class FallbackPathModifierEditor : AbstractPathModifierEditor<IPathModifier>
 	{
 		protected override void OnDrawConfigurationGUI ()
 		{
 			DrawDefaultConfigurationGUI ();
 		}
 	}
+
+	public abstract class PathModifierEditor : AbstractPathModifierEditor<IPathModifier>
+	{
+
+	}
+
 	// TODO refactor the editor system:
 	//  FooEditorBinding : UnityEditor.Editor
 	//   + fooEditor : FooEditor
@@ -32,10 +38,11 @@ namespace Paths.Editor
 	//  - FooEditor implements IPathModifiedEditor
 	//  - This makes the code base cleaner!
 
-	public abstract class AbstractPathModifierEditor : IPathModifierEditor
+	public abstract class AbstractPathModifierEditor<T> : IPathModifierEditor where T : IPathModifier
 	{
 		protected PathModifierEditorContext context;
-		protected ContextEditorPrefs editorPrefs;
+		protected ParameterStore editorState;
+		protected T target;
 
 		private bool messagesVisible = false;
 		private bool newMessages = false;
@@ -47,6 +54,7 @@ namespace Paths.Editor
 
 		public void DrawInspectorGUI (PluginEditorContext context)
 		{
+			this.target = (T)context.PluginInstance;
 			DrawInspectorGUI ((PathModifierEditorContext)context);
 		}
 
@@ -58,7 +66,7 @@ namespace Paths.Editor
 				try {
 					_inDrawInspectorGUI = true;
 					this.context = context;
-					editorPrefs = context.ContextEditorPrefs;
+					editorState = context.EditorParameters;
 					OnDrawInspectorGUI ();
 				} finally {
 					_inDrawInspectorGUI = false;
@@ -147,9 +155,9 @@ namespace Paths.Editor
 
 		}
 
-		protected void DrawDefaultConfigurationGUI ()
+		protected void DrawDefaultConfigurationGUI (params string[] excludedFields)
 		{
-			FallbackCustomToolEditor.DoDrawInspectorGUI (context);
+			FallbackCustomToolEditor.DoDrawInspectorGUI (context, excludedFields);
 		}
 
 		protected void DrawDefaultHeader ()
@@ -348,9 +356,9 @@ namespace Paths.Editor
 
 					IPluginEditor editor = PluginResolver.ForPluginType (typeof(PathModifierInputFilter)).CreatePluginEditorInstance (f);
 					if (null != editor) {
-						bool configVisible = editorPrefs.GetBool ("InputFilterConfigVisible", false);
+						bool configVisible = editorState.GetBool ("InputFilterConfigVisible", false);
 						configVisible = EditorGUILayout.Foldout (configVisible, "Filter Configuration");
-						editorPrefs.SetBool ("InputFilterConfigVisible", configVisible);
+						editorState.SetBool ("InputFilterConfigVisible", configVisible);
 						if (configVisible) {
 							PathModifierInputFilterEditorContext ctx = 
 								new PathModifierInputFilterEditorContext (f, context);

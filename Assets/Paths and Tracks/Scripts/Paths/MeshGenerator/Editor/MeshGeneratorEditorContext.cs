@@ -25,8 +25,8 @@ namespace Paths.MeshGenerator.Editor
 
 	
 		public MeshGeneratorEditorContext (IMeshGenerator customTool, UnityEngine.Object target, UnityEditor.Editor e, 
-		                                   TargetModifiedFunc targetModifiedFunc, ContextEditorPrefs editorPrefs)
-			: base(customTool, target, e, targetModifiedFunc, editorPrefs)
+		                                   TargetModifiedFunc targetModifiedFunc, ParameterStore editorState)
+			: base(customTool, target, e, targetModifiedFunc, editorState)
 		{
 		}
 

@@ -526,6 +526,13 @@ namespace Paths
 			}
 		}
 
+		public static float Distance (PathPoint from, PathPoint to)
+		{
+			// 0,0,0 target: 1,1,1
+			Vector3 dv = to.Position - from.Position;
+			return dv.magnitude;
+		}
+
 //		public void InitWeights (IPathData pathData)
 //		{
 //			int weightCount = 0;

@@ -27,8 +27,8 @@ namespace Paths.Editor
 		private PathModifierContext pathModifierContext;
 
 		public PathModifierEditorContext (IPathData data, PathModifierContext pmContext, IPathModifier customTool, 
-		                                  Path target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc, ContextEditorPrefs prefs)
-            : base(customTool, target, e, targetModifiedFunc, prefs)
+		                                  Path target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc, ParameterStore editorParams)
+			: base(customTool, target, e, targetModifiedFunc, editorParams)
 		{
 			this.pathData = data;
 			this.pathModifierContext = pmContext;
@@ -37,8 +37,8 @@ namespace Paths.Editor
 					new PathModifierContext (data.GetPathInfo (), data.GetPathModifierContainer (), data.GetPathMetadata (), data.GetOutputFlagsBeforeModifiers ());
 			}
 		}
-		public PathModifierEditorContext (IPathData data, Path target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc, ContextEditorPrefs prefs)
-			: this(data, null, null, target, e, targetModifiedFunc, prefs)
+		public PathModifierEditorContext (IPathData data, Path target, UnityEditor.Editor e, TargetModifiedFunc targetModifiedFunc, ParameterStore editorParams)
+			: this(data, null, null, target, e, targetModifiedFunc, editorParams)
 		{
 		}
 

@@ -320,6 +320,7 @@ namespace Paths.MeshGenerator.SliceStrip
 			Vector3[] vertices = new Vector3[verticeCount];
 			Vector3[] normals = new Vector3[vertices.Length];
 			Vector2[] uv = new Vector2[vertices.Length];
+			Color32[] colors = new Color32[vertices.Length];
 
 			// Tangents / experimental
 			Vector4[] tangents = createTangents ? new Vector4[verticeCount] : null;
@@ -383,6 +384,7 @@ namespace Paths.MeshGenerator.SliceStrip
 						// Faces point "upwards"; use slice normals as they are
 						normals [vi] = slice.Normals [slicePtIndex];
 					}
+					colors [vi] = Color.yellow;
 					// uv mapping 
 					/*if (j > 0) {
                     //v += (pt - slice.points[j - 1]).magnitude;
@@ -410,6 +412,7 @@ namespace Paths.MeshGenerator.SliceStrip
 						int vi = vi0 + verticesPerSliceSide;
 						
 						vertices [vi] = vertices [vi0];
+						colors [vi] = colors [vi0];
 						normals [vi] = -normals [vi0];
 						if (createTangents) {
 							tangents [vi] = tangents [vi0];
@@ -423,8 +426,9 @@ namespace Paths.MeshGenerator.SliceStrip
 			mesh.vertices = vertices;
 			mesh.normals = normals;
 			mesh.uv = uv;
+			mesh.colors32 = colors;
 			mesh.tangents = tangents;
-			
+
 			int triangleCount = CalculateTriangleCount (sliceCount, sliceEdges, facesDir == MeshFaceDir.Both);
 			int facesPerSegment = verticesPerSliceSide - 1;
 			

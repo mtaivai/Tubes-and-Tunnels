@@ -51,14 +51,69 @@ namespace Paths.Editor
 
 		private class EditorState
 		{
+			const string ToolbarSheetScrollPosPrefix = "toolbarSheetScrollPos.";
+			const string DataToolbarSheetScrollPosPrefix = "dataToolbarSheetScrollPos.";
+
 			public ToolbarSheet toolbarSelection;
 			public DataToolbarSheet dataToolbarSelection;
+
+			private Dictionary<string, Vector2> scrollPosMap = new Dictionary<string, Vector2> ();
+
+			public Vector2 GetToolbarSheetScrollPos ()
+			{
+				return GetScrollPos (ToolbarSheetScrollPosPrefix + toolbarSelection);
+			}
+			public void SetToolbarSheetScrollPos (Vector2 scrollPos)
+			{
+				SetScrollPos (ToolbarSheetScrollPosPrefix + toolbarSelection, scrollPos);
+			}
+			public Vector2 GetDataToolbarSheetScrollPos ()
+			{
+				return GetScrollPos (DataToolbarSheetScrollPosPrefix + toolbarSelection);
+			}
+			public void SetDataToolbarSheetScrollPos (Vector2 scrollPos)
+			{
+				SetScrollPos (DataToolbarSheetScrollPosPrefix + toolbarSelection, scrollPos);
+			}
+
+			public Vector2 GetScrollPos (string key)
+			{
+				if (scrollPosMap.ContainsKey (key)) {
+					return scrollPosMap [key];
+				} else {
+					return Vector2.zero;
+				}
+			}
+			public void SetScrollPos (string key, Vector2 pos)
+			{
+				scrollPosMap [key] = pos;
+			}
+
 
 			public void Serialize (Serializer ser)
 			{
 				ser.EnumProperty ("toolbarSelection", ref toolbarSelection);
 				ser.EnumProperty ("dataToolbarSelection", ref dataToolbarSelection);
 
+				ParameterStore store = ser.ParameterStore;
+
+				const string ScrollPosParamPrefix = "scrollPos.";
+				if (ser.Saving) {
+					foreach (KeyValuePair<string, Vector2> kvp in scrollPosMap) {
+						store.SetVector2 (ScrollPosParamPrefix + kvp.Key, kvp.Value);
+					}
+				} else {
+
+					foreach (string param in store.FindParametersStartingWith(ScrollPosParamPrefix)) {
+						try {
+							string scrollPosKey = param.Substring (ScrollPosParamPrefix.Length);
+							Vector2 scrollPos = store.GetVector2 (param, Vector2.zero);
+							SetScrollPos (scrollPosKey, scrollPos);
+						} catch (Exception ex) {
+							Debug.LogError ("Catched an exception while reading scrollPos params: " + ex);
+						}
+					}
+				}
 			}
 		}
 
@@ -305,6 +360,18 @@ namespace Paths.Editor
 			
 			editorState.toolbarSelection = (ToolbarSheet)GUILayout.Toolbar ((int)editorState.toolbarSelection, GetToolbarSheetLabels ());
 
+			bool inScrollView = editorState.toolbarSelection != ToolbarSheet.Data;
+
+			if (inScrollView) {
+				Vector2 scrollPos = editorState.GetToolbarSheetScrollPos ();
+				scrollPos = EditorGUILayout.BeginScrollView (
+					scrollPos, false, false, 
+					GUI.skin.horizontalScrollbar, 
+					GUI.skin.verticalScrollbar, GUI.skin.scrollView);
+				editorState.SetToolbarSheetScrollPos (scrollPos);
+				EditorGUI.indentLevel++;
+			}
+
 			switch (editorState.toolbarSelection) {
 			case ToolbarSheet.General:
 				DrawGeneralInspectorGUI ();
@@ -322,7 +389,10 @@ namespace Paths.Editor
 				DrawDebugInspectorGUI ();
 				break;
 			}
-			
+			if (inScrollView) {
+				EditorGUI.indentLevel--;
+				EditorGUILayout.EndScrollView ();
+			}
 			EditorGUILayout.Separator ();
 			
 			//DrawDefaultInspector();
@@ -384,7 +454,7 @@ namespace Paths.Editor
 		{
 			Path path = target as Path;
 
-			PathModifierEditorUtil.DrawPathModifiersInspector (path, pathData, this, path, PathModifiersChanged);
+			PathModifierEditorUtil.DrawPathModifiersInspector (false, path, pathData, this, path, PathModifiersChanged);
 		}
 
 //		protected void DrawInputSourceSelection ()
@@ -600,6 +670,15 @@ namespace Paths.Editor
 			editorState.dataToolbarSelection = (DataToolbarSheet)GUILayout.Toolbar (
 				(int)editorState.dataToolbarSelection, GetDataToolbarSheetLabels ());
 
+			Vector2 scrollPos = editorState.GetDataToolbarSheetScrollPos ();
+			scrollPos = EditorGUILayout.BeginScrollView (
+				scrollPos, false, false, 
+				GUI.skin.horizontalScrollbar, 
+				GUI.skin.verticalScrollbar, GUI.skin.scrollView);
+			editorState.SetDataToolbarSheetScrollPos (scrollPos);
+
+			EditorGUI.indentLevel++;
+
 			switch (editorState.dataToolbarSelection) {
 			//case DataToolbarSheet.General:
 			//DrawGeneralInspector ();
@@ -614,6 +693,8 @@ namespace Paths.Editor
 				metadataPart.DrawInspectorGUI ();
 				break;
 			}
+			EditorGUI.indentLevel--;
+			EditorGUILayout.EndScrollView ();
 		}
 
 		protected virtual void DrawPathPointsInspectorGUI ()

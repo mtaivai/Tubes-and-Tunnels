@@ -18,7 +18,7 @@ namespace Paths.MeshGenerator.Editor
 		protected T target;
 		protected PathMeshGenerator pathMeshGenerator;
 		protected PathMeshGeneratorEditor editorHost;
-		protected ContextEditorPrefs editorPrefs;
+		protected ParameterStore editorState;
     
 		private void SetContext (MeshGeneratorEditorContext context)
 		{
@@ -26,7 +26,7 @@ namespace Paths.MeshGenerator.Editor
 			this.target = (T)context.PluginInstance;
 			this.pathMeshGenerator = (PathMeshGenerator)context.Target;
 			this.editorHost = (PathMeshGeneratorEditor)context.EditorHost;
-			this.editorPrefs = context.ContextEditorPrefs;
+			this.editorState = context.EditorParameters;
 //			this.track = context.Track;
 //			this.trackInspector = (PathMeshGeneratorEditor)context.TrackEditor;
 		}

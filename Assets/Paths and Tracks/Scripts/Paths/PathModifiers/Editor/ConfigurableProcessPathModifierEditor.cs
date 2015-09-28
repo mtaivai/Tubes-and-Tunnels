@@ -13,7 +13,7 @@ using Paths;
 namespace Paths.Editor
 {
 	[PluginEditor(typeof(ConfigurableProcessPathModifier))]
-	public class FallbackConfigurableProcessPathModifierEditor : ConfigurableProcessPathModifierEditor
+	public class FallbackConfigurableProcessPathModifierEditor : ConfigurableProcessPathModifierEditor<ConfigurableProcessPathModifier>
 	{
 		protected override void DrawGeneralConfigurationGUI (PathModifierEditorContext context)
 		{
@@ -27,7 +27,7 @@ namespace Paths.Editor
 //        }
 	}
 
-	public abstract class ConfigurableProcessPathModifierEditor : AbstractPathModifierEditor
+	public abstract class ConfigurableProcessPathModifierEditor<T> : AbstractPathModifierEditor<T> where T : ConfigurableProcessPathModifier
 	{
 		delegate void DrawFunctionOptionsFunc (PathModifierEditorContext context);
 
@@ -103,21 +103,77 @@ namespace Paths.Editor
             
 			return currentFunction;
 		}
-        
+		private int DrawCustomProcessFuncToolbar ()
+		{
+			ConfigurableProcessPathModifier pm = (ConfigurableProcessPathModifier)context.PathModifier;
+
+			int selIndex = editorState.GetInt ("SelectedPMProcessFunctionIndex", 0);
+
+			EditorGUILayout.BeginHorizontal ();
+			GUILayout.Label (" ", GUILayout.Width (EditorGUI.indentLevel * 12f));
+			selIndex = DrawCustomProcessFuncToolbarButton (0, selIndex, "Position", pm.AllowedPositionFunctions.Length > 0, false);
+			selIndex = DrawCustomProcessFuncToolbarButton (1, selIndex, "Direction", pm.AllowedDirectionFunctions.Length > 0, false);
+			selIndex = DrawCustomProcessFuncToolbarButton (2, selIndex, "UpV", pm.AllowedUpVectorFunctions.Length > 0, false);
+			selIndex = DrawCustomProcessFuncToolbarButton (3, selIndex, "Angle", pm.AllowedAngleFunctions.Length > 0, false);
+			selIndex = DrawCustomProcessFuncToolbarButton (4, selIndex, "Dist-1", pm.AllowedDistanceFromPreviousFunctions.Length > 0, false);
+			selIndex = DrawCustomProcessFuncToolbarButton (5, selIndex, "Dist-0", pm.AllowedDistanceFromBeginFunctions.Length > 0, true);
+			EditorGUILayout.EndHorizontal ();
+
+			editorState.SetInt ("SelectedPMProcessFunctionIndex", selIndex);
+			return selIndex;
+		}
+		private static int DrawCustomProcessFuncToolbarButton (int index, int currentSelectedIndex, string label, bool enabled, bool last)
+		{
+			EditorGUI.BeginDisabledGroup (!enabled);
+			GUIStyle style;
+			if (index == 0) {
+				style = last ? EditorStyles.miniButton : EditorStyles.miniButtonLeft;
+			} else if (last) {
+				style = EditorStyles.miniButtonRight;
+			} else {
+				style = EditorStyles.miniButtonMid;
+			}
+			if (GUILayout.Toggle (index == currentSelectedIndex, label, style, GUILayout.ExpandWidth (true))) {
+				currentSelectedIndex = index;
+			}
+			EditorGUI.EndDisabledGroup ();
+			return currentSelectedIndex;
+		}
 		public void DrawFunctionSelections (PathModifierEditorContext context)
 		{
 			ConfigurableProcessPathModifier pm = (ConfigurableProcessPathModifier)context.PathModifier;
             
+
+			int selFnIndex = DrawCustomProcessFuncToolbar ();
+
 			EditorGUI.BeginChangeCheck ();
-            
-			pm.PositionFunction = FunctionSelection (context, "Position Fn", pm.AllowedPositionFunctions, pm.PositionFunction, DrawPositionFunctionGUI);
-			pm.DirectionFunction = FunctionSelection (context, "Direction Fn", pm.AllowedDirectionFunctions, pm.DirectionFunction, DrawDirectionFunctionGUI);
-			pm.UpVectorFunction = FunctionSelection (context, "Up Vector Fn", pm.AllowedUpVectorFunctions, pm.UpVectorFunction, DrawUpVectorFunctionGUI);
-			pm.AngleFunction = FunctionSelection (context, "Angle Fn", pm.AllowedAngleFunctions, pm.AngleFunction, DrawAngleFunctionGUI);
-
-			pm.DistanceFromPreviousFunction = FunctionSelection (context, "Dist[prev] Fn", pm.AllowedDistanceFromPreviousFunctions, pm.DistanceFromPreviousFunction, DrawDistanceFunctionGUI);
-			pm.DistanceFromBeginFunction = FunctionSelection (context, "Dist[begin] Fn", pm.AllowedDistanceFromBeginFunctions, pm.DistanceFromBeginFunction, DrawDistanceFunctionGUI);
-
+			switch (selFnIndex) {
+			case 0:
+				pm.PositionFunction = FunctionSelection (context, "Position Fn", pm.AllowedPositionFunctions, pm.PositionFunction, DrawPositionFunctionGUI);
+				break;
+			case 1:
+				pm.DirectionFunction = FunctionSelection (context, "Direction Fn", pm.AllowedDirectionFunctions, pm.DirectionFunction, DrawDirectionFunctionGUI);
+				break;
+			case 2:
+				pm.UpVectorFunction = FunctionSelection (context, "Up Vector Fn", pm.AllowedUpVectorFunctions, pm.UpVectorFunction, DrawUpVectorFunctionGUI);
+				break;
+			case 3:
+				pm.AngleFunction = FunctionSelection (context, "Angle Fn", pm.AllowedAngleFunctions, pm.AngleFunction, DrawAngleFunctionGUI);
+				break;
+			case 4:
+				pm.DistanceFromPreviousFunction = FunctionSelection (context, "Dist[prev] Fn", pm.AllowedDistanceFromPreviousFunctions, pm.DistanceFromPreviousFunction, DrawDistanceFunctionGUI);
+				break;
+			case 5:
+				pm.DistanceFromBeginFunction = FunctionSelection (context, "Dist[begin] Fn", pm.AllowedDistanceFromBeginFunctions, pm.DistanceFromBeginFunction, DrawDistanceFunctionGUI);
+				break;
+			default:
+				// NOP;
+				break;
+			}
+//			
+//			
+//			
+//			
 			if (EditorGUI.EndChangeCheck ()) {
 				//                Undo.RecordObject(context.Target, "GenerateComponents Configuration");
 				context.TargetModified ();

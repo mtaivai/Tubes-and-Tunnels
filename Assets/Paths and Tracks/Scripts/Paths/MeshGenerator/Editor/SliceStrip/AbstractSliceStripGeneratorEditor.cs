@@ -35,9 +35,9 @@ namespace Paths.MeshGenerator.SliceStrip.Editor
 		protected void DrawDefaultSliceConfigurationGUI ()
 		{
 			EditorGUI.BeginChangeCheck ();
-			bool sliceConfigVisible = EditorGUILayout.Foldout (editorPrefs.GetBool ("SliceConfigExpanded", true), "Slice Configuration");
+			bool sliceConfigVisible = EditorGUILayout.Foldout (editorState.GetBool ("SliceConfigExpanded", true), "Slice Configuration");
 			if (EditorGUI.EndChangeCheck ()) {
-				editorPrefs.SetBool ("SliceConfigExpanded", sliceConfigVisible);
+				editorState.SetBool ("SliceConfigExpanded", sliceConfigVisible);
 			}
 			if (sliceConfigVisible) {
 				EditorGUI.indentLevel++;
@@ -68,9 +68,10 @@ namespace Paths.MeshGenerator.SliceStrip.Editor
 		protected void DrawDefaultMeshConfigurationGUI ()
 		{
 			EditorGUI.BeginChangeCheck ();
-			bool meshConfigVisible = EditorGUILayout.Foldout (editorPrefs.GetBool ("MeshConfigExpanded", true), "Mesh Configuration");
+
+			bool meshConfigVisible = EditorGUILayout.Foldout (editorState.GetBool ("MeshConfigExpanded", true), "Mesh Configuration");
 			if (EditorGUI.EndChangeCheck ()) {
-				editorPrefs.SetBool ("MeshConfigExpanded", meshConfigVisible);
+				editorState.SetBool ("MeshConfigExpanded", meshConfigVisible);
 			}
 			if (meshConfigVisible) {
 				EditorGUI.indentLevel++;

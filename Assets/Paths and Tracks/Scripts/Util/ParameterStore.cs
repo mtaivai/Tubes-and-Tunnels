@@ -245,6 +245,42 @@ namespace Util
 			DoSetParameterValue (name, Vector3ToString (value));
 		}
 
+		public Range GetRange (string name)
+		{
+			return GetRange (name, Range.zero);
+		}
+		
+		private static Range ParseRange (string s, Range defaultValue)
+		{
+			string[] parts = s.Split (';');
+			float from = (parts.Length > 0) ? ParseFloat (parts [0], defaultValue.from) : defaultValue.from;
+			float top = (parts.Length > 1) ? ParseFloat (parts [1], defaultValue.to) : defaultValue.to;
+			return new Range (from, top);
+		}
+		
+		private static string RangeToString (Range value)
+		{
+			return value.from + ";" + value.to;
+		}
+		
+		public Range GetRange (string name, Range defaultValue)
+		{
+			String s = DoGetParameterValue (name, null);
+			if (null == s) {
+				return defaultValue;
+			} else {
+				// Parse
+				return ParseRange (s, defaultValue);
+				
+			}
+		}
+		
+		public void SetRange (string name, Range value)
+		{
+			DoSetParameterValue (name, RangeToString (value));
+		}
+
+
 		public Paths.DynParam GetDynParam (string name, Paths.DynParam defaultValue)
 		{
 			return Paths.DynParam.Load (this, name, defaultValue);
@@ -355,6 +391,8 @@ namespace Util
 
 	}
 
+	// TODO rename Property() to PropertyRef()
+	// TODO rename ReturnProperty() to Property()
 	public class Serializer
 	{
 		private ParameterStore store;
@@ -377,7 +415,7 @@ namespace Util
 			}
 		}
 
-		public Serializer WithPrefix (string prefix)
+		public Serializer ChildWithPrefix (string prefix)
 		{
 			ParameterStore store2 = store.ChildWithPrefix (prefix);
 			return new Serializer (store2, saving);
@@ -415,6 +453,10 @@ namespace Util
 //            }
 			//value = (T)(object)ReturnEnumProperty(name, (Enum)(object)value);
 			value = ReturnEnumProperty (name, value);
+		}
+		public void Property (string name, ref Vector2 value)
+		{
+			value = ReturnProperty (name, value);
 		}
 
 		public void Property (string name, ref Vector3 value)

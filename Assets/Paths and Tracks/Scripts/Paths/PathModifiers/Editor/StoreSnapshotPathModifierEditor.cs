@@ -26,7 +26,7 @@ namespace Paths.Editor
 
 
 	[PluginEditor(typeof(StoreSnapshotPathModifier))]
-	public class StoreSnapshotPathModifierEditor : AbstractPathModifierEditor
+	public class StoreSnapshotPathModifierEditor : AbstractPathModifierEditor<StoreSnapshotPathModifier>
 	{
 
 		protected override void OnDrawConfigurationGUI ()

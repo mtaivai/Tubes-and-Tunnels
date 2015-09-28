@@ -13,7 +13,7 @@ using Paths;
 namespace Paths.Editor
 {
 	[PluginEditor(typeof(SubdividePathModifier))]
-	public class SubdividePathModifierEditor : AbstractPathModifierEditor
+	public class SubdividePathModifierEditor : AbstractPathModifierEditor<SubdividePathModifier>
 	{
 
 		protected override void OnDrawConfigurationGUI ()
@@ -47,7 +47,19 @@ namespace Paths.Editor
 				context.TargetModified ();
 //              trackInspector.TrackGeneratorModified();
 			}
-            
+
+			EditorGUI.BeginChangeCheck ();
+			pm.InterpolateWeights = EditorGUILayout.Toggle ("Interpolate Weights", pm.InterpolateWeights);
+			if (EditorGUI.EndChangeCheck ()) {
+				context.TargetModified ();
+			}
+
+			EditorGUI.BeginChangeCheck ();
+			pm.OutputGeneratedDirections = EditorGUILayout.Toggle ("Output Generated Directions", pm.OutputGeneratedDirections);
+			if (EditorGUI.EndChangeCheck ()) {
+				context.TargetModified ();
+			}
+
 			//      Track track = trackInspector.target as Track;
 			//      Path path = track.Path;
 

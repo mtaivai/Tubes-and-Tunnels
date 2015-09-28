@@ -15,7 +15,7 @@ namespace Util.Editor
 		// TODO implement this
 	}
 
-	// TODO EditorState and EditorPrefs should be separate concepts!
+	// TODO EditorState and EditorPrefs should be separate concepts I.E. DO NOT USE THIS CLASS!
 	// TODO move ContextEditorPrefs to its own file
 	// TODO ContextEditorPrefs should keep track of plugin editor prefs and
 	// be able to delete them on request!
