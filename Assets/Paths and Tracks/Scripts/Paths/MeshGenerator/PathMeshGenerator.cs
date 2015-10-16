@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEditor;
 using System;
 using System.Reflection;
 using System.Collections.Generic;
@@ -164,17 +163,12 @@ namespace Paths.MeshGenerator
 				return meshGeneratorType;
 			}
 			set {
-				this.meshGeneratorType = value;
-				// Force recreation of the instance:
-				this._meshGeneratorInstance = null;
+				DoSetMeshGeneratorType (value);
 			}
 		}
 		public IMeshGenerator MeshGeneratorInstance {
 			get {
-				if (null == _meshGeneratorInstance) {
-					_meshGeneratorInstance = CreateMeshGeneratorInstance ();
-				}
-				return _meshGeneratorInstance;
+				return DoGetMeshGeneratorInstance ();
 			}
 		}
 //		public Mesh GeneratedMesh {
@@ -228,6 +222,108 @@ namespace Paths.MeshGenerator
 			}
 		}
 
+#endregion
+
+#region IMeshGenerator operations
+
+
+		private bool CallMeshGeneratorLifecycle (Action message, bool throwExceptions)
+		{
+			if (throwExceptions) {
+				message ();
+				return true;
+			} else {
+				try {
+					message ();
+					return true;
+				} catch (Exception e) {
+					Debug.LogErrorFormat ("Catched an exception while calling {0}: {1}", message, e);
+					return false;
+				}
+			}
+		}
+
+		private void DoSetMeshGeneratorType (string value)
+		{
+			string prevType = this.meshGeneratorType;
+			this.meshGeneratorType = value;
+			if (prevType != this.meshGeneratorType) {
+				// Force recreation of the instance:
+				if (null != this._meshGeneratorInstance) {
+					if (isActiveAndEnabled) {
+						CallMeshGeneratorLifecycle (_meshGeneratorInstance.OnDisable, false);
+					}
+					CallMeshGeneratorLifecycle (_meshGeneratorInstance.OnDestroy, false);
+				}
+				this._meshGeneratorInstance = null;
+			}
+		}
+		private IMeshGenerator DoGetMeshGeneratorInstance ()
+		{
+			if (null != _meshGeneratorInstance && _meshGeneratorInstance.GetType ().FullName != this.meshGeneratorType) {
+				// Type has changed
+				if (isActiveAndEnabled) {
+					CallMeshGeneratorLifecycle (_meshGeneratorInstance.OnDisable, false);
+				}
+				CallMeshGeneratorLifecycle (_meshGeneratorInstance.OnDestroy, false);
+				try {
+					_meshGeneratorInstance.RemoveMeshGeneratorEventHandler (MeshGeneratorChanged);
+				} catch (Exception ex) {
+					// NOP
+					// TODO this smells
+				}
+				_meshGeneratorInstance = null;
+			}
+
+			if (null == _meshGeneratorInstance) {
+				_meshGeneratorInstance = DoCreateMeshGeneratorInstance (true, true, true);
+			} 
+			return _meshGeneratorInstance;
+
+		}
+		private IMeshGenerator DoCreateMeshGeneratorInstance (bool callOnCreate, bool callOnEnableIfEnabled, bool addEventHandlers)
+		{
+			IMeshGenerator mg;
+			if (null != meshGeneratorType && meshGeneratorType.Length > 0) {
+				// Create the instance
+				mg = (IMeshGenerator)Activator.CreateInstance (Type.GetType (meshGeneratorType));
+				
+				// Notify the MG:
+				if (callOnCreate) {
+					CallMeshGeneratorLifecycle (mg.OnCreate, true);
+				}
+
+				if (addEventHandlers) {
+					mg.AddMeshGeneratorEventHandler (MeshGeneratorChanged);
+				}
+				
+				// TODO we must prefix the store!
+				mg.LoadParameters (GetParameterStoreForMG (mg), GetReferenceContainer ());
+				
+				if (callOnEnableIfEnabled && isActiveAndEnabled) {
+					CallMeshGeneratorLifecycle (mg.OnEnable, true);
+				}
+
+
+				
+			} else {
+				mg = null;
+			}
+			return mg;
+		}
+		
+		private ParameterStore GetParameterStoreForMG (IMeshGenerator mg)
+		{
+			string prefix = string.Format ("MeshGenerators[{0}]", mg.GetType ().FullName);
+			return parameters.ChildWithPrefix (prefix);
+		}
+
+
+		private void MeshGeneratorChanged (MeshGeneratorEventArgs e)
+		{
+			Debug.Log ("MeshGeneratorChanged: " + e);
+			MeshGeneratorModified ();
+		}
 
 #endregion
 
@@ -296,6 +392,8 @@ namespace Paths.MeshGenerator
 //			createMeshCollider = true;
 			createShapes = true;
 			createMeshColliders = false;
+
+			// TODO should we reset meshgenerator? Maybe yes!
 		}
 		
 		public void OnEnable ()
@@ -305,6 +403,9 @@ namespace Paths.MeshGenerator
 				AttachDataSource (dataSource);
 			}
 
+			if (null != MeshGeneratorInstance) {
+				CallMeshGeneratorLifecycle (MeshGeneratorInstance.OnEnable, false);
+			}
 		}
 
 		public void OnDisable ()
@@ -312,6 +413,10 @@ namespace Paths.MeshGenerator
 			if (null != dataSource) {
 				DetachDataSource (dataSource);
 			}
+			if (null != MeshGeneratorInstance) {
+				CallMeshGeneratorLifecycle (MeshGeneratorInstance.OnDisable, false);
+			}
+
 		}
 
 		public void OnDestory ()
@@ -324,7 +429,16 @@ namespace Paths.MeshGenerator
 			if (null != dataSource) {
 				dataSource.GetPathModifierContainer ().RemoveAllPathModifiers ();
 			}
-
+			if (null != _meshGeneratorInstance) {
+				CallMeshGeneratorLifecycle (_meshGeneratorInstance.OnDestroy, false);
+				try {
+					_meshGeneratorInstance.RemoveMeshGeneratorEventHandler (MeshGeneratorChanged);
+				} catch (Exception ex) {
+					// NOP
+					// TODO this smells
+				}
+				this._meshGeneratorInstance = null;
+			}
 		}
 
 		// Use this for initialization
@@ -375,13 +489,6 @@ namespace Paths.MeshGenerator
 			//				primaryDataSource.OnEnable ();
 			//			}
 
-//			// Force reload of MeshGeneratorInstances:
-//			foreach (MeshGeneratorContainer mgc in meshGeneratorContainerMap.Values) {
-//				mgc.MeshGeneratorInstance = null;
-//			}
-
-			this._meshGeneratorInstance = null;
-
 
 		}
 
@@ -392,7 +499,7 @@ namespace Paths.MeshGenerator
 			IMeshGenerator mg = MeshGeneratorInstance;
 			if (null != mg) {
 				ParameterStore store = GetParameterStoreForMG (mg);
-				mg.SaveParameters (store);
+				mg.SaveParameters (store, GetReferenceContainer ());
 			}
 		}
 
@@ -511,29 +618,7 @@ namespace Paths.MeshGenerator
 			}
 		}
 
-		private IMeshGenerator CreateMeshGeneratorInstance ()
-		{
-			IMeshGenerator mg;
-			if (null != meshGeneratorType && meshGeneratorType.Length > 0) {
-				// Create the instance
-				mg = (IMeshGenerator)Activator.CreateInstance (Type.GetType (meshGeneratorType));
-				// Load parameters
-				// Load params:
-				//					parameters.OnAfterDeserialize ();
-				// TODO we must prefix the store!
-				mg.LoadParameters (GetParameterStoreForMG (mg));
-				_meshGeneratorInstance = mg;
-			} else {
-				mg = null;
-			}
-			return mg;
-		}
 
-		private ParameterStore GetParameterStoreForMG (IMeshGenerator mg)
-		{
-			string prefix = string.Format ("MeshGenerators[{0}]", mg.GetType ().FullName);
-			return parameters.ChildWithPrefix (prefix);
-		}
 
 		public IReferenceContainer GetReferenceContainer ()
 		{

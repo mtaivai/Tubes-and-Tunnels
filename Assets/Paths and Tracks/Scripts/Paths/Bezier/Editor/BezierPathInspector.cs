@@ -20,7 +20,7 @@ namespace Paths.Bezier.Editor
 
 		private bool controlPointsVisible = true;
 
-		void OnSceneGUI ()
+		void XXX_OnSceneGUI ()
 		{
 			Tools.hidden = false;
             

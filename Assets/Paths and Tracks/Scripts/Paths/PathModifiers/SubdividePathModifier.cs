@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEditor;
 using System;
 using System.Collections.Generic;
 using Util;
@@ -268,106 +267,6 @@ namespace Paths
 				}
 			}
 			return resultArray;
-		}
-        
-		private PathPoint[] XXXOLD_DoSubdividePath (PathPoint[] points, PathModifierContext context)
-		{
-			if (!enabled || subdivideSegmentsMax < 0 || null == points || points.Length == 0) {
-				return points;
-			}
-
-			int ppFlags = GetOutputFlags (context);
-
-			List<PathPoint> newPoints = new List<PathPoint> ();
-            
-			// 0 1 2 3 4 5 6 7 8 9
-			// 0.1.2.3.4.5.6.7.8.9
-
-			float distFromBegin = 0.0f;
-			for (int i = 1; i < points.Length; i++) {
-				float distFromPrev;
-				if (points [i].HasDistanceFromPrevious) {
-					distFromPrev = points [i].DistanceFromPrevious;
-				} else {
-					distFromPrev = (points [i].Position - points [i - 1].Position).magnitude;
-				}
-				distFromBegin += distFromPrev;
-
-				int subdivideCount = subdivideSegmentsMin;
-				if (subdivideCount != subdivideSegmentsMax) {
-                    
-					if (distFromPrev > subdivideTreshold) {
-						subdivideCount = (int)(distFromPrev / subdivideTreshold);
-					} else if (distFromPrev < subdivideTreshold) {
-						subdivideCount = 0;
-					}
-                    
-					if (subdivideCount > subdivideSegmentsMax) {
-						subdivideCount = subdivideSegmentsMax;
-					} else if (subdivideCount < subdivideSegmentsMin) {
-						subdivideCount = subdivideSegmentsMin;
-					}
-				}
-				// We don't use the PathPoint.Direction because it's the "point" direction, i.e. an average
-				// between incoming and outgoing directions!
-				Vector3 segmentDir = (points [i].Position - points [i - 1].Position).normalized;
-                
-				float divisionDist = distFromPrev / (float)subdivideCount;
-				float currentDistInDiv = 0.0f;
-                
-				for (int j = 0; j < subdivideCount; j++) {
-					// TODO also interpolate the direction
-					float divDistFromPrev = (i > 1 && j > 0) ? divisionDist : 0.0f;
-                    
-					Vector3 currentDir;
-					bool interpolateDirections = true;
-					if (j == 0) {
-						currentDir = points [i - 1].Direction;
-					} else {
-						if (interpolateDirections) {
-							float t = ((float)j / (float)subdivideCount);
-							/*if (t < 0.5f) {
-                            // Segments before the segment middle:
-                            // Rotate segments towards the segment direction (the slice at the middle should
-                            // be in line with the path)
-                            currentDir = Vector3.Lerp(points[i - 1].Direction, segmentDir, t * 2.0f);
-                        } else if (t > 0.5f) {
-                            // Segments after the segment middle:
-                            // Rotate segments towards the next path point direction
-
-                            currentDir = Vector3.Lerp(segmentDir, points[i].Direction, (t - 0.5f) * 2.0f);
-                        } else {
-                            // Middle point!
-                            currentDir = segmentDir;
-                        }*/
-							currentDir = Vector3.Lerp (points [i - 1].Direction, points [i].Direction, t * 1.0f);
-							//currentDir = segmentDir;//((points[i - 1].Direction + points[i - 0].Direction) / 2.0f).normalized;
-						} else {
-							currentDir = segmentDir;
-						}
-                        
-					}
-                    
-					PathPoint pp = new PathPoint (points [i - 1]);
-					pp.Position = pp.Position + segmentDir * currentDistInDiv;
-					pp.DistanceFromPrevious = divDistFromPrev;
-					pp.DistanceFromBegin = distFromBegin + currentDistInDiv;
-
-					newPoints.Add (pp);
-					currentDistInDiv += divisionDist;
-				}
-                
-				//          newPoints[i * 4 - 4] = new PathPoint(points[i - 1].Position, dir);
-				//          newPoints[i * 4 - 2] = new PathPoint(points[i - 1].Position + dir * (divisionDist * 2.0f), dir);
-				//          newPoints[i * 4 - 1] = new PathPoint(points[i - 1].Position + dir * (divisionDist * 3.0f), dir);
-                
-			}
-			// Add Last point
-			if (points.Length > 0) {
-				newPoints.Add (points [points.Length - 1]);
-			}
-            
-			return newPoints.ToArray ();
 		}
 	}
 }

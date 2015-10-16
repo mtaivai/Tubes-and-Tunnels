@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEditor;
 
 using System.Collections;
 using System.Collections.Generic;
@@ -279,8 +278,7 @@ namespace Paths.Bezier
 //		{
 //			this.SetControlPoint (index, pt);
 //		}
-
-		void Reset ()
+		protected override void OnReset ()
 		{
 			controlPoints = new Vector3[] {
 				new Vector3 (0f, 0f, 1f),

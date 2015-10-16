@@ -60,7 +60,7 @@ namespace Paths.Editor
 			//            }
 		}
 
-		static string[] ToStringArray<T> (T[] objects)
+		static string[] ToStringArray<K> (K[] objects)
 		{
 			string[] strs = new string[objects.Length];
 			for (int i = 0; i < objects.Length; i++) {

@@ -195,6 +195,13 @@ namespace Paths
 			editorSceneViewDataSetId = 0; // default
 
 			frozenStatus = PathStatus.Dynamic;
+
+			OnReset ();
+		}
+
+		protected virtual void OnReset ()
+		{
+
 		}
 
 		protected void OnEnable ()
@@ -676,12 +683,12 @@ namespace Paths
 				float dirVectorLength = PathGizmoPrefs.DirVectorLength;
 				float rightVectorLength = PathGizmoPrefs.RightVectorLength;
 
-				float pointMarkerSize = PathGizmoPrefs.FinalPathPointMarkerSize;
-				float firstPointMarkerSize = PathGizmoPrefs.FinalPathFirstPointMarkerSize;
+//				float pointMarkerSize = PathGizmoPrefs.FinalPathPointMarkerSize;
+//				float firstPointMarkerSize = PathGizmoPrefs.FinalPathFirstPointMarkerSize;
 
 				// TODO transform directions etc!
 				for (int i = 0; i < pp.Length; i++) {
-					Vector3 pt = transform.TransformPoint (pp [i].Position);
+//					Vector3 pt = transform.TransformPoint (pp [i].Position);
 
 					Gizmos.color = (i == 0) ? firstPointMarkerColor : pointMarkerColor;
 					//Gizmos.DrawSphere (pt, (i == 0) ? firstPointMarkerSize : pointMarkerSize);

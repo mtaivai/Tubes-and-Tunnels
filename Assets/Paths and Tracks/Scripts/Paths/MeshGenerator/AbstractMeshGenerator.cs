@@ -3,7 +3,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-using UnityEditor;
 using Util;
 using Paths;
 
@@ -27,6 +26,7 @@ namespace Paths.MeshGenerator
 		// TODO what's this?
 		private Dictionary<string, string> editorPrefs = new Dictionary<string, string> ();
 
+		private event MeshGeneratorEventHandler EventHandler;
 
 		protected AbstractMeshGenerator ()
 		{
@@ -55,8 +55,46 @@ namespace Paths.MeshGenerator
 			}
 		}
 
+
+		public virtual void OnCreate ()
+		{
+			Debug.Log ("OnCreate: " + this);
+		}
+		public virtual void OnEnable ()
+		{
+			Debug.Log ("OnEnable: " + this);
+		}
+		public virtual void OnDisable ()
+		{
+			Debug.Log ("OnDisable: " + this);
+		}
+		public virtual void OnDestroy ()
+		{
+			Debug.Log ("OnDestroy: " + this);
+		}
+
+		public void AddMeshGeneratorEventHandler (MeshGeneratorEventHandler handler)
+		{
+			EventHandler -= handler;
+			EventHandler += handler;
+		}
+		public void RemoveMeshGeneratorEventHandler (MeshGeneratorEventHandler handler)
+		{
+			EventHandler -= handler;
+		}
+		protected void FireMeshGeneratorEvent (MeshGeneratorEventArgs e)
+		{
+			if (null != EventHandler) {
+				try {
+					EventHandler (e);
+				} catch (Exception ex) {
+					Debug.LogErrorFormat ("Catched an exception while firing MeshGeneratorEventArgs {0}: {1}", e, ex);
+				}
+			}
+		}
+
 		private bool _inLoadParameters;
-		public void LoadParameters (ParameterStore store)
+		public void LoadParameters (ParameterStore store, IReferenceContainer refContainer)
 		{
 			if (!_inLoadParameters) {
 				_inLoadParameters = true;
@@ -69,7 +107,7 @@ namespace Paths.MeshGenerator
 					foreach (string n in editorParams) {
 						this.editorPrefs [n] = eps.GetString (n, null); 
 					}
-					OnLoadParameters (store);
+					OnLoadParameters (store, refContainer);
 				} finally {
 					_inLoadParameters = false;
 				}
@@ -77,13 +115,13 @@ namespace Paths.MeshGenerator
 				Debug.LogWarning ("AbstractMeshGenerator.LoadParameters() called from OnLoadParameters() - ignoring");
 			}
 		}
-		public virtual void OnLoadParameters (ParameterStore store)
+		public virtual void OnLoadParameters (ParameterStore store, IReferenceContainer refContainer)
 		{
 
 		}
 
 		private bool _inSaveParameters;
-		public void SaveParameters (ParameterStore store)
+		public void SaveParameters (ParameterStore store, IReferenceContainer refContainer)
 		{
 			if (!_inSaveParameters) {
 				_inSaveParameters = true;
@@ -94,7 +132,7 @@ namespace Paths.MeshGenerator
 					foreach (KeyValuePair<string, string> kvp in editorPrefs) {
 						eps.SetString (kvp.Key, kvp.Value);
 					}
-					OnSaveParameters (store);
+					OnSaveParameters (store, refContainer);
 				} finally {
 					_inSaveParameters = false;
 				}
@@ -102,7 +140,7 @@ namespace Paths.MeshGenerator
 				Debug.LogWarning ("AbstractMeshGenerator.SaveParameters() called from OnSaveParameters() - ignoring");
 			}
 		}
-		public virtual void OnSaveParameters (ParameterStore store)
+		public virtual void OnSaveParameters (ParameterStore store, IReferenceContainer refContainer)
 		{
 			
 		}

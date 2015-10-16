@@ -374,7 +374,7 @@ namespace Paths
 
 		private PathPoint[] DoRunPathModifiers (PathPoint[] _pathPoints, bool protectInputPoints, ref int flags, bool fixResultFlags)
 		{
-			long startTicks = System.DateTime.Now.Ticks;
+//			long startTicks = System.DateTime.Now.Ticks;
 			
 			PathPoint[] processedPoints;
 			
@@ -483,8 +483,8 @@ namespace Paths
 				flags = 0;
 			}
 			
-			long endTicks = System.DateTime.Now.Ticks;
-			float deltaTimeMs = (float)(endTicks - startTicks) / (float)System.TimeSpan.TicksPerMillisecond;
+//			long endTicks = System.DateTime.Now.Ticks;
+//			float deltaTimeMs = (float)(endTicks - startTicks) / (float)System.TimeSpan.TicksPerMillisecond;
 //			Debug.Log ("Running " + modifiers.Length + " PathModifiers took " + deltaTimeMs + " ms");
 			
 			return processedPoints;

@@ -1,7 +1,6 @@
 
 using System;
 using UnityEngine;
-using UnityEditor;
 using System.Collections.Generic;
 
 using Util;
@@ -11,7 +10,6 @@ using Paths.MeshGenerator.SliceStrip;
 
 namespace Paths.MeshGenerator.Tube
 {
-
 
 	public class TubeGenerator : AbstractSliceStripGenerator
 	{
@@ -69,9 +67,9 @@ namespace Paths.MeshGenerator.Tube
 			}
 		}
 
-		public override void OnLoadParameters (ParameterStore store)
+		public override void OnLoadParameters (ParameterStore store, IReferenceContainer refContainer)
 		{
-			base.OnLoadParameters (store);
+			base.OnLoadParameters (store, refContainer);
 			sliceEdges = store.GetInt ("sliceEdges", sliceEdges);
 //			startAngle = store.GetFloat ("startAngle", startAngle);
 //			arcLength = store.GetFloat ("arcLength", arcLength);
@@ -81,9 +79,9 @@ namespace Paths.MeshGenerator.Tube
 			sliceSize = store.GetVector2 ("sliceSize", sliceSize);
 		}
 
-		public override void OnSaveParameters (ParameterStore store)
+		public override void OnSaveParameters (ParameterStore store, IReferenceContainer refContainer)
 		{
-			base.OnSaveParameters (store);
+			base.OnSaveParameters (store, refContainer);
 			store.SetInt ("sliceEdges", sliceEdges);
 //			store.SetFloat ("startAngle", startAngle);
 //			store.SetFloat ("arcLength", arcLength);

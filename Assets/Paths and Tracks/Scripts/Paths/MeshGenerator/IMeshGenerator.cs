@@ -7,18 +7,58 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-using UnityEditor;
 using Util;
 using Paths;
 
 namespace Paths.MeshGenerator
 {
 
+	public class MeshGeneratorEventArgs : EventArgs
+	{
+		public enum Reason
+		{
+			MeshChanged,
+		}
+		private IMeshGenerator meshGenerator;
+		private Reason reason;
+		public MeshGeneratorEventArgs (IMeshGenerator mg, Reason r)
+		{
+			this.meshGenerator = mg;
+			this.reason = r;
+		}
+		public Reason EventReason {
+			get {
+				return reason;
+			}
+		}
+		public IMeshGenerator MeshGenerator {
+			get {
+				return meshGenerator;
+			}
+		}
+		public override string ToString ()
+		{
+			return string.Format ("[MeshGeneratorEventArgs: meshGenerator={0}, reason={1}]", meshGenerator, reason);
+		}
+		
+
+	}
+	public delegate void MeshGeneratorEventHandler (MeshGeneratorEventArgs e);
+
+
 	public interface IMeshGenerator
 	{
-		void LoadParameters (ParameterStore store);
+		void OnCreate ();
+		void OnEnable ();
+		void OnDisable ();
+		void OnDestroy ();
 
-		void SaveParameters (ParameterStore store);
+		void AddMeshGeneratorEventHandler (MeshGeneratorEventHandler handler);
+		void RemoveMeshGeneratorEventHandler (MeshGeneratorEventHandler handler);
+
+		void LoadParameters (ParameterStore store, IReferenceContainer refContainer);
+
+		void SaveParameters (ParameterStore store, IReferenceContainer refContainer);
 
 //		void SetEditorPref (string key, string value);
 //

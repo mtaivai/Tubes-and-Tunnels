@@ -607,9 +607,9 @@ namespace Paths
 		{
 			bool prevValue = IsFlag (this.flags, flag);
 			if (value) {
-				this.flags = this.flags & ~flag;
-			} else {
 				this.flags = this.flags | flag;
+			} else {
+				this.flags = this.flags & ~flag;
 			}
 			return prevValue;
 		}

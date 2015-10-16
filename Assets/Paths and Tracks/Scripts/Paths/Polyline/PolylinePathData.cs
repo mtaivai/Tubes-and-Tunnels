@@ -68,19 +68,19 @@ namespace Paths.Polyline
 		//				this.name = name;
 		//			}
 		
-		protected override List<PathPoint> DoGetPathPoints (out int outputFlags)
+		protected override List<PathPoint> DoGetInputPoints (out int outputFlags)
 		{
 			int cpCount = (null != controlPoints) ? controlPoints.Count : 0;
 			List<PathPoint> pp = new List<PathPoint> ();
 			for (int i = 0; i < cpCount; i++) {
-				pp.Add (DoGetPathPointAtIndex (i));
+				pp.Add (DoGetInputPointAtIndex (i));
 			}
 			// TODO currently we don't generate distances!
 			outputFlags = PathPoint.POSITION | PathPoint.DIRECTION;
 			return pp;
 		}
 		
-		protected PathPoint DoGetPathPointAtIndex (int index)
+		protected PathPoint DoGetInputPointAtIndex (int index)
 		{
 			PathPoint pp = controlPoints [index];
 			if (!pp.HasDirection) {
@@ -115,13 +115,13 @@ namespace Paths.Polyline
 		
 		public override PathPoint GetControlPointAtIndex (int index)
 		{
-			// TODO is it okay to return mutable instance? Maybe not!
-			return controlPoints [index];
+			return new PathPoint (controlPoints [index], PathPoint.POSITION);
 		}
 		
 		public override void SetControlPointAtIndex (int index, PathPoint pt)
 		{
-			PathPoint pp = new PathPoint (pt);
+			// TODO currently we remove all components but POSITION
+			PathPoint pp = new PathPoint (pt, PathPoint.POSITION);
 
 			// Set near-zero components to zero
 			Vector3 pos = pp.Position;

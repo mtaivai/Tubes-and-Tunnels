@@ -1,7 +1,6 @@
 
 using System;
 using UnityEngine;
-using UnityEditor;
 using Util;
 using Paths;
 using Paths.MeshGenerator;
@@ -44,18 +43,18 @@ namespace Paths.MeshGenerator.FlatQuad
 //			return false;
 //		}
 
-		public override void OnLoadParameters (ParameterStore store)
+		public override void OnLoadParameters (ParameterStore store, IReferenceContainer refContainer)
 		{
-			base.OnLoadParameters (store);
+			base.OnLoadParameters (store, refContainer);
 			// TODO add DynParam support to ParameterStore!
 
 			width = DynParam.Load (store, "width");
 			//width = store.GetFloat ("width", width);
 		}
 
-		public override void OnSaveParameters (ParameterStore store)
+		public override void OnSaveParameters (ParameterStore store, IReferenceContainer refContainer)
 		{
-			base.OnSaveParameters (store);
+			base.OnSaveParameters (store, refContainer);
 			width.Save (store, "width");
 			//store.SetFloat ("width", width);
 

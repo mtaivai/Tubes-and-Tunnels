@@ -32,7 +32,7 @@ namespace Util.Editor
 			this.contextPrefix = prefix;
 			int prefixLength = prefix.Length;
 			if (prefixLength > 0) {
-				char lastChar = contextPrefix [prefixLength - 1];
+//				char lastChar = contextPrefix [prefixLength - 1];
 				addDotAfterPrefix = true;//(lastChar != ']' && lastChar != ')');
 			} else {
 				addDotAfterPrefix = false;

@@ -82,7 +82,7 @@ namespace Paths.Polyline.Editor
 		private GUIStyle selectedPointRowStyle = null;
 		private GUIStyle normalPointRowStyle = null;
 
-		private int previousSelectedPointIndex = -1;
+//		private int previousSelectedPointIndex = -1;
 
 		private EditorState editorState = new EditorState ();
 
@@ -256,6 +256,8 @@ namespace Paths.Polyline.Editor
 				}
 			}
 
+			float addRemovePointButtonWidth = 20f;
+
 
 			int cpCount = pathData.GetControlPointCount ();
 			editorState.controlPointsVisible = EditorGUILayout.Foldout (
@@ -276,7 +278,7 @@ namespace Paths.Polyline.Editor
 					EditorGUILayout.BeginHorizontal (normalPointRowStyle);
 					EditorGUILayout.LabelField ("Insert new point to the beginning -->");
 					if (GUILayout.Button (new GUIContent ("+", "Add new point to the beginning"), 
-					                      EditorStyles.miniButton, GUILayout.ExpandWidth (false))) {
+					                      EditorStyles.miniButton, GUILayout.Width (addRemovePointButtonWidth * 2f))) {
 						InsertControlPoint (0);
 						cpCount = pathData.GetControlPointCount ();
 					}
@@ -345,17 +347,21 @@ namespace Paths.Polyline.Editor
 					if (editorState.pathPointsToolbarSelection == 0) {
 						// Position editing mode
 						EditorGUI.BeginChangeCheck ();
-						pp.Position = DrawCustomVector3Field (label, pointRowLabelWidth, pp.Position);
+						float prevLabelWidth = EditorGUIUtility.labelWidth;
+						EditorGUIUtility.labelWidth = pointRowLabelWidth;
+						pp.Position = EditorGUILayout.Vector3Field (label, pp.Position);
+						EditorGUIUtility.labelWidth = prevLabelWidth;
+//						pp.Position = DrawCustomVector3Field (label, pointRowLabelWidth, pp.Position);
 						if (EditorGUI.EndChangeCheck ()) {
 							SetControlPoint (i, pp);
 						}
 						if (GUILayout.Button (new GUIContent ("-", "Delete this point"), 
-						                      EditorStyles.miniButtonLeft, GUILayout.ExpandWidth (false))) {
+						                      EditorStyles.miniButtonLeft, GUILayout.Width (addRemovePointButtonWidth))) {
 							DeleteControlPoint (i);
 							cpCount = pathData.GetControlPointCount ();
 						}
 						if (GUILayout.Button (new GUIContent ("+", "Insert new point after this point"), 
-						                      EditorStyles.miniButtonRight, GUILayout.ExpandWidth (false))) {
+						                      EditorStyles.miniButtonRight, GUILayout.Width (addRemovePointButtonWidth))) {
 							InsertControlPoint (i + 1);
 							cpCount = pathData.GetControlPointCount ();
 						}
@@ -465,35 +471,36 @@ namespace Paths.Polyline.Editor
 
 		}
 
-		Vector3 DrawCustomVector3Field (string label, float labelWidth, Vector3 pt)
-		{
-			float prevLabelWidth = EditorGUIUtility.labelWidth;
-			EditorGUIUtility.labelWidth = labelWidth;
-			pt = DrawCustomVector3Field (label, pt);
-			EditorGUIUtility.labelWidth = prevLabelWidth;
-			return pt;
-		}
-		Vector3 DrawCustomVector3Field (string label, Vector3 pt)
-		{
-			EditorGUILayout.BeginHorizontal ();
-			EditorGUILayout.PrefixLabel (label);
-			pt = DrawCustomVector3Field (pt);
-			EditorGUILayout.EndHorizontal ();
-			return pt;
-		}
-
-		Vector3 DrawCustomVector3Field (Vector3 pt)
-		{
-			float prevLabelWidth = EditorGUIUtility.labelWidth;
-			EditorGUIUtility.labelWidth = 10f;
-			EditorGUILayout.BeginHorizontal ();
-			pt.x = EditorGUILayout.FloatField ("X", pt.x, GUILayout.MinWidth (20f));
-			pt.y = EditorGUILayout.FloatField ("Y", pt.y, GUILayout.MinWidth (20f));
-			pt.z = EditorGUILayout.FloatField ("Z", pt.z, GUILayout.MinWidth (20f));
-			EditorGUILayout.EndHorizontal ();
-			EditorGUIUtility.labelWidth = prevLabelWidth;
-			return pt;
-		}
+		// Vector3 Field with custom label width
+//		Vector3 DrawCustomVector3Field (string label, float labelWidth, Vector3 pt)
+//		{
+//			float prevLabelWidth = EditorGUIUtility.labelWidth;
+//			EditorGUIUtility.labelWidth = labelWidth;
+//			pt = DrawCustomVector3Field (label, pt);
+//			EditorGUIUtility.labelWidth = prevLabelWidth;
+//			return pt;
+//		}
+//		Vector3 DrawCustomVector3Field (string label, Vector3 pt)
+//		{
+//			EditorGUILayout.BeginHorizontal ();
+//			EditorGUILayout.PrefixLabel (label);
+//			pt = DoDrawCustomVector3Field (pt);
+//			EditorGUILayout.EndHorizontal ();
+//			return pt;
+//		}
+//
+//		private Vector3 DoDrawCustomVector3Field (Vector3 pt)
+//		{
+//			float prevLabelWidth = EditorGUIUtility.labelWidth;
+//			EditorGUIUtility.labelWidth = 10f;
+//			EditorGUILayout.BeginHorizontal ();
+//			pt.x = EditorGUILayout.FloatField ("X", pt.x, GUILayout.MinWidth (20f));
+//			pt.y = EditorGUILayout.FloatField ("Y", pt.y, GUILayout.MinWidth (20f));
+//			pt.z = EditorGUILayout.FloatField ("Z", pt.z, GUILayout.MinWidth (20f));
+//			EditorGUILayout.EndHorizontal ();
+//			EditorGUIUtility.labelWidth = prevLabelWidth;
+//			return pt;
+//		}
 
 		void SetControlPoint (int index, PathPoint pp)
 		{

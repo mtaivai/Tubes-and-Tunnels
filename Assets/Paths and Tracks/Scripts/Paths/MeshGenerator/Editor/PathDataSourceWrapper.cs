@@ -140,7 +140,7 @@ namespace Paths.MeshGenerator.Editor
 		
 		public IPathMetadata GetPathMetadata ()
 		{
-			throw new NotImplementedException ();
+			return UnsupportedPathMetadata.Instance;
 		}
 	}
 

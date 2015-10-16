@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEditor;
 using System;
 using System.Collections.Generic;
 using Util;
@@ -28,7 +27,7 @@ namespace Paths
 		public const string IncludedPathPointCountParam = "Include.IncludedPathPointCount";
 
 //		private bool includedPathIsSelf = true;
-		private int includedPathRefIndex = -1;
+		private string includedPathRefIndex = "";
 
 
 		public int includedPathDataSetId;
@@ -98,7 +97,9 @@ namespace Paths
 
 		public override void OnSerialize (Serializer store)
 		{
-
+			if (includedPathRefIndex == null) {
+				includedPathRefIndex = "";
+			}
 			store.Property ("includedPathRefIndex", ref includedPathRefIndex);
 			store.Property ("includedPathDataSetId", ref includedPathDataSetId);
 			store.Property ("includedPathFromSnapshot", ref includedPathFromSnapshot);
@@ -133,9 +134,9 @@ namespace Paths
 		public Path GetIncludedPath (IReferenceContainer refContainer)
 		{
 			Path refPath;
-			if (includedPathRefIndex >= 0 && includedPathRefIndex < refContainer.GetReferentCount ()) {
+			if (includedPathRefIndex.Length > 0 && refContainer.ContainsReferentObject (includedPathRefIndex)) {
 
-				object refObj = refContainer.GetReferent (includedPathRefIndex);
+				object refObj = refContainer.GetReferentObject (includedPathRefIndex);
 				if (null == refObj) {
 					Debug.LogWarning ("Referent #" + includedPathRefIndex + " is missing!");
 					refPath = null;
@@ -167,10 +168,10 @@ namespace Paths
 		public void SetIncludedPath (IReferenceContainer refContainer, Path includedPath)
 		{
 			if (null != refContainer) {
-				if (includedPathRefIndex >= 0 && includedPathRefIndex < refContainer.GetReferentCount ()) {
+				if (includedPathRefIndex.Length > 0 && refContainer.ContainsReferentObject (includedPathRefIndex)) {
 					// Replace or remove existing
 					if (includedPath != null) {
-						refContainer.SetReferent (includedPathRefIndex, includedPath);
+						refContainer.SetReferentObject (includedPathRefIndex, includedPath);
 					} else {
 						// null includedPath; remove the referent
 						refContainer.RemoveReferent (includedPathRefIndex);
@@ -181,7 +182,7 @@ namespace Paths
 				}
 			}
 			if (null == includedPath) {
-				includedPathRefIndex = -1;
+				includedPathRefIndex = "";
 			}
 		}
 

@@ -3,7 +3,6 @@
 //  */
 
 using UnityEngine;
-using UnityEditor;
 using System;
 using System.Collections.Generic;
 using Util;
@@ -14,48 +13,113 @@ namespace Paths
 
 	public interface IReferenceContainer
 	{
-		int GetReferentCount ();
-
-		UnityEngine.Object GetReferent (int index);
-
-		void SetReferent (int index, UnityEngine.Object obj);
-
-		int AddReferent (UnityEngine.Object obj);
-
-		void RemoveReferent (int index);
+		bool ContainsReferentObject (string id);
+		UnityEngine.Object GetReferentObject (string id);
+		void SetReferentObject (string id, UnityEngine.Object obj);
+		string AddReferent (UnityEngine.Object obj);
+		UnityEngine.Object RemoveReferent (string id);
 	}
+
 	[Serializable]
-	public class SimpleReferenceContainer : IReferenceContainer
+	public class SimpleReferenceContainer : IReferenceContainer, ISerializationCallbackReceiver
 	{
 		[SerializeField]
 		private List<UnityEngine.Object>
 			referents = new List<UnityEngine.Object> ();
-		
-		// TODO how to clean up references???
-		public int GetReferentCount ()
+
+		[SerializeField]
+		private List<string>
+			ids = new List<string> ();
+
+		[SerializeField]
+		private int
+			nextId = 1;
+
+		[NonSerialized]
+		private Dictionary<string, UnityEngine.Object>
+			_referentMap = new Dictionary<string, UnityEngine.Object> ();
+
+
+		public SimpleReferenceContainer ()
 		{
-			return referents.Count;
+
+		}
+		public void OnBeforeSerialize ()
+		{
+			this.referents = new List<UnityEngine.Object> ();
+			this.ids = new List<string> ();
+
+			foreach (KeyValuePair<string, UnityEngine.Object> kvp in _referentMap) {
+				string id = kvp.Key;
+				UnityEngine.Object obj = kvp.Value;
+				referents.Add (obj);
+				ids.Add (id);
+			}
 		}
 		
-		public UnityEngine.Object GetReferent (int index)
+		public void OnAfterDeserialize ()
 		{
-			return referents [index];
+			this._referentMap.Clear ();
+
+			if (null != referents && referents.Count > 0) {
+				// TODO REMOVE FOLLOWING AFTER MIGRATION PHASE:
+				if (null == ids || ids.Count < 1) {
+					ids = new List<string> ();
+					for (int i = 0; i < referents.Count; i++) {
+						ids.Add (string.Format ("{0}", i));
+					}
+					nextId = referents.Count;
+				}
+				for (int i = 0; i < referents.Count; i++) {
+					UnityEngine.Object obj = referents [i];
+					string id = ids [i];
+					_referentMap.Add (id, obj);
+				}
+
+			}
 		}
-		
-		public void SetReferent (int index, UnityEngine.Object obj)
+		public bool ContainsReferentObject (string id)
 		{
-			referents [index] = obj;
+			return _referentMap.ContainsKey (id);
 		}
-		
-		public int AddReferent (UnityEngine.Object obj)
+
+		public UnityEngine.Object GetReferentObject (string id)
 		{
-			referents.Add (obj);
-			return referents.Count - 1;
+			if (_referentMap.ContainsKey (id)) {
+				return _referentMap [id];
+			} else {
+				return null;
+			}
 		}
-		
-		public void RemoveReferent (int index)
+
+		public void SetReferentObject (string id, UnityEngine.Object obj)
 		{
-			referents.RemoveAt (index);
+			_referentMap [id] = obj;
 		}
+
+
+		public string AddReferent (UnityEngine.Object obj)
+		{
+			string id = string.Format ("{0}", nextId++);
+			_referentMap.Add (id, obj);
+			return id;
+		}
+
+		public UnityEngine.Object RemoveReferent (string id)
+		{
+			UnityEngine.Object obj;
+			if (_referentMap.ContainsKey (id)) {
+				obj = _referentMap [id];
+				_referentMap.Remove (id);
+			} else {
+				obj = null;
+			}
+			return obj;
+		}
+
+
+
+
+
 	}
 }

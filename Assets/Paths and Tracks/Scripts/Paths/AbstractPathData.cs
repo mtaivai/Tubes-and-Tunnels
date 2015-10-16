@@ -458,11 +458,11 @@ namespace Paths
 		/// </summary>
 		/// <returns>All path points, excluding the last point in looped paths (whose position is equal to position of first point)</returns>
 		/// <param name="outputFlags">Output flags.</param>
-		protected abstract List<PathPoint> DoGetPathPoints (out int outputFlags);
+		protected abstract List<PathPoint> DoGetInputPoints (out int outputFlags);
 		
-		protected PathPoint[] DoGetPathPointsArray (out int outputFlags)
+		protected PathPoint[] DoGetInputPointsArray (out int outputFlags)
 		{
-			return DoGetPathPoints (out outputFlags).ToArray ();
+			return DoGetInputPoints (out outputFlags).ToArray ();
 		}
 
 		// TODO move this to top of the class
@@ -544,7 +544,7 @@ namespace Paths
 			this.pathPointFlags = flags;
 			this.pathPoints = new List<PathPoint> (pp);
 
-			if (IsEditablePathMetadataSupported ()) {
+			if (IsEditablePathMetadataSupported ()) { // TODO this is quite slow op, please consider some alternative way!
 				// Collect parameters (weights) and add to metadata if not already added
 				HashSet<string> allWeightIds = new HashSet<string> ();
 				for (int i = 0; i < pp.Length; i++) {
@@ -598,7 +598,7 @@ namespace Paths
 		// TODO should this be virtual method?
 		protected List<PathPoint> GetInputPoints (out int flags)
 		{
-			return DoGetPathPoints (out flags);
+			return DoGetInputPoints (out flags);
 		}
 
 		public IPathModifierContainer GetPathModifierContainer ()
@@ -634,7 +634,7 @@ namespace Paths
 			DefaultPathModifierContainer pmc = new DefaultPathModifierContainer (
 				GetPathInfo,
 				GetPathMetadata,
-				DoGetPathPointsArray,
+				DoGetInputPointsArray,
 				ApplyPointsToControlPoints,
 				path.GetReferenceContainer, 
 				GetPathSnapshotManager, 

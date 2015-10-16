@@ -50,7 +50,7 @@ namespace Paths.Editor
 					"Following is list of available weight parameters for points in this data set." + 
 					" Default value can be used to specify the value that will be used for points without defined weight.", MessageType.Info, true);
 				
-				Rect controlRect = EditorGUILayout.BeginHorizontal (GUILayout.ExpandWidth (true));
+				EditorGUILayout.BeginHorizontal (GUILayout.ExpandWidth (true));
 				//				Debug.Log ("CTRL: " + controlRect);
 				float defaultValueFieldWidth = 40;
 				float minValueFieldWidth = 40;

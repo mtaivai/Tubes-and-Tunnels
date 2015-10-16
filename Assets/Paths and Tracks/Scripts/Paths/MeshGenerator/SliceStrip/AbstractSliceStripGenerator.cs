@@ -7,7 +7,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-using UnityEditor;
 using Util;
 using Paths;
 using Paths.MeshGenerator;
@@ -88,7 +87,7 @@ namespace Paths.MeshGenerator.SliceStrip
 				this.splitMeshCount = Mathf.Max (1, value);
 			}
 		}
-		public override void OnLoadParameters (ParameterStore store)
+		public override void OnLoadParameters (ParameterStore store, IReferenceContainer refContainer)
 		{
 //			sliceRotation = store.GetFloat ("sliceRotation", sliceRotation);
 			facesDir = store.GetEnum ("facesDir", facesDir);
@@ -98,7 +97,7 @@ namespace Paths.MeshGenerator.SliceStrip
 
 		}
 		
-		public override void OnSaveParameters (ParameterStore store)
+		public override void OnSaveParameters (ParameterStore store, IReferenceContainer refContainer)
 		{
 			// TODO what't "name" in here? Why? Is it used? Should it be removed?
 			store.SetString ("name", Name);
@@ -177,7 +176,7 @@ namespace Paths.MeshGenerator.SliceStrip
 				throw new Exception ("No data available in data source: " + dataSource.PathSelector);
 			}
 		
-			IPathData pathData = dataSource.PathSelector.PathData;
+//			IPathData pathData = dataSource.PathSelector.PathData;
 
 			//Debug.Log ("dirs: " + directions.Length + "; pts: " + points.Length);
 			int sliceCount = points.Length;

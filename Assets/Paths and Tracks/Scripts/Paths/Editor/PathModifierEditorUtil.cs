@@ -164,13 +164,14 @@ namespace Paths.Editor
 					if (thisHasErrors) {
 						haveErrors = true;
 					}
-					bool thisHasWarnings = container.HasMessages (PathModifierMessageType.Warning, pm);
-					bool thisHasInfo = container.HasMessages (PathModifierMessageType.Info, pm);
+//					bool thisHasWarnings = container.HasMessages (PathModifierMessageType.Warning, pm);
+//					bool thisHasInfo = container.HasMessages (PathModifierMessageType.Info, pm);
 
 					IPathInfo pathInfo = pathData.GetPathInfo ();
 
+					IPathMetadata pmd = pathData.IsPathMetadataSupported () ? pathData.GetPathMetadata () : UnsupportedPathMetadata.Instance;
 					PathModifierContext pmc = 
-						new PathModifierContext (pathInfo, container, pathData.GetPathMetadata (), currentInputFlags, pmParams);
+						new PathModifierContext (pathInfo, container, pmd, currentInputFlags, pmParams);
 
 					pmc.Errors.AddRange (container.GetCurrentMessages (PathModifierMessageType.Error, pm));
 					pmc.Warnings.AddRange (container.GetCurrentMessages (PathModifierMessageType.Warning, pm));
