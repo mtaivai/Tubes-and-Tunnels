@@ -1,0 +1,63 @@
+Introduction
+==========
+
+An issue with terrain shaders is that you can't have more than one rendering the same terrain.
+
+This causes issues when a person wants, for example, an Asset Store shader that adds bumpmapping, but also the transparency provided by this plugin's custom terrain shader.
+
+The solution is to merge the shader files--to include the extra funtionality of both in a single shader file. Shader modification can be difficult just starting out, but the changes needed to merge this package's terrain transparency shader with others are basic enough that it should be doable even for beginners. While the instructions below are not comprehensive, (they leave out some of the full shader's features), they've been trimmed in this way to make adding the basics more streamlined, with inclusion of the rest of its features open to those who are more comfortable with shader editing.
+
+Note that even trimmed down these instructions will only work for certain shaders--particularly only those that are surface shaders, as opposed to vertex/fragment shaders. If you can't find a line that these instructions reference, most likely you are using the latter, and the merging process will be more complicated. If you really have need of adding transparency to such a shader, you can message me through the forums and I'll see if I can help you add it manually.
+
+Steps/Instructions (for adding basic terrain transparency to another terrain shader)
+==========
+
+1) Add "Blend SrcAlpha OneMinusSrcAlpha" as a line, just inside the brackets of "SubShader".
+
+This enables alpha blending, which allows the shader to draw the terrain 'on top' of the things behind it, rather than just ovewriting the pixels.
+
+2) Add " alphatest:_AlphaCutoff_2 exclude_path:prepass" to the end of the line starting with "#pragma surface". (it should be just a bit under 'GGPROGRAM')
+
+This is what makes the pixels whose alpha is below the cutoff not be drawn. It also enables compatibility with point lights and the "Legacy Deferred" rendering path.
+
+3) Add the following two lines just above the line "void surf (Input IN, inout SurfaceOutput o)":
+----------
+float _AlphaCutoff;
+sampler2D _TransparencyMap;
+----------
+
+This lets the shader access the alpha-cutoff value and the transparency map.
+
+4) The final step is to include the code that compensates for the "darkening" of pixels near the holes (due to the splatmap texture being black, in the rgb channels).
+
+For the FirstPass shader (the main one, and perhaps the only one, depending on the terrain-shader package), you'll want to add the following lines just above the closing brackets of the "void surf" method mentioned in the previous step:
+----------
+fixed transApplication = tex2D(_TransparencyMap, IN.uv_Control).a;
+fixed totalOpacity = 1 - transApplication;
+
+if (totalOpacity > _AlphaCutoff)
+{
+	o.Albedo = col / totalOpacity;
+	o.Alpha = 1;
+}
+----------
+
+For the AddPass shader (if your terrain-shader package has one), you'll want to add the following lines at the same location:
+----------
+fixed transApplication = tex2D(_TransparencyMap, IN.uv_Control).a;
+fixed totalOpacity = 1 - transApplication;
+
+if (totalOpacity > _AlphaCutoff)
+	o.Albedo = col / totalOpacity;
+else
+	o.Albedo = float3(0, 0, 0);
+-----------
+
+Conclusion
+==========
+
+If the shader does not compile, there are actually a fair number of things that could have gone wrong. I could try to cover them all here, but it's probably better just to leave that process open to specific instances.
+
+If you have an issue merging shaders, you could try asking for help on the forums or private-messaging me. While I can't guarantee that I'll know how to fix it, I'll at least take a look and try to see what's wrong. If you manage to merge the two shaders yourself, and the shader is free/open-source, you could also try posting your merged shader on the forums so that others can benefit from it too!
+
+Good luck!

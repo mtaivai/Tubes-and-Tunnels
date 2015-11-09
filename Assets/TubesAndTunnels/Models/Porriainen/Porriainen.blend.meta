@@ -1,0 +1,347 @@
+fileFormatVersion: 2
+guid: 365e6441814784ca289803499d78e5ef
+timeCreated: 1445526960
+licenseType: Free
+ModelImporter:
+  serializedVersion: 18
+  fileIDToRecycleName:
+    100000: //RootNode
+    100002: Sphere
+    100004: Sphere_001
+    100006: Sphere_002
+    100008: Body
+    100010: Eye
+    100012: Eyelid
+    100014: Eye_001
+    100016: Eyelid_Old
+    100018: Housut
+    100020: Plane
+    100022: Armature
+    100024: Armature_001
+    100026: Eye_L
+    100028: Eye_R
+    100030: EyelidLower
+    100032: EyelidUpper
+    100034: IK_Eye_L
+    100036: IK_Eye_R
+    100038: IK_Eyes
+    100040: LeftEye
+    100042: RightEye
+    100044: Root
+    100046: Armature_Eyes
+    100048: EyelidUpper_L
+    100050: EyelidUpper_R
+    100052: IK_EyelidUpperRot_L
+    100054: IK_EyelidUpperRot_R
+    400000: //RootNode
+    400002: Sphere
+    400004: Sphere_001
+    400006: Sphere_002
+    400008: Body
+    400010: Eye
+    400012: Eyelid
+    400014: Eye_001
+    400016: Eyelid_Old
+    400018: Housut
+    400020: Plane
+    400022: Armature
+    400024: Armature_001
+    400026: Eye_L
+    400028: Eye_R
+    400030: EyelidLower
+    400032: EyelidUpper
+    400034: IK_Eye_L
+    400036: IK_Eye_R
+    400038: IK_Eyes
+    400040: LeftEye
+    400042: RightEye
+    400044: Root
+    400046: Armature_Eyes
+    400048: EyelidUpper_L
+    400050: EyelidUpper_R
+    400052: IK_EyelidUpperRot_L
+    400054: IK_EyelidUpperRot_R
+    2300000: Sphere
+    2300002: Sphere_001
+    2300004: Sphere_002
+    2300006: Body
+    2300008: Eye
+    2300010: Eyelid
+    2300012: Eye_001
+    2300014: Eyelid_Old
+    2300016: Housut
+    2300018: Plane
+    2300020: EyelidLower
+    2300022: EyelidUpper
+    2300024: LeftEye
+    2300026: RightEye
+    3300000: Sphere
+    3300002: Sphere_001
+    3300004: Sphere_002
+    3300006: Body
+    3300008: Eye
+    3300010: Eyelid
+    3300012: Eye_001
+    3300014: Eyelid_Old
+    3300016: Housut
+    3300018: Plane
+    3300020: EyelidLower
+    3300022: EyelidUpper
+    3300024: LeftEye
+    3300026: RightEye
+    4300000: Sphere
+    4300002: Sphere_001
+    4300004: Sphere_002
+    4300006: Body
+    4300008: Eyelid
+    4300010: Eye
+    4300012: Eye_001
+    4300014: Eyelid_Old
+    4300016: Housut
+    4300018: Plane
+    4300020: RightEye
+    4300022: EyelidLower
+    4300024: EyelidUpper
+    4300026: LeftEye
+    6400000: Body
+    6400002: EyelidLower
+    6400004: EyelidUpper
+    6400006: Housut
+    6400008: LeftEye
+    6400010: Plane
+    6400012: RightEye
+    7400000: Default Take
+    7400002: Armature_001Action
+    7400004: LookLeft
+    7400006: LookRight
+    7400008: LookLeft0
+    7400010: Get_Angry
+    9500000: //RootNode
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    optimizeGameObjects: 0
+    motionNodeName: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    animationCompression: 3
+    animationRotationError: .5
+    animationPositionError: .5
+    animationScaleError: .5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    clipAnimations:
+    - serializedVersion: 16
+      name: Default Take
+      takeName: Default Take
+      firstFrame: 0
+      lastFrame: 19
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask:
+      - path: 
+        weight: 1
+      - path: Armature_Eyes
+        weight: 1
+      - path: Armature_Eyes/Eye_R
+        weight: 1
+      - path: Armature_Eyes/IK_EyelidUpperRot_L
+        weight: 1
+      - path: Armature_Eyes/IK_EyelidUpperRot_R
+        weight: 1
+      - path: Body
+        weight: 1
+      - path: Body/EyelidLower
+        weight: 1
+      - path: Body/EyelidUpper
+        weight: 1
+      - path: Body/LeftEye
+        weight: 1
+      - path: Body/RightEye
+        weight: 1
+      - path: Housut
+        weight: 1
+      - path: Plane
+        weight: 1
+      maskType: 0
+      maskSource: {instanceID: 0}
+    - serializedVersion: 16
+      name: LookLeft
+      takeName: LookLeft
+      firstFrame: 0
+      lastFrame: 29
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask:
+      - path: 
+        weight: 1
+      - path: Armature
+        weight: 1
+      - path: Armature/Root
+        weight: 1
+      - path: Armature_001
+        weight: 1
+      - path: Armature_001/Eye_L
+        weight: 1
+      - path: Armature_001/Eye_R
+        weight: 1
+      - path: Armature_001/IK_Eye_L
+        weight: 1
+      - path: Armature_001/IK_Eye_R
+        weight: 1
+      - path: Armature_001/IK_Eyes
+        weight: 1
+      - path: Body
+        weight: 1
+      - path: Body/EyelidLower
+        weight: 1
+      - path: Body/EyelidUpper
+        weight: 1
+      - path: Body/LeftEye
+        weight: 1
+      - path: Body/RightEye
+        weight: 1
+      - path: Housut
+        weight: 1
+      - path: Plane
+        weight: 1
+      maskType: 0
+      maskSource: {instanceID: 0}
+    - serializedVersion: 16
+      name: LookRight
+      takeName: LookRight
+      firstFrame: 0
+      lastFrame: 29
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask:
+      - path: 
+        weight: 1
+      - path: Armature
+        weight: 1
+      - path: Armature/Root
+        weight: 1
+      - path: Armature_001
+        weight: 1
+      - path: Armature_001/Eye_L
+        weight: 1
+      - path: Armature_001/Eye_R
+        weight: 1
+      - path: Armature_001/IK_Eye_L
+        weight: 1
+      - path: Armature_001/IK_Eye_R
+        weight: 1
+      - path: Armature_001/IK_Eyes
+        weight: 1
+      - path: Body
+        weight: 1
+      - path: Body/EyelidLower
+        weight: 1
+      - path: Body/EyelidUpper
+        weight: 1
+      - path: Body/LeftEye
+        weight: 1
+      - path: Body/RightEye
+        weight: 1
+      - path: Housut
+        weight: 1
+      - path: Plane
+        weight: 1
+      maskType: 0
+      maskSource: {instanceID: 0}
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 1
+    importBlendShapes: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    splitTangentsAcrossUV: 1
+    normalImportMode: 0
+    tangentImportMode: 1
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    human: []
+    skeleton: []
+    armTwist: .5
+    foreArmTwist: .5
+    upperLegTwist: .5
+    legTwist: .5
+    armStretch: .0500000007
+    legStretch: .0500000007
+    feetSpacing: 0
+    rootMotionBoneName: 
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 2
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -15,6 +15,10 @@ namespace Paths.MeshGenerator.Extruder.Editor
 {
 	public class DieEditorMultiTool : DieEditorVertexMoveTool
 	{
+		protected const int ActionGroupGeneral = 0;
+		protected const int ActionGroupVertex = 1;
+		protected const int ActionGroupEdge = 2;
+
 		private bool buttonlessDrag = false;
 		private HashSet<int> tempVertices = new HashSet<int> ();
 		private HashSet<int> tempEdges = new HashSet<int> ();
@@ -30,12 +34,10 @@ namespace Paths.MeshGenerator.Extruder.Editor
 			return DieEditorSelectMode.Multi;
 		}
 
-		const int ActionGroupGeneral = 0;
-		const int ActionGroupVertex = 1;
-		const int ActionGroupEdge = 2;
 
 
-		private bool RequireSupportedModelOps (IDieEditorToolContext context, SupportedModelOps requiredOps)
+
+		protected static bool RequireSupportedModelOps (IDieEditorToolContext context, SupportedModelOps requiredOps)
 		{
 			if (context.IsMutableModel ()) {
 				IMutableDieModel model = context.GetMutableDieModel ();
@@ -45,37 +47,37 @@ namespace Paths.MeshGenerator.Extruder.Editor
 				return false;
 			}
 		}
-		private bool RequireFocusedVertex (IDieEditorToolContext context)
+		protected static bool RequireFocusedVertex (IDieEditorToolContext context)
 		{
 			return context.GetFocusedVertexIndex () >= 0;
 		}
-		private bool RequireFocusedVertexWithAddVertexAndEdgeSupport (IDieEditorToolContext context)
+		protected static bool RequireFocusedVertexWithAddVertexAndEdgeSupport (IDieEditorToolContext context)
 		{
 			return RequireFocusedVertex (context) && RequireSupportedModelOps (context, SupportedModelOps.AddVertex | SupportedModelOps.AddEdge);
 		}
 
-		private bool RequireFocusedEdge (IDieEditorToolContext context)
+		protected static bool RequireFocusedEdge (IDieEditorToolContext context)
 		{
 			return context.GetFocusedEdgeIndex () >= 0;
 		}
-		private bool RequireFocusedVertexOrEdge (IDieEditorToolContext context)
+		protected static  bool RequireFocusedVertexOrEdge (IDieEditorToolContext context)
 		{
 			return context.GetFocusedEdgeIndex () >= 0 || context.GetFocusedVertexIndex () >= 0;
 		}
 
-		private bool RequireSupportsSplitVertices (IDieEditorToolContext context)
+		protected static  bool RequireSupportsSplitVertices (IDieEditorToolContext context)
 		{
 			IDieModel model = context.GetDieModel ();
 			return model.SupportsSplitVertices ();
 		}
-		private bool RequireSupportsSplitVerticesAndMutableModel (IDieEditorToolContext context)
+		protected static  bool RequireSupportsSplitVerticesAndMutableModel (IDieEditorToolContext context)
 		{
 			IDieModel model = context.GetDieModel ();
 			return model.SupportsSplitVertices () && context.IsMutableModel ();
 		}
 
 		[EditorAction(ActionGroupGeneral, "Delete _x")]
-		private void DeleteSelected (IDieEditorToolContext context)
+		protected static void DeleteSelected (IDieEditorToolContext context)
 		{
 			// TODO implement this
 //		model.RemoveVerticesAt (selectedVertexIndices);
@@ -85,7 +87,7 @@ namespace Paths.MeshGenerator.Extruder.Editor
 //		selectedEdgeIndices.Clear ();
 		}
 		// NOTE: automatically mapped to DeleteSelected action by method name! Don't rename!
-		private bool ValidateDeleteSelected (IDieEditorToolContext context)
+		protected static bool ValidateDeleteSelected (IDieEditorToolContext context)
 		{
 			return false; // TODO uncomment following, delete this line
 			//return context.GetFocusedVertexIndex () >= 0 || context.GetSelectedVertices ().Length > 0 || context.GetFocusedEdgeIndex () >= 0 || context.GetSelectedEdges ().Length > 0;
@@ -94,28 +96,28 @@ namespace Paths.MeshGenerator.Extruder.Editor
 
 
 		[EditorAction(ActionGroupVertex, "Detach Vertex", "RequireFocusedVertex")]
-		private void DetachVertex (IDieEditorToolContext context)
+		protected static void DetachVertex (IDieEditorToolContext context)
 		{
 			throw new NotImplementedException ("DetachVertex is not implemented (I'm not sure if it ever will be...)");
 		}
 
 		[EditorAction(ActionGroupVertex, "Mark Seam", "ValidateMarkSeam")]
-		private void MarkSeam (IDieEditorToolContext context)
+		protected static void MarkSeam (IDieEditorToolContext context)
 		{
 			context.GetMutableDieModel ().SetSeamAt (context.GetFocusedVertexIndex (), true);
 		}
-		private bool ValidateMarkSeam (IDieEditorToolContext context)
+		protected static bool ValidateMarkSeam (IDieEditorToolContext context)
 		{
 			IDieModel model = context.GetDieModel ();
 			return RequireSupportsSplitVerticesAndMutableModel (context) && RequireFocusedVertex (context) && !model.IsSeamAt (context.GetFocusedVertexIndex ());
 		}
 
 		[EditorAction(ActionGroupVertex, "Clear Seam", "ValidateClearSeam")]
-		private void ClearSeam (IDieEditorToolContext context)
+		protected static void ClearSeam (IDieEditorToolContext context)
 		{
 			context.GetMutableDieModel ().SetSeamAt (context.GetFocusedVertexIndex (), false);
 		}
-		private bool ValidateClearSeam (IDieEditorToolContext context)
+		protected static bool ValidateClearSeam (IDieEditorToolContext context)
 		{
 			IDieModel model = context.GetDieModel ();
 			return RequireSupportsSplitVerticesAndMutableModel (context) && RequireFocusedVertex (context) && model.IsSeamAt (context.GetFocusedVertexIndex ());
@@ -123,46 +125,46 @@ namespace Paths.MeshGenerator.Extruder.Editor
 
 
 		[EditorAction(ActionGroupVertex, "Mark Sharp Edge", "ValidateMarkSharpEdge")]
-		private void MarkSharpEdge (IDieEditorToolContext context)
+		protected static void MarkSharpEdge (IDieEditorToolContext context)
 		{
 			context.GetMutableDieModel ().SetSharpVertexAt (context.GetFocusedVertexIndex (), true);
 		}
-		private bool ValidateMarkSharpEdge (IDieEditorToolContext context)
+		protected static bool ValidateMarkSharpEdge (IDieEditorToolContext context)
 		{
 			IDieModel model = context.GetDieModel ();
 			return RequireFocusedVertex (context) && RequireSupportsSplitVerticesAndMutableModel (context) && !model.IsSharpVertexAt (context.GetFocusedVertexIndex ());
 		}
 
 		[EditorAction(ActionGroupVertex, "Clear Sharp Edge", "ValidateClearSharpEdge")]
-		private void ClearSharpEdge (IDieEditorToolContext context)
+		protected static void ClearSharpEdge (IDieEditorToolContext context)
 		{
 			context.GetMutableDieModel ().SetSharpVertexAt (context.GetFocusedVertexIndex (), false);
 		}
-		private bool ValidateClearSharpEdge (IDieEditorToolContext context)
+		protected static bool ValidateClearSharpEdge (IDieEditorToolContext context)
 		{
 			return RequireFocusedVertex (context) && RequireSupportsSplitVerticesAndMutableModel (context) && context.GetDieModel ().IsSharpVertexAt (context.GetFocusedVertexIndex ());
 		}
 
 
 		[EditorAction(ActionGroupVertex, "Slide Vertex", "RequireFocusedVertex")]
-		private void SlideVertex (IDieEditorToolContext context)
+		protected static void SlideVertex (IDieEditorToolContext context)
 		{
 			throw new NotImplementedException ("SlideVertex is not yet implemented. Sorry.");
 		}
 
 		[EditorAction(ActionGroupVertex, "Extrude Vertex _e", "RequireFocusedVertexWithAddVertexAndEdgeSupport")]
-		private void ExtrudeVertex (IDieEditorToolContext context)
+		protected void ExtrudeVertex (IDieEditorToolContext context)
 		{
 			BeginExtrude (context);
 		}
 
 		[EditorAction(ActionGroupVertex, "Insert Vertex _i")]
-		private void InsertVertex (IDieEditorToolContext context)
+		protected static void InsertVertex (IDieEditorToolContext context)
 		{
 			Vector3 pos = context.GetCursorModelPos ();
 			context.GetMutableDieModel ().AddVertex (pos);
 		}
-		private bool ValidateInsertVertex (IDieEditorToolContext context)
+		protected static bool ValidateInsertVertex (IDieEditorToolContext context)
 		{
 			return context.GetFocusedVertexIndex () < 0 && RequireSupportedModelOps (context, SupportedModelOps.AddVertex);
 		}
@@ -170,7 +172,7 @@ namespace Paths.MeshGenerator.Extruder.Editor
 		//BeginExtrude (context);
 
 		[EditorAction(ActionGroupEdge, "Split Edge Here", "RequireFocusedEdge")]
-		private void SplitEdgeHere (IDieEditorToolContext context)
+		protected static void SplitEdgeHere (IDieEditorToolContext context)
 		{
 
 
@@ -189,16 +191,18 @@ namespace Paths.MeshGenerator.Extruder.Editor
 				// Remove the edge
 				//model.RemoveEdgeAt (edgeIndex, false);
 
+				IMutableDieModel mutableModel = (IMutableDieModel)model;
+
 				// Add new Vertex
 				Vector3 splitPt = context.InverseTransformModelPoint (context.GetProjectedPointOnFocusedEdge ());
-				int newVertexIndex = model.AddVertex (splitPt);
+				int newVertexIndex = mutableModel.AddVertex (splitPt);
 
 				// Reroute the split edge:
 				edge.SetToVertexIndex (newVertexIndex);
-				model.SetEdgeAt (edgeIndex, edge);
+				mutableModel.SetEdgeAt (edgeIndex, edge);
 
 				// Add new edge from the split point:
-				model.InsertEdge (edgeIndex + 1, newVertexIndex, toIndex);
+				mutableModel.InsertEdge (edgeIndex + 1, newVertexIndex, toIndex);
 //
 //				int newBeforeEdgeIndex = model.AddEdge (fromIndex, newVertexIndex);
 //				int newAfterEdgeIndex = model.AddEdge (newVertexIndex, toIndex);
@@ -215,7 +219,7 @@ namespace Paths.MeshGenerator.Extruder.Editor
 				Vector2 uv0 = model.GetUvAt (fromIndex, edgeIndex);
 				Vector2 uv1 = model.GetUvAt (toIndex, edgeIndex + 1);
 				Vector2 uv = (uv1 - uv0) * distFromBeginToSplit / edgeLength;
-				model.SetUvAt (newVertexIndex, uv);
+				mutableModel.SetUvAt (newVertexIndex, uv);
 
 			});
 		}
@@ -223,7 +227,7 @@ namespace Paths.MeshGenerator.Extruder.Editor
 
 
 		[EditorAction(ActionGroupEdge, "Switch Direction of Edge(s)", "RequireFocusedEdge")]
-		private void SwitchEdgeDirection (IDieEditorToolContext context)
+		protected static void SwitchEdgeDirection (IDieEditorToolContext context)
 		{
 			int ei = context.GetFocusedEdgeIndex ();
 			if (ei >= 0) {
@@ -239,7 +243,7 @@ namespace Paths.MeshGenerator.Extruder.Editor
 
 
 		[EditorAction(ActionGroupEdge, "Select Connected Edge(s)", "RequireFocusedVertexOrEdge")]
-		private void SelectConnectedEdges (IDieEditorToolContext context)
+		protected static void SelectConnectedEdges (IDieEditorToolContext context)
 		{
 			DoSelectConnectedEdges (context, true, true, true);
 			context.GetEditor ().Repaint ();
@@ -247,20 +251,20 @@ namespace Paths.MeshGenerator.Extruder.Editor
 
 
 		[EditorAction(ActionGroupEdge, "Select Connected Edge(s) From Here", "RequireFocusedVertexOrEdge")]
-		private void SelectConnectedEdgesFromHere (IDieEditorToolContext context)
+		protected static void SelectConnectedEdgesFromHere (IDieEditorToolContext context)
 		{
 			DoSelectConnectedEdges (context, true, false, true);
 			context.GetEditor ().Repaint ();
 		}
 
 		[EditorAction(ActionGroupEdge, "Select Connected Edge(s) To Here", "RequireFocusedVertexOrEdge")]
-		private void SelectConnectedEdgesToHere (IDieEditorToolContext context)
+		protected static void SelectConnectedEdgesToHere (IDieEditorToolContext context)
 		{
 			DoSelectConnectedEdges (context, true, true, false);
 			context.GetEditor ().Repaint ();
 		}
 
-		private void DoSelectConnectedEdges (IDieEditorToolContext context, bool stopOnSeams, bool backwards, bool forwards)
+		private static void DoSelectConnectedEdges (IDieEditorToolContext context, bool stopOnSeams, bool backwards, bool forwards)
 		{
 			FindEdgesFlags findFlags = FindEdgesFlags.IncludeDistantEdges;
 			if (stopOnSeams) {

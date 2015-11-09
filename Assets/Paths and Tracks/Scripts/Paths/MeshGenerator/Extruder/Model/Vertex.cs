@@ -20,7 +20,6 @@ namespace Paths.MeshGenerator.Extruder.Model.Internal
 		private Vector3
 			position;
 
-		// TODO we could use edgeUvMap to store the default uv as well (with index -1)
 		[SerializeField]
 		private Vector2
 			uv;

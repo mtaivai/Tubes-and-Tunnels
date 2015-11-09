@@ -4,6 +4,7 @@
 
 using UnityEngine;
 using UnityEditor;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Paths.MeshGenerator.Extruder;
@@ -19,6 +20,23 @@ using Paths.MeshGenerator.Extruder.Model;
 
 namespace Paths.MeshGenerator.Extruder.Editor
 {
+	public class DieEditorUVMappingMultiTool : DieEditorMultiTool
+	{
+		[EditorAction(ActionGroupVertex, "Clear UV", "RequireFocusedVertex")]
+		private void ClearUV (IDieEditorToolContext context)
+		{
+			HashSet<int> selectedVertices = new HashSet<int> (context.GetSelectedVertices ());
+			selectedVertices.Add (context.GetFocusedVertexIndex ());
+			UVEditorDieModel model = context.GetDieModel () as UVEditorDieModel;
+			model.BatchOperation ("Clear UV", (mdl) => {
+				foreach (int vi in selectedVertices) {
+					model.ClearUvAt (vi);
+				}
+			});
+
+			context.GetDieEditor ().Repaint ();
+		}
+	}
 
 	public class DieEditorUVMappingWindow : DieEditorWindow
 	{
@@ -26,6 +44,16 @@ namespace Paths.MeshGenerator.Extruder.Editor
 
 		private Texture2D texture;
 		//private float vScaling = 1.0f;
+
+
+		[SerializeField]
+		private bool
+			showSelectedEdgesOnly = true;
+
+		[SerializeField]
+		private bool
+			alsoShowEdgesOnSameStrip = true;
+
 
 		[MenuItem ("Window/Die UV Editor")]
 		public static void MenuShowDieUVEditorWindow ()
@@ -36,6 +64,7 @@ namespace Paths.MeshGenerator.Extruder.Editor
 
 		public DieEditorUVMappingWindow ()
 		{
+			CurrentModelTool = new DieEditorUVMappingMultiTool ();
 		}
 
 		protected new UVEditorDieModel DieModel {
@@ -57,11 +86,21 @@ namespace Paths.MeshGenerator.Extruder.Editor
 //			((UnwrappedDieModel)DieModel).Rebuild ();
 //			Repaint ();
 //		}
+
+		private int _changedEventDepth = 0;
 		private void WrappedDieModelChanged (DieModelChangedEventArgs e)
 		{
-			// The original wrapped modle has changed; we need to rebuild our model!
-			DieModel.Rebuild (true);
-			Repaint ();
+			if (e.IsAfterEvent && _changedEventDepth == 0) {
+				// The original wrapped modle has changed; we need to rebuild our model!
+				try {
+					_changedEventDepth++;
+					DieModel.Rebuild (true);
+					Repaint ();
+				} finally {
+					_changedEventDepth --;
+				}
+
+			}
 		}
 		private void WrappedModelSelectionChanged (DieModelSelectionEventArgs e)
 		{
@@ -136,6 +175,15 @@ namespace Paths.MeshGenerator.Extruder.Editor
 		protected override void DrawCustomToolbar ()
 		{
 			EditorGUI.BeginChangeCheck ();
+			showSelectedEdgesOnly = GUILayout.Toggle (showSelectedEdgesOnly, "Filter", EditorStyles.toolbarButton);
+			EditorGUI.BeginDisabledGroup (!showSelectedEdgesOnly);
+			alsoShowEdgesOnSameStrip = GUILayout.Toggle (alsoShowEdgesOnSameStrip, "+Strip", EditorStyles.toolbarButton);
+			EditorGUI.EndDisabledGroup ();
+			if (EditorGUI.EndChangeCheck ()) {
+				Repaint ();
+			}
+
+			EditorGUI.BeginChangeCheck ();
 //			this.texture = (Texture2D)EditorGUI.ObjectField (rect, this.texture, typeof(Texture2D), true);
 			this.texture = (Texture2D)EditorGUILayout.ObjectField (texture, typeof(Texture2D), true, GUILayout.ExpandWidth (false));
 			if (EditorGUI.EndChangeCheck ()) {
@@ -170,22 +218,54 @@ namespace Paths.MeshGenerator.Extruder.Editor
 				//this.vScaling = aspectRatios [selectedAspectRatioIndex];
 				this.CanvasScaleAspectRatio = aspectRatios [selectedAspectRatioIndex];
 			}
+
 		}
 
 		protected override bool IsEdgeVisible (int edgeIndex)
 		{
 			bool visible;
-			IDieModelEditorSupport wrappedEditorSupport = DieModel.UnwrappedModel.WrappedModel as IDieModelEditorSupport;
-			if (null != wrappedEditorSupport) {
-				visible = false;
-				int[] selectedEdges = wrappedEditorSupport.GetDieModelSelectionSupport ().GetSelectedEdgeIndices ();
-				// Selected edge indices are in wrapped model's nomenclature
-				int wrappedEdgeIndex = DieModel.UnwrappedModel.GetWrappedEdgeIndex (edgeIndex);
-				foreach (int ei in selectedEdges) {
-					if (wrappedEdgeIndex == ei) {
-						visible = true;
-						break;
+			if (showSelectedEdgesOnly) {
+				UnwrappedDieModel unwrappedModel = DieModel.UnwrappedModel;
+				IDieModelEditorSupport wrappedEditorSupport = unwrappedModel.WrappedModel as IDieModelEditorSupport;
+				if (null != wrappedEditorSupport) {
+					visible = false;
+
+
+
+					int[] selectedEdges = wrappedEditorSupport.GetDieModelSelectionSupport ().GetSelectedEdgeIndices ();
+
+
+
+
+					if (alsoShowEdgesOnSameStrip) {
+						int stripIndex = unwrappedModel.GetEdgeStripIndex (edgeIndex);
+						int[] stripEdges = unwrappedModel.GetStripAt (stripIndex);
+						HashSet<int> wrappedStripEdgeIndices = new HashSet<int> ();
+						foreach (int ei in stripEdges) {
+							int wrappedEdgeIndex = unwrappedModel.GetWrappedEdgeIndex (ei);
+							wrappedStripEdgeIndices.Add (wrappedEdgeIndex);
+						}
+						foreach (int ei in selectedEdges) {
+							if (wrappedStripEdgeIndices.Contains (ei)) {
+								visible = true;
+								break;
+							}
+						}
+					} else {
+						// Selected edge indices are in wrapped model's nomenclature
+						int wrappedEdgeIndex = unwrappedModel.GetWrappedEdgeIndex (edgeIndex);
+						foreach (int ei in selectedEdges) {
+							if (wrappedEdgeIndex == ei) {
+								visible = true;
+								break;
+							}
+						}
 					}
+
+
+
+				} else {
+					visible = true;
 				}
 			} else {
 				visible = true;
@@ -198,6 +278,9 @@ namespace Paths.MeshGenerator.Extruder.Editor
 //			Texture txt = (Texture)Resources.Load ("tunnelslice01", typeof(Texture));
 
 			if (null != texture) {
+
+
+
 
 				Vector3 bottomLeft = TransformModelPoint (Vector3.zero);
 				Vector3 topRight = TransformModelPoint (Vector3.one);
@@ -212,12 +295,67 @@ namespace Paths.MeshGenerator.Extruder.Editor
 
 				// TODO we need to manually clip the graphics
 				//GUI.Box (rect, texture, GUIStyle.none);
-				Graphics.DrawTexture (rect, texture);
+				//Graphics.DrawTexture (rect, texture);
+				GUI.DrawTexture (rect, texture);
+				// Check if we need to repeat the texture:
 
-
+				float minY = float.MaxValue;
+				float maxY = float.MinValue;
+				foreach (Vector3 v in DieModel.GetVertices()) {
+					if (v.y < minY) {
+						minY = v.y;
+					}
+					if (v.y > maxY) {
+						maxY = v.y;
+					}
+				}
+				int repeatBelow = -Mathf.RoundToInt (minY - 0.5f);
+				for (int i = 0; i < repeatBelow; i++) {
+					Rect r = new Rect (rect.position, rect.size);
+					r.y += r.height * (float)(i + 1);
+					GUI.DrawTexture (r, texture);
+				}
 			}
 			//Resources.UnloadAsset (txt);
 			base.OnDrawModel ();
+
+			// Draw faces for an (imaginery) extruded segment:
+//			DieModel.GetVertices();
+			int vertexCount = DieModel.GetVertexCount ();
+			int edgeCount = DieModel.GetEdgeCount ();
+
+
+			Vector3 canvasUp1 = TransformModelVector (new Vector3 (0, 1, 0));
+
+			for (int ei = 0; ei < edgeCount; ei++) {
+				Edge e = DieModel.GetEdgeAt (ei);
+				int fromVertex = e.GetFromVertexIndex ();
+				Vector3 fromVertexPos;
+				if (CurrentModelTool.IsVertexInToolContext (fromVertex)) {
+					fromVertexPos = CurrentModelTool.GetVertexToolContextPosition (fromVertex);
+				} else {
+					fromVertexPos = DieModel.GetVertexAt (fromVertex);
+				}
+
+				int toVertex = e.GetToVertexIndex ();
+				Vector3 toVertexPos;
+				if (CurrentModelTool.IsVertexInToolContext (toVertex)) {
+					toVertexPos = CurrentModelTool.GetVertexToolContextPosition (toVertex);
+				} else {
+					toVertexPos = DieModel.GetVertexAt (toVertex);
+				}
+
+				Vector3 pt0 = TransformModelPoint (fromVertexPos);
+				Vector3 pt1 = pt0 + canvasUp1;
+				Vector3 pt2 = TransformModelPoint (toVertexPos) + canvasUp1;
+				DrawEdge (pt0, pt1, false, false, false, "");
+				DrawEdge (pt1, pt2, false, false, false, "");
+
+				if (ei == edgeCount - 1) {
+					Vector3 pt3 = TransformModelPoint (toVertexPos);
+					DrawEdge (pt2, pt3, false, false, false, "");
+				}
+			}
 		}
 
 //		protected override void OnDrawModel ()

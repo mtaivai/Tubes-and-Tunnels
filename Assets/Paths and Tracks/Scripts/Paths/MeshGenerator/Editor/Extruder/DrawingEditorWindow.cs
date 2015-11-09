@@ -27,8 +27,6 @@ namespace Paths.MeshGenerator.Extruder.Editor
 	public abstract class DrawingEditorWindow : DrawingEditorWindowBase
 	{
 
-		int selStyleIndex = -1;
-	
 		private class GridConfig
 		{
 			private string name;
@@ -83,8 +81,14 @@ namespace Paths.MeshGenerator.Extruder.Editor
 		}
 
 		private List<GridConfig> grids = new List<GridConfig> ();
-		private int enabledGridsMask;
-		private bool gridsEnabled = true;
+
+		[SerializeField]
+		private int
+			enabledGridsMask;
+
+		[SerializeField]
+		private bool
+			gridsEnabled = true;
 		private bool forceSnapToGrid = false;
 		private bool showOrigo = true;
 
@@ -100,9 +104,16 @@ namespace Paths.MeshGenerator.Extruder.Editor
 		protected Rect canvasRect;
 
 		private float canvasScaleFactorMult = 0.2f; // For nice scaling? TODO what's this?
-		private float canvasScaleFactor = 1.0f;
-		private float canvasScaleAspectRatio = 1.0f; // x / y
-		private Vector2 canvasOffset = new Vector2 (200f, 0f);
+
+		[SerializeField]
+		private float
+			canvasScaleFactor = 1.0f;
+		[SerializeField]
+		private float
+			canvasScaleAspectRatio = 1.0f; // x / y
+		[SerializeField]
+		private Vector2
+			canvasOffset = new Vector2 (200f, 0f);
 
 		// TODO get rid of this!
 		private bool needsRepaint = false;
@@ -213,7 +224,9 @@ namespace Paths.MeshGenerator.Extruder.Editor
 			grids.Add (new GridConfig ("1.0", 1f, new Color (0.7f, 0.7f, 0.8f, 0.6f)));
 			grids.Add (new GridConfig ("0.5", 0.5f, new Color (0.6f, 0.6f, 0.6f, 0.4f)));
 			grids.Add (new GridConfig ("0.1", 0.1f, new Color (0.5f, 0.5f, 0.5f, 0.2f)));
-			enabledGridsMask = 0x01 | 0x02 | 0x04 | 0x08;
+			grids.Add (new GridConfig ("0.05", 0.05f, new Color (0.5f, 0.5f, 0.5f, 0.2f)));
+			grids.Add (new GridConfig ("0.01", 0.01f, new Color (0.5f, 0.5f, 0.5f, 0.2f)));
+			//enabledGridsMask = 0x01 | 0x02 | 0x04 | 0x08;
 
 			OnEnabled ();
 		}

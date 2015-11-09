@@ -35,6 +35,7 @@ namespace Paths.MeshGenerator.Extruder.Model
 			EdgesRemoved,
 			EdgesModified
 		}
+		//private System.Object source;
 		private IDieModel model;
 		private EventPhase phase;
 		private EventReason reason;

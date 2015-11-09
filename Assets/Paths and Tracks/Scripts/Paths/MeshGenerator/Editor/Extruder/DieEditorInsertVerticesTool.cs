@@ -142,7 +142,7 @@ namespace Paths.MeshGenerator.Extruder.Editor
 				}
 
 
-				context.GetDieEditor ().DrawEdge (pt0, pt1, false, true, "");
+				context.GetDieEditor ().DrawEdge (pt0, pt1, false, true, true, "");
 				context.GetDieEditor ().Repaint ();
 			}
 		}

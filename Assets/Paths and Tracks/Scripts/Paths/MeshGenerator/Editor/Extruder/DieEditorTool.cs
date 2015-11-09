@@ -242,11 +242,11 @@ namespace Paths.MeshGenerator.Extruder.Editor
 		}
 		public static readonly DieEditorTool None = new NoTool ();
 
-		private List<EditorActionInfo> actions = new List<EditorActionInfo> ();
+
 
 		protected DieEditorTool ()
 		{
-			actions = CollectActions (this);
+
 		}
 
 		public override string GetToolId ()
@@ -297,7 +297,8 @@ namespace Paths.MeshGenerator.Extruder.Editor
 			// Find available Actions
 			Dictionary<string, EditorActionInfo> actionInfos = new Dictionary<string, EditorActionInfo> ();
 
-			BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
+			BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.NonPublic | 
+				BindingFlags.Instance | BindingFlags.Static | BindingFlags.FlattenHierarchy;
 
 			MethodInfo[] allMethods = target.GetType ().GetMethods (bindingFlags);
 			foreach (MethodInfo mi in allMethods) {
@@ -441,7 +442,9 @@ namespace Paths.MeshGenerator.Extruder.Editor
 
 			List<EditorActionInfo> shownActions = new List<EditorActionInfo> ();
 			List<Delegate> actionDelegates = new List<Delegate> ();
-			foreach (EditorActionInfo eai in this.actions) {
+
+			List<EditorActionInfo> actions = CollectActions (this);
+			foreach (EditorActionInfo eai in actions) {
 				if (CallValidateAction (eai.validateAction, context)) {
 					shownActions.Add (eai);
 					actionDelegates.Add (eai.action);

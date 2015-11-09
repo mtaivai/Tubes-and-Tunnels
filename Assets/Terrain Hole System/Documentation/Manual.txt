@@ -1,0 +1,29 @@
+Thank you for purchasing the Terrain Hole System extension!
+
+Quick Start
+==========
+
+1. Create a new Material asset in your Project view, and set its shader to "TRI/THS/Basic".
+2. Drag the Material onto the "Material" setting in the "Terrain Settings" tab of your Terrain script.
+3. Add the Terrain Transparency script to your terrain object. This is what enables transparency, and lets you change some settings.
+4. Add the "Terrain Hole System/Textures/Transparent" texture as one of your terrain's textures/splatmaps.
+5. Paint on your terrain with the transparent texture. The places that you paint will become transparent. (note: for faster/less-laggy painting, disable the "Auto Update Transparency Map" option before painting, and re-enable it afterward)
+6. Add the Object Fall Through script to each object that you want to fall through transparent areas.
+
+Hit play, and try falling through the holes you made!
+
+Options
+==========
+
+To enable/disable "No Shadows Mode" (as mentioned below), add the "THSOptions" script to a GameObject in your scene, and use the "No Shadows Mode" checkbox in the inspector.
+
+Notes
+==========
+
+* If shadows are enabled with Forward rendering, transparent areas still "receive shadows", making the objects behind them darker. You can avoid this by switching to Deferred rendering, or enabling "no shadows mode" (in the THS settings script).
+
+Known Issues
+==========
+* If the rendering path is set to "Legacy Deferred (light prepass)", objects behind "transparent" sections are invisible unless you enable "No Shadows Mode". One work-around is to use a separate camera for your terrain object, whose rendering path is set to "Forward" or "Deferred".
+
+* If the rendering path is set to "Deferred", the BumpMapped shaders do not have specular lighting.

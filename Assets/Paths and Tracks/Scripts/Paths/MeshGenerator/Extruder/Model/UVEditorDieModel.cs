@@ -18,8 +18,9 @@ namespace Paths.MeshGenerator.Extruder.Model
 	{
 		private UnwrappedDieModel unwrappedModel;
 		private DefaultDieModelSelectionSupport selectionSupport = new DefaultDieModelSelectionSupport ();
-		private event DieModelChangeHandler Changed; 
+//		private event DieModelChangeHandler Changed; 
 
+		private int _batchDepth = 0;
 
 		private UVEditorDieModel (UnwrappedDieModel unwrappedModel)
 		{
@@ -49,79 +50,7 @@ namespace Paths.MeshGenerator.Extruder.Model
 				unwrappedModel.Rebuild ();
 			}
 
-			// Assign initial uv values
-			// TODO IMPLEMENT THIS!
-			int stripCount = unwrappedModel.GetStripCount ();
-			for (int si = 0; si < stripCount; si++) {
-
-				List<StripVertex> stripVertices = new List<StripVertex> ();
-				float currentDist = 0.0f;
-				int[] stripEdges = unwrappedModel.GetStripAt (si);
-				int stripEdgeCount = stripEdges.Length;
-				for (int i = 0; i < stripEdgeCount; i++) {
-					int ei = stripEdges [i];
-					Edge e = unwrappedModel.GetEdgeAt (ei);
-
-					int[] vertexIndices = new int[] {e.GetFromVertexIndex (), e.GetToVertexIndex ()};
-					for (int j = 0; j < 2; j++) {
-						int vi = vertexIndices [j];
-						StripVertex sv = new StripVertex (vi);
-						sv.distanceFromPrevious = currentDist;
-						sv.hasUv = unwrappedModel.IsUvSetAt (vi);
-						sv.uv = unwrappedModel.GetUvAt (vi);
-						stripVertices.Add (sv);
-
-						if (j == 0) {
-							currentDist += e.GetLength (unwrappedModel);
-						}
-					}
-				}
-				if (stripVertices.Count > 0) {
-					// Set first and last UV if not already set:
-					if (!stripVertices [0].hasUv) {
-						stripVertices [0].uv = Vector2.zero;
-						stripVertices [0].hasUv = true;
-					}
-					if (!stripVertices [stripVertices.Count - 1].hasUv) {
-						stripVertices [stripVertices.Count - 1].uv = new Vector2 (1, 0);
-						stripVertices [stripVertices.Count - 1].hasUv = true;
-					}
-
-					// Now interpolate all missing values
-					for (int i = 1; i < stripVertices.Count - 1; i++) {
-						if (!stripVertices [i].hasUv) {
-							// Interpolate until next known; first find the next known:
-							int nextWithUv = -1;
-							float distToNextKnown = 0.0f;
-							for (int j = i + 1; j < stripVertices.Count; j++) {
-								distToNextKnown += stripVertices [j].distanceFromPrevious;
-								if (stripVertices [j].hasUv) {
-									// Found with uv
-									nextWithUv = j;
-									break;
-								}
-							}
-							float currentDistFromPrev = 0f;
-							for (int j = i; j < nextWithUv; j++) {
-								int vi = stripVertices [j].vertexIndex;
-								currentDistFromPrev += stripVertices [j].distanceFromPrevious;
-
-								Vector2 uvFrom = stripVertices [i - 1].uv;
-								Vector2 uvTo = stripVertices [nextWithUv].uv;
-								float t = currentDistFromPrev / distToNextKnown;
-								Vector2 uv = Vector2.Lerp (uvFrom, uvTo, t);
-								// TODO we don't actually need stripvertex uv's after this point so
-								// following two lines are unnecessary:
-								stripVertices [j].uv = uv;
-								stripVertices [j].hasUv = true;
-								unwrappedModel.SetUvAt (vi, uv);
-							}
-							// Continue main loop after this segment:
-							i = nextWithUv + 1;
-						}
-					}
-				}
-			}
+			BatchOperation ("UV Unwrap", DoInterpolateWrappedModelUVs);
 
 			//Vector2[] uvs = unwrappedModel.GetUvs ();
 //			int vertexCount = unwrappedModel.GetVertexCount ();
@@ -139,6 +68,97 @@ namespace Paths.MeshGenerator.Extruder.Model
 			FireRefreshEvent ();
 		}
 
+		private List<StripVertex> BuildVertexStrip (int stripIndex)
+		{
+			List<StripVertex> stripVertices = new List<StripVertex> ();
+			int[] stripEdges = unwrappedModel.GetStripAt (stripIndex);
+			int stripEdgeCount = stripEdges.Length;
+			if (stripEdgeCount > 0) {
+
+				// First vertex is the 'from' vertex of the first edge:
+				Edge firstEdge = GetEdgeAt (stripEdges [0]);
+				int firstVertex = firstEdge.GetFromVertexIndex ();
+				StripVertex firstStripVertex = new StripVertex (firstVertex);
+				firstStripVertex.distanceFromPrevious = 0f;
+				firstStripVertex.hasUv = IsUvSetAt (firstVertex);
+				firstStripVertex.uv = GetUvAt (firstVertex);
+				stripVertices.Add (firstStripVertex);
+				float currentDist = firstEdge.GetLength (unwrappedModel);
+
+				// Add 'to' vertices of each edge:
+				for (int i = 0; i < stripEdgeCount; i++) {
+					int ei = stripEdges [i];
+					Edge e = GetEdgeAt (ei);
+					
+					int vi = e.GetToVertexIndex ();
+					StripVertex sv = new StripVertex (vi);
+					sv.distanceFromPrevious = currentDist;
+					sv.hasUv = IsUvSetAt (vi);
+					sv.uv = GetUvAt (vi);
+					stripVertices.Add (sv);
+					
+					currentDist += e.GetLength (unwrappedModel);
+				}
+			}
+			return stripVertices;
+		}
+		private void DoInterpolateWrappedModelUVs (IDieModel model)
+		{
+			int stripCount = unwrappedModel.GetStripCount ();
+			for (int si = 0; si < stripCount; si++) {
+				
+				List<StripVertex> stripVertices = BuildVertexStrip (si);
+				int vertexCount = stripVertices.Count;
+				if (vertexCount > 0) {
+					// Set first and last UV if not already set:
+					if (!stripVertices [0].hasUv) {
+						stripVertices [0].uv = Vector2.zero;
+						stripVertices [0].hasUv = true;
+						SetUvAt (0, Vector2.zero);
+					}
+					if (!stripVertices [vertexCount - 1].hasUv) {
+						stripVertices [vertexCount - 1].uv = new Vector2 (1, 0);
+						stripVertices [vertexCount - 1].hasUv = true;
+						SetUvAt (vertexCount - 1, new Vector2 (1, 0));
+					}
+					
+					// Now interpolate all missing values
+					for (int i = 0; i < vertexCount; i++) {
+						if (!stripVertices [i].hasUv) {
+							// Interpolate until next known; first find the next known:
+							int nextWithUv = -1;
+							float distToNextKnown = 0.0f;
+							for (int j = i + 1; j < vertexCount; j++) {
+								distToNextKnown += stripVertices [j].distanceFromPrevious;
+								if (stripVertices [j].hasUv) {
+									// Found with uv
+									nextWithUv = j;
+									break;
+								}
+							}
+
+							float currentDistFromPrev = 0f;
+							for (int j = i; j < nextWithUv; j++) {
+								int vi = stripVertices [j].vertexIndex;
+								currentDistFromPrev += stripVertices [j].distanceFromPrevious;
+								
+								Vector2 uvFrom = stripVertices [i - 1].uv;
+								Vector2 uvTo = stripVertices [nextWithUv].uv;
+								float t = currentDistFromPrev / distToNextKnown;
+								Vector2 uv = Vector2.Lerp (uvFrom, uvTo, t);
+								// TODO we don't actually need stripvertex uv's after this point so
+								// following two lines are unnecessary:
+								stripVertices [j].uv = uv;
+								stripVertices [j].hasUv = true;
+								SetUvAt (vi, uv);
+							}
+							// Continue main loop after this segment:
+							i = nextWithUv + 1;
+						}
+					}
+				}
+			}
+		}
 
 
 		public UnwrappedDieModel UnwrappedModel {
@@ -149,22 +169,26 @@ namespace Paths.MeshGenerator.Extruder.Model
 
 		private void Modify (DieModelChangedEventArgs e, Action a)
 		{
-			FireChangedEvent (EventPhase.Before, e);
+//			if (_batchDepth <= 0) {
+//				FireChangedEvent (EventPhase.Before, e);
+//			}
 			a ();
-			FireChangedEvent (EventPhase.After, e);
+//			if (_batchDepth <= 0) {
+//				FireChangedEvent (EventPhase.After, e);
+//			}
 		}
 
-		private void FireChangedEvent (EventPhase phase, DieModelChangedEventArgs e)
-		{
-			if (null != Changed) {
-				try {
-					DieModelChangedEventArgs e2 = new DieModelChangedEventArgs (e, phase);
-					Changed (e2);
-				} catch (Exception ex) {
-					Debug.LogError ("Catched an exception from Changed handler: " + ex);
-				}
-			}
-		}
+//		private void FireChangedEvent (EventPhase phase, DieModelChangedEventArgs e, bool fireInBatch = false)
+//		{
+//			if ((fireInBatch || _batchDepth >= 0) && null != Changed) {
+//				try {
+//					DieModelChangedEventArgs e2 = new DieModelChangedEventArgs (e, phase);
+//					Changed (e2);
+//				} catch (Exception ex) {
+//					Debug.LogError ("Catched an exception from Changed handler: " + ex);
+//				}
+//			}
+//		}
 
 		// IDieModel
 		public int GetVertexCount ()
@@ -295,14 +319,16 @@ namespace Paths.MeshGenerator.Extruder.Model
 		// IMutableDieModel
 		public void AddDieModelChangeHandler (DieModelChangeHandler h)
 		{
-			Changed -= h;
-			Changed += h;
+//			Changed -= h;
+//			Changed += h;
+			((IMutableDieModel)unwrappedModel.WrappedModel).AddDieModelChangeHandler (h);
 		}
 
 		// IMutableDieModel
 		public void RemoveDieModelChangeHandler (DieModelChangeHandler h)
 		{
-			Changed -= h;
+//			Changed -= h;
+			((IMutableDieModel)unwrappedModel.WrappedModel).RemoveDieModelChangeHandler (h);
 		}
 
 		// IMutableDieModel
@@ -391,7 +417,11 @@ namespace Paths.MeshGenerator.Extruder.Model
 		// IMutableDieModel
 		public void ClearUvAt (int index)
 		{
-			unwrappedModel.ClearUvAt (index);
+			DieModelChangedEventArgs e = DieModelChangedEventArgs.VerticesModified (this, index);
+			Modify (e, () => {
+				DoSetVertexAt (index, Vector3.zero);
+				unwrappedModel.ClearUvAt (index);
+			});
 		}
 
 		// IMutableDieModel
@@ -437,15 +467,34 @@ namespace Paths.MeshGenerator.Extruder.Model
 		}
 
 		// IMutableDieModel
-		public void BatchOperation (string name, Action<DieModel> a)
+		public void BatchOperation (string name, Action<IDieModel> a)
 		{
-			throw new NotImplementedException ();
+			IMutableDieModel mutableWrappedModel = unwrappedModel.WrappedModel as IMutableDieModel;
+			mutableWrappedModel.BatchOperation (name, (wmodel) => {
+				a (this);
+			});
+//			try {
+//				_batchDepth++;
+//
+//				DieModelChangedEventArgs e = new DieModelChangedEventArgs (this, EventPhase.Before, name);
+//				FireChangedEvent (EventPhase.Before, e, true);
+//
+//				a (this);
+//
+//				FireChangedEvent (EventPhase.After, e, true);
+//
+//			} finally {
+//				_batchDepth --;
+//			}
 		}
 
 		// IDieModelEditorSupport
 		public void FireRefreshEvent ()
 		{
-			FireChangedEvent (EventPhase.After, DieModelChangedEventArgs.RefreshModel (this));
+//			FireChangedEvent (EventPhase.After, DieModelChangedEventArgs.RefreshModel (this));
+			if (unwrappedModel.WrappedModel is IDieModelEditorSupport) {
+				((IDieModelEditorSupport)unwrappedModel.WrappedModel).FireRefreshEvent ();
+			}
 		}
 		
 		// IDieModelEditorSupport

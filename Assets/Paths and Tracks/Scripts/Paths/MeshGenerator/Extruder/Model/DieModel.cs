@@ -99,7 +99,7 @@ namespace Paths.MeshGenerator.Extruder.Model
 		}
 
 
-		public void BatchOperation (string name, Action<DieModel> a)
+		public void BatchOperation (string name, Action<IDieModel> a)
 		{
 			// In batch
 			try {

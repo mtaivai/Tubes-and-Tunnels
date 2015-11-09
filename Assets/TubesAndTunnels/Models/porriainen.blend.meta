@@ -1,0 +1,140 @@
+fileFormatVersion: 2
+guid: 9aa9a9602a602462c9cf5f69ef79db9b
+timeCreated: 1445194228
+licenseType: Free
+ModelImporter:
+  serializedVersion: 18
+  fileIDToRecycleName:
+    100000: //RootNode
+    100002: Sphere
+    100004: Sphere_001
+    100006: Plane
+    100008: Plane_001
+    100010: Body
+    100012: Head
+    100014: Armature
+    100016: Body_0
+    100018: Bone_001
+    100020: Head_0
+    100022: Wing_L
+    100024: Wing_R
+    100026: WingIK_L
+    100028: WingTip_L
+    100030: WingTip_R
+    100032: Headx
+    100034: Cube
+    100036: Wings
+    400000: //RootNode
+    400002: Sphere
+    400004: Sphere_001
+    400006: Plane
+    400008: Plane_001
+    400010: Body
+    400012: Head
+    400014: Armature
+    400016: Body_0
+    400018: Bone_001
+    400020: Head_0
+    400022: Wing_L
+    400024: Wing_R
+    400026: WingIK_L
+    400028: WingTip_L
+    400030: WingTip_R
+    400032: Headx
+    400034: Cube
+    400036: Wings
+    2300000: Sphere
+    2300002: Sphere_001
+    2300004: Plane
+    2300006: Plane_001
+    2300008: Body
+    2300010: Head
+    2300012: Headx
+    2300014: Cube
+    2300016: Wings
+    3300000: Sphere
+    3300002: Sphere_001
+    3300004: Plane
+    3300006: Plane_001
+    3300008: Body
+    3300010: Head
+    3300012: Headx
+    3300014: Cube
+    3300016: Wings
+    4300000: Sphere_001
+    4300002: Sphere
+    4300004: Plane
+    4300006: Plane_001
+    4300008: Head
+    4300010: Body
+    4300012: Headx
+    4300014: Cube
+    4300016: Wings
+    7400000: Default Take
+    7400002: FlyAction
+    9500000: //RootNode
+    13700000: Body
+    13700002: Head
+    13700004: Wings
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    optimizeGameObjects: 0
+    motionNodeName: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    animationCompression: 3
+    animationRotationError: .5
+    animationPositionError: .5
+    animationScaleError: .5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    importBlendShapes: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    splitTangentsAcrossUV: 1
+    normalImportMode: 0
+    tangentImportMode: 1
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    human: []
+    skeleton: []
+    armTwist: .5
+    foreArmTwist: .5
+    upperLegTwist: .5
+    legTwist: .5
+    armStretch: .0500000007
+    legStretch: .0500000007
+    feetSpacing: 0
+    rootMotionBoneName: Body_0
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 2
+  additionalBone: 0
+  userData: 
+  assetBundleName: porriainen
+  assetBundleVariant: 

@@ -149,7 +149,7 @@ namespace Paths.MeshGenerator.Extruder.Model
 		void RemoveEdgesAt (bool deleteOrphanVertices, IEnumerable<int> indices);
 
 
-		void BatchOperation (string name, Action<DieModel> a);
+		void BatchOperation (string name, Action<IDieModel> a);
 	}
 
 }

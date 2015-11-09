@@ -244,11 +244,16 @@ namespace Paths.MeshGenerator.Extruder.Model
 			}
 			return -1;
 		}
-		public int GetVertexUnwrappedStripIndex (int index)
+		public int GetVertexStripIndex (int index)
 		{
 			return vertices [index].stripIndex;
 		}
-
+		public int GetEdgeStripIndex (int index)
+		{
+			int vertexIndex = this.edges [index].GetFromVertexIndex ();
+			return GetVertexStripIndex (vertexIndex);
+		}
+		
 		public void SetUvAt (int index, Vector2 uv)
 		{
 			UnwrappedVertex vertex = vertices [index];
